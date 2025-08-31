@@ -6,7 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { MainLayout } from "./layouts/main-layouts";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import "./App.css";
-import Dashboard from "./pages/Dashboard";
+import Dashboard from "./pages/dashboard";
 import Transactions from "./pages/Transactions";
 import Goals from "./pages/Goals";
 import Envelopes from "./pages/Envelopes";
