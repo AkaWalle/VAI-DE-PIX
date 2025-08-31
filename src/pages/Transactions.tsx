@@ -8,7 +8,8 @@ import { ActionButton } from '@/components/ui/action-button';
 import { TransactionForm } from '@/components/forms/TransactionForm';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Search, Filter, Upload, Download, Trash2 } from 'lucide-react';
+import { Plus, Search, Filter, Upload, Download, Trash2, CheckSquare, Square } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,13 +31,14 @@ import {
 } from '@/components/ui/table';
 
 export default function Transactions() {
-  const { transactions, categories, accounts, clearAllTransactions } = useFinancialStore();
+  const { transactions, categories, accounts, clearAllTransactions, deleteTransaction } = useFinancialStore();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState<'all' | 'income' | 'expense'>('all');
   const [isImporting, setIsImporting] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [selectedTransactions, setSelectedTransactions] = useState<Set<string>>(new Set());
 
   // Filter transactions
   const filteredTransactions = transactions.filter((transaction) => {
@@ -52,6 +54,28 @@ export default function Transactions() {
   const getAccountName = (accountId: string) => {
     return accounts.find(a => a.id === accountId)?.name || 'Conta não encontrada';
   };
+
+  // Funções de seleção
+  const handleSelectTransaction = (transactionId: string, checked: boolean) => {
+    const newSelected = new Set(selectedTransactions);
+    if (checked) {
+      newSelected.add(transactionId);
+    } else {
+      newSelected.delete(transactionId);
+    }
+    setSelectedTransactions(newSelected);
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedTransactions(new Set(filteredTransactions.map(t => t.id)));
+    } else {
+      setSelectedTransactions(new Set());
+    }
+  };
+
+  const isAllSelected = filteredTransactions.length > 0 && selectedTransactions.size === filteredTransactions.length;
+  const isIndeterminate = selectedTransactions.size > 0 && selectedTransactions.size < filteredTransactions.length;
 
   const handleImport = async () => {
     setIsImporting(true);
@@ -129,10 +153,42 @@ export default function Transactions() {
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       clearAllTransactions();
+      setSelectedTransactions(new Set());
       
       toast({
         title: "Transações apagadas!",
         description: "Todas as transações foram removidas com sucesso.",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro ao apagar",
+        description: "Ocorreu um erro ao tentar apagar as transações.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedTransactions.size === 0) return;
+    
+    setIsDeleting(true);
+    try {
+      // Simular delay
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      // Apagar transações selecionadas
+      selectedTransactions.forEach(id => {
+        deleteTransaction(id);
+      });
+      
+      const count = selectedTransactions.size;
+      setSelectedTransactions(new Set());
+      
+      toast({
+        title: "Transações apagadas!",
+        description: `${count} transação${count > 1 ? 'ões' : ''} removida${count > 1 ? 's' : ''} com sucesso.`,
       });
     } catch (error) {
       toast({
@@ -155,7 +211,7 @@ export default function Transactions() {
             Gerencie suas receitas e despesas
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <ActionButton 
             variant="outline" 
             size="sm"
@@ -177,15 +233,64 @@ export default function Transactions() {
             Exportar
           </ActionButton>
           
+          {/* Botões de seleção - aparecem apenas quando há transações */}
+          {filteredTransactions.length > 0 && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleSelectAll(!isAllSelected)}
+                className="flex items-center gap-2"
+              >
+                {isAllSelected ? <CheckSquare className="h-4 w-4" /> : <Square className="h-4 w-4" />}
+                {isAllSelected ? 'Desmarcar Todas' : 'Selecionar Todas'}
+              </Button>
+              
+              {selectedTransactions.size > 0 && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <ActionButton 
+                      variant="destructive" 
+                      size="sm"
+                      icon={Trash2}
+                      loading={isDeleting}
+                      loadingText="Apagando..."
+                    >
+                      Apagar Selecionadas ({selectedTransactions.size})
+                    </ActionButton>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Apagar transações selecionadas?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Esta ação não pode ser desfeita. {selectedTransactions.size} transação{selectedTransactions.size > 1 ? 'ões' : ''} será{selectedTransactions.size > 1 ? 'ão' : ''} permanentemente removida{selectedTransactions.size > 1 ? 's' : ''}.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction 
+                        onClick={handleDeleteSelected}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Sim, apagar selecionadas
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </>
+          )}
+
           {transactions.length > 0 && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <ActionButton 
-                  variant="destructive" 
+                  variant="outline" 
                   size="sm"
                   icon={Trash2}
                   loading={isDeleting}
                   loadingText="Apagando..."
+                  className="text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
                 >
                   Apagar Todas
                 </ActionButton>
@@ -334,6 +439,13 @@ export default function Transactions() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={isAllSelected}
+                      onCheckedChange={handleSelectAll}
+                      aria-label="Selecionar todas as transações"
+                    />
+                  </TableHead>
                   <TableHead>Data</TableHead>
                   <TableHead>Descrição</TableHead>
                   <TableHead>Categoria</TableHead>
@@ -345,7 +457,7 @@ export default function Transactions() {
               <TableBody>
                 {filteredTransactions.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="h-24 text-center">
+                    <TableCell colSpan={7} className="h-24 text-center">
                       <div className="flex flex-col items-center gap-2">
                         <p className="text-muted-foreground">Nenhuma transação encontrada</p>
                         <TransactionForm 
@@ -360,7 +472,14 @@ export default function Transactions() {
                   </TableRow>
                 ) : (
                   filteredTransactions.map((transaction) => (
-                    <TableRow key={transaction.id}>
+                    <TableRow key={transaction.id} className={selectedTransactions.has(transaction.id) ? 'bg-muted/50' : ''}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedTransactions.has(transaction.id)}
+                          onCheckedChange={(checked) => handleSelectTransaction(transaction.id, checked as boolean)}
+                          aria-label={`Selecionar transação ${transaction.description}`}
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">
                         {formatDate(transaction.date)}
                       </TableCell>
