@@ -88,6 +88,7 @@ interface FinancialStore {
   addTransaction: (transaction: Omit<Transaction, 'id' | 'createdAt'>) => void;
   updateTransaction: (id: string, updates: Partial<Transaction>) => void;
   deleteTransaction: (id: string) => void;
+  clearAllTransactions: () => void;
   
   addAccount: (account: Omit<Account, 'id'>) => void;
   updateAccount: (id: string, updates: Partial<Account>) => void;
@@ -107,6 +108,10 @@ interface FinancialStore {
   setSelectedAccount: (accountId: string | null) => void;
   setDateRange: (range: { from: Date; to: Date }) => void;
   
+  // User management
+  initializeUserData: (userId: string) => void;
+  clearUserData: () => void;
+  
   // Computed values
   getTotalBalance: () => number;
   getIncomeThisMonth: () => number;
@@ -115,7 +120,10 @@ interface FinancialStore {
   getCashflow: (months: number) => Array<{ month: string; income: number; expense: number; balance: number }>;
 }
 
-// Mock data
+// IDs dos usuários de teste que terão dados mockados
+const TEST_USER_IDS = ['1', '2'];
+
+// Mock data - apenas para usuários de teste
 const mockAccounts: Account[] = [
   { id: '1', name: 'Conta Corrente', type: 'bank', balance: 15420.50, currency: 'BRL', color: '#22c55e' },
   { id: '2', name: 'Poupança', type: 'bank', balance: 8900.00, currency: 'BRL', color: '#3b82f6' },
@@ -123,6 +131,13 @@ const mockAccounts: Account[] = [
   { id: '4', name: 'Cartão de Crédito', type: 'card', balance: -1200.80, currency: 'BRL', color: '#ef4444' },
 ];
 
+// Dados básicos para novos usuários
+const defaultAccounts: Account[] = [
+  { id: '1', name: 'Conta Principal', type: 'bank', balance: 0, currency: 'BRL', color: '#22c55e' },
+  { id: '2', name: 'Carteira', type: 'cash', balance: 0, currency: 'BRL', color: '#f59e0b' },
+];
+
+// Categorias para usuários de teste
 const mockCategories: Category[] = [
   { id: '1', name: 'Alimentação', type: 'expense', icon: '🍽️', color: '#f59e0b' },
   { id: '2', name: 'Transporte', type: 'expense', icon: '🚗', color: '#3b82f6' },
@@ -132,6 +147,16 @@ const mockCategories: Category[] = [
   { id: '6', name: 'Salário', type: 'income', icon: '💰', color: '#22c55e' },
   { id: '7', name: 'Freelance', type: 'income', icon: '💻', color: '#10b981' },
   { id: '8', name: 'Investimentos', type: 'income', icon: '📈', color: '#059669' },
+];
+
+// Categorias básicas para novos usuários
+const defaultCategories: Category[] = [
+  { id: '1', name: 'Alimentação', type: 'expense', icon: '🍽️', color: '#f59e0b' },
+  { id: '2', name: 'Transporte', type: 'expense', icon: '🚗', color: '#3b82f6' },
+  { id: '3', name: 'Moradia', type: 'expense', icon: '🏠', color: '#8b5cf6' },
+  { id: '4', name: 'Outros', type: 'expense', icon: '💳', color: '#6b7280' },
+  { id: '5', name: 'Salário', type: 'income', icon: '💰', color: '#22c55e' },
+  { id: '6', name: 'Outros', type: 'income', icon: '💵', color: '#10b981' },
 ];
 
 const mockTransactions: Transaction[] = [
@@ -231,12 +256,12 @@ const mockEnvelopes: Envelope[] = [
 export const useFinancialStore = create<FinancialStore>()(
   persist(
     (set, get) => ({
-      // Initial data
-      transactions: mockTransactions,
-      accounts: mockAccounts,
-      categories: mockCategories,
-      goals: mockGoals,
-      envelopes: mockEnvelopes,
+      // Initial data - será definido dinamicamente baseado no usuário
+      transactions: [],
+      accounts: [],
+      categories: [],
+      goals: [],
+      envelopes: [],
       automationRules: [],
       
       // UI State
@@ -264,6 +289,10 @@ export const useFinancialStore = create<FinancialStore>()(
       
       deleteTransaction: (id) => set((state) => ({
         transactions: state.transactions.filter(t => t.id !== id)
+      })),
+
+      clearAllTransactions: () => set((state) => ({
+        transactions: []
       })),
       
       addAccount: (account) => set((state) => ({
@@ -316,6 +345,39 @@ export const useFinancialStore = create<FinancialStore>()(
       
       setSelectedAccount: (accountId) => set({ selectedAccount: accountId }),
       setDateRange: (range) => set({ dateRange: range }),
+
+      // User management
+      initializeUserData: (userId: string) => {
+        const isTestUser = TEST_USER_IDS.includes(userId);
+        
+        set({
+          transactions: isTestUser ? mockTransactions : [],
+          accounts: isTestUser ? mockAccounts : defaultAccounts,
+          categories: isTestUser ? mockCategories : defaultCategories,
+          goals: isTestUser ? mockGoals : [],
+          envelopes: isTestUser ? mockEnvelopes : [],
+          automationRules: [],
+          selectedAccount: null,
+          dateRange: {
+            from: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+            to: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0)
+          }
+        });
+      },
+
+      clearUserData: () => set({
+        transactions: [],
+        accounts: [],
+        categories: [],
+        goals: [],
+        envelopes: [],
+        automationRules: [],
+        selectedAccount: null,
+        dateRange: {
+          from: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+          to: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0)
+        }
+      }),
       
       // Computed values
       getTotalBalance: () => {

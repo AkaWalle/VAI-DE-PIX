@@ -60,3 +60,4 @@ coverage/
 
 # Temporary files
 *.local
+.vercel

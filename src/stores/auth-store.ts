@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { useFinancialStore } from './financial-store';
 
 // Função para gerar ID único compatível com todos os navegadores
 function generateUniqueId(): string {
@@ -82,6 +83,9 @@ export const useAuthStore = create<AuthStore>()(
             isAuthenticated: true, 
             isLoading: false 
           });
+
+          // Inicializar dados financeiros do usuário
+          useFinancialStore.getState().initializeUserData(user.id);
         } catch (error) {
           set({ isLoading: false });
           throw error;
@@ -124,6 +128,9 @@ export const useAuthStore = create<AuthStore>()(
             isAuthenticated: true, 
             isLoading: false 
           });
+
+          // Inicializar dados financeiros do usuário (novos usuários têm dados zerados)
+          useFinancialStore.getState().initializeUserData(user.id);
         } catch (error) {
           set({ isLoading: false });
           throw error;
@@ -136,6 +143,9 @@ export const useAuthStore = create<AuthStore>()(
           isAuthenticated: false, 
           isLoading: false 
         });
+        
+        // Limpar dados financeiros
+        useFinancialStore.getState().clearUserData();
       },
 
       updateProfile: (updates: Partial<User>) => {

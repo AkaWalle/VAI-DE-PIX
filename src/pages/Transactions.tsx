@@ -8,7 +8,18 @@ import { ActionButton } from '@/components/ui/action-button';
 import { TransactionForm } from '@/components/forms/TransactionForm';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Search, Filter, Upload, Download } from 'lucide-react';
+import { Plus, Search, Filter, Upload, Download, Trash2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import {
   Table,
   TableBody,
@@ -19,12 +30,13 @@ import {
 } from '@/components/ui/table';
 
 export default function Transactions() {
-  const { transactions, categories, accounts } = useFinancialStore();
+  const { transactions, categories, accounts, clearAllTransactions } = useFinancialStore();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState<'all' | 'income' | 'expense'>('all');
   const [isImporting, setIsImporting] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Filter transactions
   const filteredTransactions = transactions.filter((transaction) => {
@@ -110,6 +122,29 @@ export default function Transactions() {
     }
   };
 
+  const handleClearAllTransactions = async () => {
+    setIsDeleting(true);
+    try {
+      // Simular delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      clearAllTransactions();
+      
+      toast({
+        title: "Transações apagadas!",
+        description: "Todas as transações foram removidas com sucesso.",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro ao apagar",
+        description: "Ocorreu um erro ao tentar apagar as transações.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -141,6 +176,40 @@ export default function Transactions() {
           >
             Exportar
           </ActionButton>
+          
+          {transactions.length > 0 && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <ActionButton 
+                  variant="destructive" 
+                  size="sm"
+                  icon={Trash2}
+                  loading={isDeleting}
+                  loadingText="Apagando..."
+                >
+                  Apagar Todas
+                </ActionButton>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Apagar todas as transações?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta ação não pode ser desfeita. Todas as suas transações ({transactions.length}) serão permanentemente removidas.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={handleClearAllTransactions}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Sim, apagar todas
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+          
           <TransactionForm />
         </div>
       </div>
