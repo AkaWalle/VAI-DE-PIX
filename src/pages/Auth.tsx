@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, DollarSign, TrendingUp, Shield, Zap } from 'lucide-react';
+import { Loader2, Banknote, TrendingUp, Shield, Zap } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Auth() {
@@ -80,34 +80,41 @@ export default function Auth() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex">
       {/* Left Panel - Branding */}
-      <div className="hidden lg:flex lg:flex-1 bg-gradient-primary text-primary-foreground p-12 flex-col justify-center">
-        <div className="space-y-8">
+      <div className="hidden lg:flex lg:flex-1 bg-gradient-primary text-primary-foreground pl-32 pr-16 py-12 flex-col justify-center relative overflow-hidden">
+        {/* Background Image */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-70"
+          style={{
+            backgroundImage: "url('/piggy-bank-background.jpg.png')"
+          }}
+        />
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-br from-green-500/80 via-green-600/70 to-emerald-600/80" />
+        
+        <div className="max-w-lg space-y-8 relative z-10">
           <div className="flex items-center gap-3">
-            <DollarSign className="h-10 w-10" />
-            <h1 className="text-3xl font-bold">VAI DE PIX</h1>
+            <Banknote className="h-10 w-10 drop-shadow-lg" />
+            <h1 className="text-3xl font-bold text-white drop-shadow-lg">VAI DE PIX</h1>
           </div>
           
-          <div className="space-y-6 text-primary-foreground/90">
-            <h2 className="text-4xl font-bold leading-tight">
-              Controle suas finanças como um profissional
+          <div className="space-y-6">
+            <h2 className="text-4xl font-bold leading-tight text-white drop-shadow-lg">
+              Domine suas finanças com inteligência
             </h2>
-            <p className="text-xl">
+            <p className="text-xl text-white/95 drop-shadow-md">
               Sistema completo de gestão financeira pessoal com análises inteligentes e automações.
             </p>
           </div>
           
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <TrendingUp className="h-5 w-5 text-primary-foreground/80" />
-              <span>Análises avançadas e relatórios detalhados</span>
+              <span className="text-lg text-white drop-shadow-md">📊 Relatórios detalhados para decisões melhores</span>
             </div>
             <div className="flex items-center gap-3">
-              <Shield className="h-5 w-5 text-primary-foreground/80" />
-              <span>Seus dados seguros e criptografados</span>
+              <span className="text-lg text-white drop-shadow-md">🔒 Dados 100% seguros e criptografados</span>
             </div>
             <div className="flex items-center gap-3">
-              <Zap className="h-5 w-5 text-primary-foreground/80" />
-              <span>Automações inteligentes para economizar tempo</span>
+              <span className="text-lg text-white drop-shadow-md">⚡ Automação para ganhar tempo no dia a dia</span>
             </div>
           </div>
         </div>
@@ -119,11 +126,11 @@ export default function Auth() {
           {/* Mobile Logo */}
           <div className="lg:hidden text-center">
             <div className="flex items-center justify-center gap-2 mb-4">
-              <DollarSign className="h-8 w-8 text-primary" />
+              <Banknote className="h-8 w-8 text-primary" />
               <h1 className="text-2xl font-bold">VAI DE PIX</h1>
             </div>
             <p className="text-muted-foreground">
-              Controle suas finanças de forma inteligente
+              Domine suas finanças com inteligência
             </p>
           </div>
 
