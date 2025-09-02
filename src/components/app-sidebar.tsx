@@ -110,7 +110,7 @@ export function AppSidebar() {
   return (
     <Sidebar className={cn("border-r", collapsed ? "w-16" : "w-64")} collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border p-4">
-        <div className="flex items-center gap-3">
+        <div className={cn("flex items-center", collapsed ? "justify-center" : "gap-3")}>
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-primary">
             <span className="text-sm font-bold text-white">VP</span>
           </div>
@@ -125,12 +125,15 @@ export function AppSidebar() {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Principal</SidebarGroupLabel>
+          {!collapsed && <SidebarGroupLabel>Principal</SidebarGroupLabel>}
           <SidebarGroupContent>
             <SidebarMenu>
               {mainNavItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
+                  <SidebarMenuButton 
+                    asChild 
+                    tooltip={collapsed ? item.title : undefined}
+                  >
                     <NavLink 
                       to={item.url} 
                       end={item.url === "/"}
@@ -148,12 +151,15 @@ export function AppSidebar() {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel>Análises</SidebarGroupLabel>
+          {!collapsed && <SidebarGroupLabel>Análises</SidebarGroupLabel>}
           <SidebarGroupContent>
             <SidebarMenu>
               {reportItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
+                  <SidebarMenuButton 
+                    asChild 
+                    tooltip={collapsed ? item.title : undefined}
+                  >
                     <NavLink 
                       to={item.url} 
                       className={getNavClassName(item.url)}
@@ -170,12 +176,15 @@ export function AppSidebar() {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel>Sistema</SidebarGroupLabel>
+          {!collapsed && <SidebarGroupLabel>Sistema</SidebarGroupLabel>}
           <SidebarGroupContent>
             <SidebarMenu>
               {configItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
+                  <SidebarMenuButton 
+                    asChild 
+                    tooltip={collapsed ? item.title : undefined}
+                  >
                     <NavLink 
                       to={item.url} 
                       className={getNavClassName(item.url)}
@@ -193,7 +202,7 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border p-4">
-        <div className="flex items-center gap-3">
+        <div className={cn("flex items-center", collapsed ? "justify-center" : "gap-3")}>
           <Avatar className="h-8 w-8">
             <AvatarFallback className="bg-primary text-primary-foreground text-sm">
               {user?.name.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
@@ -209,15 +218,17 @@ export function AppSidebar() {
               </p>
             </div>
           )}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 text-sidebar-foreground hover:bg-sidebar-accent"
-            title="Sair"
-            onClick={logout}
-          >
-            <LogOut className="h-4 w-4" />
-          </Button>
+          {!collapsed && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 text-sidebar-foreground hover:bg-sidebar-accent"
+              title="Sair"
+              onClick={logout}
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </SidebarFooter>
     </Sidebar>
