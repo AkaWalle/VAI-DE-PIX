@@ -101,7 +101,8 @@ export function AppSidebar() {
   }
 
   const getNavClassName = (path: string) => cn(
-    "w-full justify-start transition-colors",
+    "w-full transition-colors",
+    collapsed ? "justify-center" : "justify-start",
     isActive(path) 
       ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" 
       : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
@@ -109,7 +110,7 @@ export function AppSidebar() {
 
   return (
     <Sidebar className={cn("border-r", collapsed ? "w-16" : "w-64")} collapsible="icon">
-      <SidebarHeader className="border-b border-sidebar-border p-4">
+      <SidebarHeader className={cn("border-b border-sidebar-border", collapsed ? "p-2" : "p-4")}>
         <div className={cn("flex items-center", collapsed ? "justify-center" : "gap-3")}>
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-primary">
             <span className="text-sm font-bold text-white">VP</span>
@@ -123,16 +124,17 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent>
+      <SidebarContent className={collapsed ? "px-0" : ""}>
         <SidebarGroup>
           {!collapsed && <SidebarGroupLabel>Principal</SidebarGroupLabel>}
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className={collapsed ? "flex flex-col items-center" : ""}>
               {mainNavItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
+                <SidebarMenuItem key={item.title} className={collapsed ? "flex justify-center" : ""}>
                   <SidebarMenuButton 
                     asChild 
                     tooltip={collapsed ? item.title : undefined}
+                    className={collapsed ? "!w-12 !h-12 !p-0 !justify-center" : ""}
                   >
                     <NavLink 
                       to={item.url} 
@@ -153,12 +155,13 @@ export function AppSidebar() {
         <SidebarGroup>
           {!collapsed && <SidebarGroupLabel>Análises</SidebarGroupLabel>}
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className={collapsed ? "flex flex-col items-center" : ""}>
               {reportItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
+                <SidebarMenuItem key={item.title} className={collapsed ? "flex justify-center" : ""}>
                   <SidebarMenuButton 
                     asChild 
                     tooltip={collapsed ? item.title : undefined}
+                    className={collapsed ? "!w-12 !h-12 !p-0 !justify-center" : ""}
                   >
                     <NavLink 
                       to={item.url} 
@@ -178,12 +181,13 @@ export function AppSidebar() {
         <SidebarGroup>
           {!collapsed && <SidebarGroupLabel>Sistema</SidebarGroupLabel>}
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className={collapsed ? "flex flex-col items-center" : ""}>
               {configItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
+                <SidebarMenuItem key={item.title} className={collapsed ? "flex justify-center" : ""}>
                   <SidebarMenuButton 
                     asChild 
                     tooltip={collapsed ? item.title : undefined}
+                    className={collapsed ? "!w-12 !h-12 !p-0 !justify-center" : ""}
                   >
                     <NavLink 
                       to={item.url} 
@@ -201,7 +205,7 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border p-4">
+      <SidebarFooter className={cn("border-t border-sidebar-border", collapsed ? "p-2" : "p-4")}>
         <div className={cn("flex items-center", collapsed ? "justify-center" : "gap-3")}>
           <Avatar className="h-8 w-8">
             <AvatarFallback className="bg-primary text-primary-foreground text-sm">
