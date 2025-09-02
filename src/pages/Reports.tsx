@@ -233,6 +233,35 @@ export default function Reports() {
                     formatCurrency(Number(value)),
                     name === 'income' ? 'Receitas' : 'Despesas'
                   ]}
+                  position={{ x: 0, y: 0 }}
+                  allowEscapeViewBox={{ x: true, y: true }}
+                  contentStyle={{
+                    background: 'hsl(var(--card))',
+                    color: 'hsl(var(--card-foreground))',
+                    border: '1px solid hsl(var(--border))',
+                    padding: '8px 12px',
+                    borderRadius: 8,
+                    boxShadow: '0 10px 15px -3px rgba(0,0,0,0.3), 0 4px 6px -2px rgba(0,0,0,0.1)',
+                    opacity: 1,
+                    backdropFilter: 'none',
+                    zIndex: 1000
+                  }}
+                  labelStyle={{
+                    color: 'hsl(var(--card-foreground))',
+                    marginBottom: 4,
+                    fontWeight: 500
+                  }}
+                  itemStyle={{
+                    color: 'hsl(var(--card-foreground))',
+                    padding: 0,
+                    lineHeight: 1.2,
+                    fontWeight: 600
+                  }}
+                  wrapperStyle={{
+                    outline: 'none',
+                    zIndex: 1000
+                  }}
+                  offset={20}
                 />
                 <Bar dataKey="income" fill="hsl(var(--income))" name="income" />
                 <Bar dataKey="expense" fill="hsl(var(--expense))" name="expense" />
@@ -253,25 +282,52 @@ export default function Reports() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <RechartsPieChart>
-                <Pie
-                  data={categoryExpenses.slice(0, 6)}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {categoryExpenses.slice(0, 6).map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value) => [formatCurrency(Number(value)), 'Valor']} />
-              </RechartsPieChart>
-            </ResponsiveContainer>
+            <div className="flex flex-col lg:flex-row gap-6">
+              {/* Gráfico */}
+              <div className="flex-1">
+                <ResponsiveContainer width="100%" height={300}>
+                  <RechartsPieChart>
+                    <Pie
+                      data={categoryExpenses.slice(0, 6)}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={false}
+                      outerRadius={100}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {categoryExpenses.slice(0, 6).map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+
+                  </RechartsPieChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Legenda */}
+              <div className="flex flex-col justify-center gap-3 min-w-[200px]">
+                <h4 className="text-sm font-semibold text-muted-foreground mb-2">Legenda</h4>
+                {categoryExpenses.slice(0, 6).map((entry, index) => {
+                  const percentage = ((entry.value / categoryExpenses.reduce((sum, item) => sum + item.value, 0)) * 100).toFixed(1);
+                  return (
+                    <div key={index} className="flex items-center gap-3">
+                      <div 
+                        className="w-4 h-4 rounded-full flex-shrink-0" 
+                        style={{ backgroundColor: entry.color }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium truncate">{entry.name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {formatCurrency(entry.value)} ({percentage}%)
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>

@@ -6,10 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ActionButton } from '@/components/ui/action-button';
 import { TransactionForm } from '@/components/forms/TransactionForm';
+import { BankImportDialog } from '@/components/forms/BankImportDialog';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Search, Filter, Upload, Download, Trash2, CheckSquare, Square } from 'lucide-react';
+import { Plus, Search, Filter, Upload, Download, Trash2, CheckSquare, Square, Calendar, X } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,16 +37,50 @@ export default function Transactions() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState<'all' | 'income' | 'expense'>('all');
-  const [isImporting, setIsImporting] = useState(false);
+
   const [isExporting, setIsExporting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [selectedTransactions, setSelectedTransactions] = useState<Set<string>>(new Set());
+  
+  // Filtros de data
+  const [dateFilter, setDateFilter] = useState<'all' | 'specific' | 'month' | 'year'>('all');
+  const [specificDate, setSpecificDate] = useState('');
+  const [selectedMonth, setSelectedMonth] = useState('');
+  const [selectedYear, setSelectedYear] = useState('');
 
   // Filter transactions
   const filteredTransactions = transactions.filter((transaction) => {
     const matchesSearch = transaction.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = selectedType === 'all' || transaction.type === selectedType;
-    return matchesSearch && matchesType;
+    
+    // Filtro de data
+    let matchesDate = true;
+    if (dateFilter !== 'all') {
+      const transactionDate = new Date(transaction.date);
+      
+      switch (dateFilter) {
+        case 'specific':
+          if (specificDate) {
+            const filterDate = new Date(specificDate);
+            matchesDate = transactionDate.toDateString() === filterDate.toDateString();
+          }
+          break;
+        case 'month':
+          if (selectedMonth) {
+            const [year, month] = selectedMonth.split('-');
+            matchesDate = transactionDate.getFullYear() === parseInt(year) && 
+                         transactionDate.getMonth() === parseInt(month) - 1;
+          }
+          break;
+        case 'year':
+          if (selectedYear) {
+            matchesDate = transactionDate.getFullYear() === parseInt(selectedYear);
+          }
+          break;
+      }
+    }
+    
+    return matchesSearch && matchesType && matchesDate;
   });
 
   const getCategoryName = (categoryId: string) => {
@@ -53,6 +89,36 @@ export default function Transactions() {
 
   const getAccountName = (accountId: string) => {
     return accounts.find(a => a.id === accountId)?.name || 'Conta não encontrada';
+  };
+
+  // Função para limpar filtros
+  const clearFilters = () => {
+    setSearchTerm('');
+    setSelectedType('all');
+    setDateFilter('all');
+    setSpecificDate('');
+    setSelectedMonth('');
+    setSelectedYear('');
+  };
+
+  // Gerar opções de mês e ano baseadas nas transações
+  const getAvailableMonths = () => {
+    const months = new Set<string>();
+    transactions.forEach(transaction => {
+      const date = new Date(transaction.date);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      months.add(monthKey);
+    });
+    return Array.from(months).sort().reverse();
+  };
+
+  const getAvailableYears = () => {
+    const years = new Set<number>();
+    transactions.forEach(transaction => {
+      const date = new Date(transaction.date);
+      years.add(date.getFullYear());
+    });
+    return Array.from(years).sort((a, b) => b - a);
   };
 
   // Funções de seleção
@@ -77,25 +143,7 @@ export default function Transactions() {
   const isAllSelected = filteredTransactions.length > 0 && selectedTransactions.size === filteredTransactions.length;
   const isIndeterminate = selectedTransactions.size > 0 && selectedTransactions.size < filteredTransactions.length;
 
-  const handleImport = async () => {
-    setIsImporting(true);
-    try {
-      // Simular importação
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      toast({
-        title: "Funcionalidade em desenvolvimento",
-        description: "A importação de transações será implementada em breve.",
-      });
-    } catch (error) {
-      toast({
-        title: "Erro na importação",
-        description: "Ocorreu um erro ao tentar importar as transações.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsImporting(false);
-    }
-  };
+
 
   const handleExport = async () => {
     setIsExporting(true);
@@ -212,20 +260,21 @@ export default function Transactions() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <BankImportDialog 
+            trigger={
+              <ActionButton 
+                variant="outline" 
+                size="sm"
+                icon={Download}
+              >
+                Importar Relatório
+              </ActionButton>
+            }
+          />
           <ActionButton 
             variant="outline" 
             size="sm"
             icon={Upload}
-            loading={isImporting}
-            loadingText="Importando..."
-            onClick={handleImport}
-          >
-            Importar
-          </ActionButton>
-          <ActionButton 
-            variant="outline" 
-            size="sm"
-            icon={Download}
             loading={isExporting}
             loadingText="Exportando..."
             onClick={handleExport}
@@ -322,45 +371,160 @@ export default function Transactions() {
       {/* Filters */}
       <Card className="bg-gradient-card shadow-card-custom">
         <CardHeader>
-          <CardTitle>Filtros</CardTitle>
-          <CardDescription>
-            Refine sua busca por transações
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Filtros</CardTitle>
+              <CardDescription>
+                Refine sua busca por transações
+              </CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={clearFilters}
+              className="flex items-center gap-2"
+            >
+              <X className="h-4 w-4" />
+              Limpar Filtros
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Buscar transações..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9"
-              />
+          <div className="space-y-4">
+            {/* Primeira linha: Busca e Tipo */}
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar transações..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant={selectedType === 'all' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setSelectedType('all')}
+                >
+                  Todas
+                </Button>
+                <Button
+                  variant={selectedType === 'income' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setSelectedType('income')}
+                >
+                  Receitas
+                </Button>
+                <Button
+                  variant={selectedType === 'expense' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setSelectedType('expense')}
+                >
+                  Despesas
+                </Button>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <Button
-                variant={selectedType === 'all' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setSelectedType('all')}
-              >
-                Todas
-              </Button>
-              <Button
-                variant={selectedType === 'income' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setSelectedType('income')}
-              >
-                Receitas
-              </Button>
-              <Button
-                variant={selectedType === 'expense' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setSelectedType('expense')}
-              >
-                Despesas
-              </Button>
+
+            {/* Segunda linha: Filtros de Data */}
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Filtro por Data:</span>
+              </div>
+              
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant={dateFilter === 'all' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setDateFilter('all')}
+                >
+                  Todas as Datas
+                </Button>
+                <Button
+                  variant={dateFilter === 'specific' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setDateFilter('specific')}
+                >
+                  Data Específica
+                </Button>
+                <Button
+                  variant={dateFilter === 'month' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setDateFilter('month')}
+                >
+                  Por Mês
+                </Button>
+                <Button
+                  variant={dateFilter === 'year' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setDateFilter('year')}
+                >
+                  Por Ano
+                </Button>
+              </div>
             </div>
+
+            {/* Terceira linha: Controles de Data */}
+            {dateFilter !== 'all' && (
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                {dateFilter === 'specific' && (
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium">Data:</label>
+                    <Input
+                      type="date"
+                      value={specificDate}
+                      onChange={(e) => setSpecificDate(e.target.value)}
+                      className="w-auto"
+                    />
+                  </div>
+                )}
+                
+                {dateFilter === 'month' && (
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium">Mês:</label>
+                    <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                      <SelectTrigger className="w-[200px]">
+                        <SelectValue placeholder="Selecione o mês" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {getAvailableMonths().map((month) => {
+                          const [year, monthNum] = month.split('-');
+                          const monthName = new Date(parseInt(year), parseInt(monthNum) - 1).toLocaleDateString('pt-BR', { 
+                            month: 'long', 
+                            year: 'numeric' 
+                          });
+                          return (
+                            <SelectItem key={month} value={month}>
+                              {monthName}
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                
+                {dateFilter === 'year' && (
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium">Ano:</label>
+                    <Select value={selectedYear} onValueChange={setSelectedYear}>
+                      <SelectTrigger className="w-[120px]">
+                        <SelectValue placeholder="Selecione o ano" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {getAvailableYears().map((year) => (
+                          <SelectItem key={year} value={year.toString()}>
+                            {year}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

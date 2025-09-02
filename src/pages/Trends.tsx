@@ -30,17 +30,27 @@ export default function Trends() {
   // Análise de tendências
   const last6MonthsData = getCashflow(6);
   const last12MonthsData = getCashflow(12);
+  const last3MonthsData = getCashflow(3);
 
   // Calcular tendências
   const calculateTrend = (data: any[]) => {
-    if (data.length < 2) return { trend: 0, direction: 'neutral' as const };
-    
-    const recent = data.slice(-3).reduce((sum, item) => sum + (item.income - Math.abs(item.expense)), 0) / 3;
-    const older = data.slice(0, 3).reduce((sum, item) => sum + (item.income - Math.abs(item.expense)), 0) / 3;
-    
+    if (data.length < 3) return { trend: 0, direction: 'neutral' as const };
+
+    const recentAvgBase = 3;
+    const recent = data
+      .slice(-recentAvgBase)
+      .reduce((sum, item) => sum + (Number(item.income) - Math.abs(Number(item.expense))), 0) / recentAvgBase;
+    const older = data
+      .slice(0, recentAvgBase)
+      .reduce((sum, item) => sum + (Number(item.income) - Math.abs(Number(item.expense))), 0) / recentAvgBase;
+
+    if (!Number.isFinite(older) || Math.abs(older) === 0) {
+      return { trend: 0, direction: 'neutral' as const };
+    }
+
     const trend = ((recent - older) / Math.abs(older)) * 100;
     const direction = trend > 5 ? 'up' : trend < -5 ? 'down' : 'neutral';
-    
+
     return { trend: Math.abs(trend), direction };
   };
 
@@ -90,18 +100,25 @@ export default function Trends() {
 
   // Previsões simples baseadas em tendências
   const predictions = useMemo(() => {
-    const avgIncome = last6MonthsData.reduce((sum, d) => sum + d.income, 0) / last6MonthsData.length;
-    const avgExpense = last6MonthsData.reduce((sum, d) => sum + Math.abs(d.expense), 0) / last6MonthsData.length;
-    
-    const nextMonthIncome = avgIncome * (1 + (incomeTrend.direction === 'up' ? incomeTrend.trend : -incomeTrend.trend) / 100);
-    const nextMonthExpense = avgExpense * (1 + (expenseTrend.direction === 'up' ? expenseTrend.trend : -expenseTrend.trend) / 100);
-    
+    if (!last3MonthsData.length) {
+      return { income: 0, expense: 0, balance: 0 };
+    }
+
+    const avgIncome = last3MonthsData.reduce((sum, d) => sum + Number(d.income || 0), 0) / last3MonthsData.length;
+    const avgExpense = last3MonthsData.reduce((sum, d) => sum + Math.abs(Number(d.expense || 0)), 0) / last3MonthsData.length;
+
+    const incomeDelta = (incomeTrend.direction === 'up' ? incomeTrend.trend : incomeTrend.direction === 'down' ? -incomeTrend.trend : 0) / 100;
+    const expenseDelta = (expenseTrend.direction === 'up' ? expenseTrend.trend : expenseTrend.direction === 'down' ? -expenseTrend.trend : 0) / 100;
+
+    const nextMonthIncome = Number.isFinite(avgIncome) ? avgIncome * (1 + incomeDelta) : 0;
+    const nextMonthExpense = Number.isFinite(avgExpense) ? avgExpense * (1 + expenseDelta) : 0;
+
     return {
       income: nextMonthIncome,
       expense: nextMonthExpense,
       balance: nextMonthIncome - nextMonthExpense
     };
-  }, [last6MonthsData, incomeTrend, expenseTrend]);
+  }, [last3MonthsData, incomeTrend, expenseTrend]);
 
   return (
     <div className="space-y-6">
@@ -206,7 +223,7 @@ export default function Trends() {
                 />
                 <Tooltip
                   formatter={(value, name) => [
-                    formatCurrency(Number(value)),
+                    formatCurrency(Number(value) || 0),
                     name === 'income' ? 'Receitas' : 'Despesas'
                   ]}
                 />
@@ -251,7 +268,7 @@ export default function Trends() {
                 />
                 <Tooltip
                   formatter={(value, name) => [
-                    formatCurrency(Number(value)),
+                    formatCurrency(Number(value) || 0),
                     name === 'balance' ? 'Saldo' : name === 'income' ? 'Receitas' : 'Despesas'
                   ]}
                 />
@@ -339,7 +356,7 @@ export default function Trends() {
           </div>
           <div className="mt-4 text-center">
             <p className="text-xs text-muted-foreground">
-              * Previsões baseadas na média dos últimos 6 meses e tendências atuais
+              * Previsões baseadas na média dos últimos 3 meses e tendências atuais
             </p>
           </div>
         </CardContent>

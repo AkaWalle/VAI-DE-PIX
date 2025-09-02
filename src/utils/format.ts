@@ -30,6 +30,11 @@ export function formatCurrency(amount: number, options?: {
 export function formatDate(date: string | Date, format: 'short' | 'medium' | 'long' = 'medium'): string {
   const dateObj = typeof date === 'string' ? new Date(date) : date;
   
+  // Verificar se a data é válida
+  if (isNaN(dateObj.getTime())) {
+    return 'Data inválida';
+  }
+  
   switch (format) {
     case 'short':
       return dateObj.toLocaleDateString('pt-BR', {
@@ -54,6 +59,11 @@ export function formatDate(date: string | Date, format: 'short' | 'medium' | 'lo
 
 export function formatDateTime(date: string | Date): string {
   const dateObj = typeof date === 'string' ? new Date(date) : date;
+  
+  // Verificar se a data é válida
+  if (isNaN(dateObj.getTime())) {
+    return 'Data inválida';
+  }
   
   return dateObj.toLocaleString('pt-BR', {
     day: '2-digit',

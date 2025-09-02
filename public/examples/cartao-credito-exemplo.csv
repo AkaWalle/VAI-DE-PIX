@@ -1,0 +1,7 @@
+data_compra,estabelecimento,valor_compra,categoria_estabelecimento,parcelas
+2024-01-12,McDonald's,25.50,Alimentação,1
+2024-01-15,Posto Shell,80.00,Combustível,1
+2024-01-18,Amazon,150.00,E-commerce,1
+2024-01-22,Netflix,32.90,Entretenimento,1
+2024-01-25,Farmácia São Paulo,45.80,Saúde,1
+2024-01-28,Supermercado Pão de Açúcar,180.30,Alimentação,1

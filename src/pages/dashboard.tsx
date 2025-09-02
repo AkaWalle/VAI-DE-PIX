@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { useFinancialStore } from '@/stores/financial-store';
 import { FinancialCard } from '@/components/ui/financial-card';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,6 +28,7 @@ import {
   BarChart,
   Bar
 } from 'recharts';
+// Removed ChartTooltip imports to avoid context requirement outside ChartContainer
 
 const COLORS = ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
 
@@ -37,11 +38,17 @@ export default function Dashboard() {
     getIncomeThisMonth,
     getExpensesThisMonth,
     getCashflow,
+    updateDateRangeToCurrentMonth,
     goals,
     transactions,
     categories,
     accounts
   } = useFinancialStore();
+
+  // Atualizar dateRange para o mês atual quando o componente for montado
+  useEffect(() => {
+    updateDateRangeToCurrentMonth();
+  }, [updateDateRangeToCurrentMonth]);
 
   const totalBalance = getTotalBalance();
   const monthlyIncome = getIncomeThisMonth();
@@ -52,20 +59,29 @@ export default function Dashboard() {
   const categoryData = useMemo(() => {
     const expenseCategories = categories.filter(c => c.type === 'expense');
     const currentMonth = new Date();
-    const monthStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+    const monthStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1, 0, 0, 0, 0);
+    const monthEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0, 23, 59, 59, 999);
+    
+    // Função para parsing consistente de datas (igual ao financial-store)
+    const parseLocalDate = (dateStr: string) => {
+      const [y, m, d] = dateStr.split('-').map(Number);
+      return new Date(y, (m || 1) - 1, d || 1, 12);
+    };
     
     return expenseCategories.map(category => {
-      const categoryTransactions = transactions.filter(t => 
-        t.category === category.id && 
-        t.type === 'expense' &&
-        new Date(t.date) >= monthStart
-      );
+      const categoryTransactions = transactions.filter(t => {
+        const transactionDate = parseLocalDate(t.date);
+        return t.category === category.id && 
+               t.type === 'expense' &&
+               transactionDate >= monthStart &&
+               transactionDate <= monthEnd;
+      });
       
-      const total = categoryTransactions.reduce((sum, t) => sum + Math.abs(t.amount), 0);
+      const total = categoryTransactions.reduce((sum, t) => sum + Math.abs(Number(t.amount) || 0), 0);
       
       return {
         name: category.name,
-        value: total,
+        value: Number.isFinite(total) ? total : 0,
         color: category.color
       };
     }).filter(item => item.value > 0)
@@ -160,6 +176,35 @@ export default function Dashboard() {
                     name === 'income' ? 'Receita' : 
                     name === 'expense' ? 'Despesa' : 'Saldo'
                   ]}
+                  position={{ x: 0, y: 0 }}
+                  allowEscapeViewBox={{ x: true, y: true }}
+                  contentStyle={{
+                    background: 'hsl(var(--card))',
+                    color: 'hsl(var(--card-foreground))',
+                    border: '1px solid hsl(var(--border))',
+                    padding: '8px 12px',
+                    borderRadius: 8,
+                    boxShadow: '0 10px 15px -3px rgba(0,0,0,0.3), 0 4px 6px -2px rgba(0,0,0,0.1)',
+                    opacity: 1,
+                    backdropFilter: 'none',
+                    zIndex: 1000
+                  }}
+                  labelStyle={{
+                    color: 'hsl(var(--card-foreground))',
+                    marginBottom: 4,
+                    fontWeight: 500
+                  }}
+                  itemStyle={{
+                    color: 'hsl(var(--card-foreground))',
+                    padding: 0,
+                    lineHeight: 1.2,
+                    fontWeight: 600
+                  }}
+                  wrapperStyle={{
+                    outline: 'none',
+                    zIndex: 1000
+                  }}
+                  offset={20}
                 />
                 <Area
                   type="monotone"
@@ -194,32 +239,64 @@ export default function Dashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={categoryData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => 
-                    `${name} ${(percent * 100).toFixed(0)}%`
-                  }
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {categoryData.map((entry, index) => (
-                    <Cell 
-                      key={`cell-${index}`} 
-                      fill={entry.color || COLORS[index % COLORS.length]} 
-                    />
-                  ))}
-                </Pie>
-                <Tooltip
-                  formatter={(value) => [formatCurrency(Number(value)), 'Gasto']}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+            {categoryData.length > 0 ? (
+              <div className="flex flex-col lg:flex-row gap-6">
+                {/* Gráfico */}
+                <div className="flex-1">
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={categoryData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={false}
+                        outerRadius={100}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {categoryData.map((entry, index) => (
+                          <Cell 
+                            key={`cell-${index}`} 
+                            fill={entry.color || COLORS[index % COLORS.length]} 
+                          />
+                        ))}
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Legenda */}
+                <div className="flex flex-col justify-center gap-3 min-w-[200px]">
+                  <h4 className="text-sm font-semibold text-muted-foreground mb-2">Legenda</h4>
+                  {categoryData.map((entry, index) => {
+                    const percentage = ((entry.value / categoryData.reduce((sum, item) => sum + item.value, 0)) * 100).toFixed(1);
+                    return (
+                      <div key={index} className="flex items-center gap-3">
+                        <div 
+                          className="w-4 h-4 rounded-full flex-shrink-0" 
+                          style={{ backgroundColor: entry.color || COLORS[index % COLORS.length] }}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium truncate">{entry.name}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {formatCurrency(entry.value)} ({percentage}%)
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                <div className="text-center">
+                  <CreditCard className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg font-medium mb-2">Nenhum gasto registrado</p>
+                  <p className="text-sm">Adicione transações de despesas para ver a distribuição por categoria</p>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
