@@ -9,7 +9,7 @@ from pydantic import BaseModel
 
 from database import get_db
 from models import User
-from auth_utils import create_access_token, verify_password, get_password_hash
+from auth_utils import create_access_token, verify_password, get_password_hash, get_current_user
 
 router = APIRouter()
 
@@ -27,7 +27,7 @@ class UserResponse(BaseModel):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class Token(BaseModel):
     access_token: str
@@ -93,14 +93,14 @@ async def login(login_data: LoginRequest, db: Session = Depends(get_db)):
     return {
         "access_token": access_token,
         "token_type": "bearer",
-        "user": UserResponse.from_orm(user)
+        "user": UserResponse.model_validate(user)
     }
 
 @router.get("/me", response_model=UserResponse)
 async def get_current_user_profile(
     current_user: User = Depends(get_current_user)
 ):
-    return UserResponse.from_orm(current_user)
+    return UserResponse.model_validate(current_user)
 
 class UserUpdate(BaseModel):
     name: Optional[str] = None
@@ -121,4 +121,4 @@ async def update_profile(
     db.commit()
     db.refresh(current_user)
     
-    return UserResponse.from_orm(current_user)
+    return UserResponse.model_validate(current_user)
