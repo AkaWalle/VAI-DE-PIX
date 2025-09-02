@@ -284,7 +284,7 @@ export default function Reports() {
           <CardContent>
             <div className="flex flex-col lg:flex-row gap-6">
               {/* Gráfico */}
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <ResponsiveContainer width="100%" height={300}>
                   <RechartsPieChart>
                     <Pie
@@ -307,7 +307,7 @@ export default function Reports() {
               </div>
 
               {/* Legenda */}
-              <div className="flex flex-col justify-center gap-3 min-w-[200px]">
+              <div className="flex flex-col justify-center gap-3 w-full lg:w-auto lg:min-w-[200px]">
                 <h4 className="text-sm font-semibold text-muted-foreground mb-2">Legenda</h4>
                 {categoryExpenses.slice(0, 6).map((entry, index) => {
                   const percentage = ((entry.value / categoryExpenses.reduce((sum, item) => sum + item.value, 0)) * 100).toFixed(1);

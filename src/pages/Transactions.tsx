@@ -485,7 +485,7 @@ export default function Transactions() {
                   <div className="flex items-center gap-2">
                     <label className="text-sm font-medium">Mês:</label>
                     <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                      <SelectTrigger className="w-[200px]">
+                      <SelectTrigger className="w-full sm:w-[200px]">
                         <SelectValue placeholder="Selecione o mês" />
                       </SelectTrigger>
                       <SelectContent>
@@ -510,7 +510,7 @@ export default function Transactions() {
                   <div className="flex items-center gap-2">
                     <label className="text-sm font-medium">Ano:</label>
                     <Select value={selectedYear} onValueChange={setSelectedYear}>
-                      <SelectTrigger className="w-[120px]">
+                      <SelectTrigger className="w-full sm:w-[120px]">
                         <SelectValue placeholder="Selecione o ano" />
                       </SelectTrigger>
                       <SelectContent>
@@ -599,7 +599,7 @@ export default function Transactions() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="overflow-hidden rounded-md border">
+          <div className="overflow-x-auto rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>

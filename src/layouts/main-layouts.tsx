@@ -27,30 +27,32 @@ export function MainLayout() {
   return (
     <ThemeProvider>
       <SidebarProvider defaultOpen={true}>
-        <div className="min-h-screen flex w-full bg-background">
+        <div className="min-h-screen flex w-full bg-background overflow-hidden">
           <AppSidebar />
           
-          <div className="flex-1 flex flex-col">
+          <div className="flex-1 flex flex-col min-w-0">
             {/* Header */}
             <header className="sticky top-0 z-40 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
               <div className="flex h-14 items-center justify-between px-4">
-                <div className="flex items-center gap-2">
-                  <SidebarTrigger className="-ml-1" />
-                  <div className="h-4 w-px bg-border" />
-                  <h2 className="text-lg font-semibold text-foreground">
+                <div className="flex items-center gap-2 min-w-0">
+                  <SidebarTrigger className="-ml-1 flex-shrink-0" />
+                  <div className="h-4 w-px bg-border flex-shrink-0" />
+                  <h2 className="text-lg font-semibold text-foreground truncate">
                     VAI DE PIX
                   </h2>
                 </div>
                 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-shrink-0">
                   <ThemeToggle />
                 </div>
               </div>
             </header>
 
             {/* Main Content */}
-            <main className="flex-1 p-6">
-              <Outlet />
+            <main className="flex-1 p-4 sm:p-6 overflow-x-hidden">
+              <div className="w-full max-w-full">
+                <Outlet />
+              </div>
             </main>
           </div>
         </div>
