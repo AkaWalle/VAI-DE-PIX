@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Banknote, TrendingUp, Shield, Zap } from 'lucide-react';
+import { Loader2, CircleDollarSign, TrendingUp, Shield, Zap, PiggyBank } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Auth() {
@@ -83,38 +83,37 @@ export default function Auth() {
       <div className="hidden lg:flex lg:flex-1 bg-gradient-primary text-primary-foreground pl-32 pr-16 py-12 flex-col justify-center relative overflow-hidden">
         {/* Background Image */}
         <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-70"
+          className="absolute inset-0 bg-center bg-no-repeat opacity-100"
           style={{
-            backgroundImage: "url('/piggy-bank-background.jpg.png')"
+            backgroundImage: "url('/piggy-bank-background.jpg.png')",
+            backgroundSize: "100%"
           }}
         />
         {/* Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-br from-green-500/80 via-green-600/70 to-emerald-600/80" />
         
         <div className="max-w-lg space-y-8 relative z-10">
-          <div className="flex items-center gap-3">
-            <Banknote className="h-10 w-10 drop-shadow-lg" />
-            <h1 className="text-3xl font-bold text-white drop-shadow-lg">VAI DE PIX</h1>
-          </div>
-          
           <div className="space-y-6">
-            <h2 className="text-4xl font-bold leading-tight text-white drop-shadow-lg">
+            <h2 className="text-4xl font-black leading-tight text-white drop-shadow-lg tracking-tight">
               Domine suas finanças com inteligência
             </h2>
-            <p className="text-xl text-white/95 drop-shadow-md">
+            <p className="text-2xl text-white/95 drop-shadow-md font-medium leading-relaxed">
               Sistema completo de gestão financeira pessoal com análises inteligentes e automações.
             </p>
           </div>
           
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <span className="text-lg text-white drop-shadow-md">📊 Relatórios detalhados para decisões melhores</span>
+          <div className="space-y-6">
+            <div className="flex items-center gap-4">
+              <TrendingUp className="h-6 w-6 text-white drop-shadow-md flex-shrink-0" />
+              <span className="text-xl text-white drop-shadow-md font-medium">Relatórios detalhados para decisões melhores</span>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="text-lg text-white drop-shadow-md">🔒 Dados 100% seguros e criptografados</span>
+            <div className="flex items-center gap-4">
+              <Shield className="h-6 w-6 text-white drop-shadow-md flex-shrink-0" />
+              <span className="text-xl text-white drop-shadow-md font-medium">Dados 100% seguros e criptografados</span>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="text-lg text-white drop-shadow-md">⚡ Automação para ganhar tempo no dia a dia</span>
+            <div className="flex items-center gap-4">
+              <Zap className="h-6 w-6 text-white drop-shadow-md flex-shrink-0" />
+              <span className="text-xl text-white drop-shadow-md font-medium">Automação para ganhar tempo no dia a dia</span>
             </div>
           </div>
         </div>
@@ -123,15 +122,13 @@ export default function Auth() {
       {/* Right Panel - Auth Forms */}
       <div className="flex-1 lg:flex-none lg:w-[500px] flex items-center justify-center p-8">
         <div className="w-full max-w-md space-y-6">
-          {/* Mobile Logo */}
-          <div className="lg:hidden text-center">
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <Banknote className="h-8 w-8 text-primary" />
-              <h1 className="text-2xl font-bold">VAI DE PIX</h1>
+          {/* Logo */}
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <CircleDollarSign className="h-10 w-10 text-primary" />
+              <h1 className="text-3xl font-extrabold tracking-wide">VAI DE PIX</h1>
             </div>
-            <p className="text-muted-foreground">
-              Domine suas finanças com inteligência
-            </p>
+
           </div>
 
           <Tabs defaultValue="login" className="w-full">
@@ -143,9 +140,9 @@ export default function Auth() {
             {/* Login Tab */}
             <TabsContent value="login">
               <Card>
-                <CardHeader className="space-y-1">
-                  <CardTitle className="text-2xl text-center">Bem-vindo de volta</CardTitle>
-                  <CardDescription className="text-center">
+                <CardHeader className="space-y-2 text-center">
+                  <CardTitle className="text-3xl font-bold">Bem-vindo de volta</CardTitle>
+                  <CardDescription className="text-base">
                     Entre com suas credenciais para acessar sua conta
                   </CardDescription>
                 </CardHeader>
@@ -204,9 +201,9 @@ export default function Auth() {
             {/* Register Tab */}
             <TabsContent value="register">
               <Card>
-                <CardHeader className="space-y-1">
-                  <CardTitle className="text-2xl text-center">Criar nova conta</CardTitle>
-                  <CardDescription className="text-center">
+                <CardHeader className="space-y-2 text-center">
+                  <CardTitle className="text-3xl font-bold">Criar nova conta</CardTitle>
+                  <CardDescription className="text-base">
                     Preencha os dados abaixo para criar sua conta
                   </CardDescription>
                 </CardHeader>
