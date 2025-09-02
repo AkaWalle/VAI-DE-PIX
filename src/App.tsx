@@ -6,7 +6,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { MainLayout } from "./layouts/main-layouts";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { PersistenceManager } from "./components/PersistenceManager";
-import { DebugPersistence } from "./components/DebugPersistence";
 import "./App.css";
 import Dashboard from "./pages/dashboard";
 import Transactions from "./pages/Transactions";
@@ -28,7 +27,6 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <DebugPersistence />
         <Routes>
           {/* Public route for authentication */}
           <Route path="/auth" element={<Auth />} />
