@@ -9,7 +9,8 @@ import {
   Zap,
   TrendingUp,
   LogOut,
-  Menu
+  Menu,
+  Share2
 } from "lucide-react"
 import { NavLink, useLocation } from "react-router-dom"
 import { cn } from "@/lib/utils"
@@ -54,6 +55,12 @@ const mainNavItems = [
     url: "/envelopes", 
     icon: Wallet,
     description: "Envelopes de orçamento"
+  },
+  { 
+    title: "Despesas Compartilhadas", 
+    url: "/shared-expenses", 
+    icon: Share2,
+    description: "Dividir gastos entre pessoas"
   }
 ]
 

@@ -11,6 +11,7 @@ import Dashboard from "./pages/dashboard";
 import Transactions from "./pages/Transactions";
 import Goals from "./pages/Goals";
 import Envelopes from "./pages/Envelopes";
+import SharedExpenses from "./pages/SharedExpenses";
 import Reports from "./pages/Reports";
 import Trends from "./pages/Trends";
 import Automations from "./pages/Automations";
@@ -41,6 +42,7 @@ const App = () => (
             <Route path="transactions" element={<Transactions />} />
             <Route path="goals" element={<Goals />} />
             <Route path="envelopes" element={<Envelopes />} />
+            <Route path="shared-expenses" element={<SharedExpenses />} />
             <Route path="reports" element={<Reports />} />
             <Route path="trends" element={<Trends />} />
             <Route path="automations" element={<Automations />} />

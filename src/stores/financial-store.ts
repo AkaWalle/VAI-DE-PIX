@@ -62,6 +62,41 @@ export interface Envelope {
   description?: string;
 }
 
+export interface SharedExpense {
+  id: string;
+  title: string;
+  description?: string;
+  totalAmount: number;
+  currency: 'BRL';
+  category: string;
+  date: string;
+  createdBy: string; // ID do usuário que criou
+  participants: SharedExpenseParticipant[];
+  status: 'pending' | 'settled' | 'cancelled';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SharedExpenseParticipant {
+  userId: string;
+  userName: string;
+  userEmail: string;
+  amount: number; // Valor que a pessoa deve pagar
+  paid: boolean;
+  paidAt?: string;
+}
+
+export interface ExpenseSplit {
+  id: string;
+  sharedExpenseId: string;
+  splitType: 'equal' | 'percentage' | 'custom';
+  splits: {
+    userId: string;
+    amount: number;
+    percentage?: number;
+  }[];
+}
+
 export interface AutomationRule {
   id: string;
   name: string;
@@ -79,6 +114,8 @@ interface FinancialStore {
   goals: Goal[];
   envelopes: Envelope[];
   automationRules: AutomationRule[];
+  sharedExpenses: SharedExpense[];
+  expenseSplits: ExpenseSplit[];
   
   // UI State
   selectedAccount: string | null;
@@ -104,6 +141,18 @@ interface FinancialStore {
   updateEnvelope: (id: string, updates: Partial<Envelope>) => void;
   deleteEnvelope: (id: string) => void;
   transferBetweenEnvelopes: (fromId: string, toId: string, amount: number) => void;
+  
+  // Shared Expenses Actions
+  addSharedExpense: (expense: Omit<SharedExpense, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  updateSharedExpense: (id: string, updates: Partial<SharedExpense>) => void;
+  deleteSharedExpense: (id: string) => void;
+  markParticipantAsPaid: (expenseId: string, participantId: string) => void;
+  settleSharedExpense: (id: string) => void;
+  
+  // Expense Split Actions
+  createExpenseSplit: (split: Omit<ExpenseSplit, 'id'>) => void;
+  updateExpenseSplit: (id: string, updates: Partial<ExpenseSplit>) => void;
+  deleteExpenseSplit: (id: string) => void;
   
   setSelectedAccount: (accountId: string | null) => void;
   setDateRange: (range: { from: Date; to: Date }) => void;
@@ -434,6 +483,8 @@ export const useFinancialStore = create<FinancialStore>()(
       goals: [],
       envelopes: [],
       automationRules: [],
+      sharedExpenses: [],
+      expenseSplits: [],
       
       // UI State
       selectedAccount: null,
@@ -513,6 +564,71 @@ export const useFinancialStore = create<FinancialStore>()(
           return e;
         })
       })),
+
+      // Shared Expenses Actions
+      addSharedExpense: (expense) => set((state) => ({
+        sharedExpenses: [...state.sharedExpenses, {
+          ...expense,
+          id: generateUniqueId(),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }]
+      })),
+
+      updateSharedExpense: (id, updates) => set((state) => ({
+        sharedExpenses: state.sharedExpenses.map(expense =>
+          expense.id === id
+            ? { ...expense, ...updates, updatedAt: new Date().toISOString() }
+            : expense
+        )
+      })),
+
+      deleteSharedExpense: (id) => set((state) => ({
+        sharedExpenses: state.sharedExpenses.filter(expense => expense.id !== id),
+        expenseSplits: state.expenseSplits.filter(split => split.sharedExpenseId !== id)
+      })),
+
+      markParticipantAsPaid: (expenseId, participantId) => set((state) => ({
+        sharedExpenses: state.sharedExpenses.map(expense =>
+          expense.id === expenseId
+            ? {
+                ...expense,
+                participants: expense.participants.map(participant =>
+                  participant.userId === participantId
+                    ? { ...participant, paid: true, paidAt: new Date().toISOString() }
+                    : participant
+                ),
+                updatedAt: new Date().toISOString()
+              }
+            : expense
+        )
+      })),
+
+      settleSharedExpense: (id) => set((state) => ({
+        sharedExpenses: state.sharedExpenses.map(expense =>
+          expense.id === id
+            ? { ...expense, status: 'settled', updatedAt: new Date().toISOString() }
+            : expense
+        )
+      })),
+
+      // Expense Split Actions
+      createExpenseSplit: (split) => set((state) => ({
+        expenseSplits: [...state.expenseSplits, {
+          ...split,
+          id: generateUniqueId()
+        }]
+      })),
+
+      updateExpenseSplit: (id, updates) => set((state) => ({
+        expenseSplits: state.expenseSplits.map(split =>
+          split.id === id ? { ...split, ...updates } : split
+        )
+      })),
+
+      deleteExpenseSplit: (id) => set((state) => ({
+        expenseSplits: state.expenseSplits.filter(split => split.id !== id)
+      })),
       
       setSelectedAccount: (accountId) => set({ selectedAccount: accountId }),
       setDateRange: (range) => set({ dateRange: range }),
@@ -551,6 +667,8 @@ export const useFinancialStore = create<FinancialStore>()(
           goals: [],
           envelopes: [],
           automationRules: [],
+          sharedExpenses: [],
+          expenseSplits: [],
           selectedAccount: null,
           dateRange: {
             from: currentMonthStart,
