@@ -46,7 +46,7 @@ async def create_account(
 ):
     """Create a new account."""
     db_account = Account(
-        **account.dict(),
+        **account.model_dump(),
         user_id=current_user.id
     )
     
@@ -75,7 +75,7 @@ async def update_account(
             detail="Conta não encontrada"
         )
     
-    update_data = account_update.dict(exclude_unset=True)
+    update_data = account_update.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(db_account, field, value)
     

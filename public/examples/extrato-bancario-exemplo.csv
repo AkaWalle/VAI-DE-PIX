@@ -1,7 +1,0 @@
-data,descricao,valor,tipo,saldo
-2024-01-05,Salário,5000.00,credito,5000.00
-2024-01-10,Aluguel,-1800.00,debito,3200.00
-2024-01-15,Supermercado Extra,-320.50,debito,2879.50
-2024-01-20,Uber,-25.80,debito,2853.70
-2024-01-25,Conta de Luz,-120.00,debito,2733.70
-2024-01-30,Transferência Recebida,500.00,credito,3233.70

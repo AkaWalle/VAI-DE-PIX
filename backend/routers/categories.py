@@ -55,7 +55,7 @@ async def create_category(
 ):
     """Create a new category."""
     db_category = Category(
-        **category.dict(),
+        **category.model_dump(),
         user_id=current_user.id
     )
     
@@ -84,7 +84,7 @@ async def update_category(
             detail="Categoria não encontrada"
         )
     
-    update_data = category_update.dict(exclude_unset=True)
+    update_data = category_update.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(db_category, field, value)
     

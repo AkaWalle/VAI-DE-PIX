@@ -66,7 +66,7 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
     return {
         "access_token": access_token,
         "token_type": "bearer",
-        "user": UserResponse.from_orm(db_user)
+        "user": UserResponse.model_validate(db_user)
     }
 
 @router.post("/login", response_model=Token)
@@ -112,7 +112,7 @@ async def update_profile(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    update_data = user_update.dict(exclude_unset=True)
+    update_data = user_update.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         if hasattr(current_user, field) and field != "id":
             setattr(current_user, field, value)

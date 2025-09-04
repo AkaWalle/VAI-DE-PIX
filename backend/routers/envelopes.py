@@ -62,7 +62,7 @@ async def create_envelope(
 ):
     """Create a new envelope."""
     db_envelope = Envelope(
-        **envelope.dict(),
+        **envelope.model_dump(),
         user_id=current_user.id
     )
     
@@ -97,7 +97,7 @@ async def update_envelope(
             detail="Caixinha não encontrada"
         )
     
-    update_data = envelope_update.dict(exclude_unset=True)
+    update_data = envelope_update.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(db_envelope, field, value)
     

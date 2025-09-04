@@ -84,7 +84,7 @@ async def create_transaction(
 ):
     """Create a new transaction."""
     db_transaction = Transaction(
-        **transaction.dict(),
+        **transaction.model_dump(),
         user_id=current_user.id
     )
     
@@ -134,7 +134,7 @@ async def update_transaction(
         )
     
     # Update only provided fields
-    update_data = transaction_update.dict(exclude_unset=True)
+    update_data = transaction_update.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(db_transaction, field, value)
     

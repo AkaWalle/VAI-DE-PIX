@@ -84,7 +84,7 @@ async def create_goal(
 ):
     """Create a new goal."""
     db_goal = Goal(
-        **goal.dict(),
+        **goal.model_dump(),
         user_id=current_user.id,
         current_amount=0.0,
         status="active"
@@ -140,7 +140,7 @@ async def update_goal(
         )
     
     # Update only provided fields
-    update_data = goal_update.dict(exclude_unset=True)
+    update_data = goal_update.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(db_goal, field, value)
     
