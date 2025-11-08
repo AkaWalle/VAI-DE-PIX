@@ -1,7 +1,7 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "installCommand": "npm install && pip install -r api/requirements.txt",
+  "installCommand": "npm install",
   "rewrites": [
     {
       "source": "/api/(.*)",
@@ -14,7 +14,8 @@
   ],
   "functions": {
     "api/**/*.py": {
-      "runtime": "python3.9"
+      "runtime": "python3.9",
+      "includeFiles": "backend/**"
     }
   }
 }
