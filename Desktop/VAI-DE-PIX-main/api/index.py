@@ -69,5 +69,9 @@ async def health_check():
     }
 
 # Vercel serverless function handler
+# Export handler for Vercel
 handler = Mangum(app, lifespan="off")
+
+# Export for Vercel
+__all__ = ["handler"]
 
