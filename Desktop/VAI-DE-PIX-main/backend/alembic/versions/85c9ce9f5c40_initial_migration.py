@@ -27,7 +27,7 @@ def upgrade() -> None:
         sa.Column('name', sa.String(), nullable=False),
         sa.Column('email', sa.String(), nullable=False, unique=True),
         sa.Column('hashed_password', sa.String(), nullable=False),
-        sa.Column('is_active', sa.Boolean(), nullable=False, server_default=sa.text('1')),
+        sa.Column('is_active', sa.Boolean(), nullable=False, server_default=sa.text('true')),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('CURRENT_TIMESTAMP')),
         sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True)
     )
@@ -94,7 +94,7 @@ def upgrade() -> None:
         sa.Column('name', sa.String(), nullable=False),
         sa.Column('description', sa.Text(), nullable=True),
         sa.Column('type', sa.String(), nullable=False),
-        sa.Column('is_active', sa.Boolean(), nullable=False, server_default=sa.text('1')),
+        sa.Column('is_active', sa.Boolean(), nullable=False, server_default=sa.text('true')),
         sa.Column('conditions', sa.JSON(), nullable=False),
         sa.Column('actions', sa.JSON(), nullable=False),
         sa.Column('last_run', sa.DateTime(timezone=True), nullable=True),
