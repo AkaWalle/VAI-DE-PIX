@@ -13,7 +13,7 @@ import os
 from dotenv import load_dotenv
 
 from database import get_db
-from routers import auth, transactions, goals, envelopes, categories, accounts, reports
+from routers import auth, transactions, goals, envelopes, categories, accounts, reports, automations
 from auth_utils import verify_token
 
 # Load environment variables
@@ -48,6 +48,7 @@ app.include_router(envelopes.router, prefix="/api/envelopes", tags=["Envelopes"]
 app.include_router(categories.router, prefix="/api/categories", tags=["Categories"])
 app.include_router(accounts.router, prefix="/api/accounts", tags=["Accounts"])
 app.include_router(reports.router, prefix="/api/reports", tags=["Reports"])
+app.include_router(automations.router, prefix="/api/automations", tags=["Automations"])
 
 # API Routes
 @app.get("/")

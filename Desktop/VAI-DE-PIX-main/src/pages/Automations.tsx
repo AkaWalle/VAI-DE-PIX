@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useFinancialStore } from '@/stores/financial-store';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { ActionButton } from '@/components/ui/action-button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { automationsService } from '@/services/automations.service';
 import { 
   Zap, 
   Plus, 
@@ -50,62 +51,11 @@ export default function Automations() {
   const { categories, accounts } = useFinancialStore();
   const { toast } = useToast();
   
-  const [automationRules, setAutomationRules] = useState<AutomationRule[]>([
-    {
-      id: '1',
-      name: 'Salário Mensal',
-      description: 'Adiciona automaticamente o salário todo dia 5',
-      type: 'recurring_transaction',
-      isActive: true,
-      conditions: {
-        trigger: 'monthly',
-        frequency: '5',
-        amount: 5000,
-        category: '1',
-        account: '1'
-      },
-      actions: {
-        type: 'add_transaction',
-        value: 'income'
-      },
-      lastRun: '2024-01-05',
-      nextRun: '2024-02-05'
-    },
-    {
-      id: '2',
-      name: 'Alerta de Orçamento',
-      description: 'Notifica quando gastos em alimentação excedem R$ 800',
-      type: 'budget_alert',
-      isActive: true,
-      conditions: {
-        trigger: 'budget_exceeded',
-        amount: 800,
-        category: '3'
-      },
-      actions: {
-        type: 'notification',
-        value: 'push'
-      }
-    },
-    {
-      id: '3',
-      name: 'Lembrete de Meta',
-      description: 'Lembra de contribuir para a meta de viagem semanalmente',
-      type: 'goal_reminder',
-      isActive: false,
-      conditions: {
-        trigger: 'weekly',
-        frequency: 'monday'
-      },
-      actions: {
-        type: 'reminder',
-        value: 'goal_contribution'
-      },
-      nextRun: '2024-02-12'
-    }
-  ]);
+  const [automationRules, setAutomationRules] = useState<AutomationRule[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [showNewRule, setShowNewRule] = useState(false);
+  const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
   const [newRule, setNewRule] = useState({
     name: '',
     description: '',
@@ -119,33 +69,91 @@ export default function Automations() {
     actionValue: 'income'
   });
 
-  const handleToggleRule = (ruleId: string) => {
-    setAutomationRules(prev => 
-      prev.map(rule => 
-        rule.id === ruleId 
-          ? { ...rule, isActive: !rule.isActive }
-          : rule
-      )
-    );
-    
-    const rule = automationRules.find(r => r.id === ruleId);
-    toast({
-      title: rule?.isActive ? "Automação desativada" : "Automação ativada",
-      description: `A regra "${rule?.name}" foi ${rule?.isActive ? 'desativada' : 'ativada'}.`,
-    });
+  // Carregar automações da API
+  useEffect(() => {
+    const loadAutomations = async () => {
+      try {
+        setIsLoading(true);
+        const loadedRules = await automationsService.getAutomations();
+        // Converter formato da API para formato do componente
+        setAutomationRules(loadedRules.map(rule => ({
+          id: rule.id,
+          name: rule.name,
+          description: rule.description || '',
+          type: rule.type,
+          isActive: rule.is_active,
+          conditions: rule.conditions,
+          actions: rule.actions,
+          lastRun: rule.last_run,
+          nextRun: rule.next_run
+        })));
+      } catch (error) {
+        console.error('Erro ao carregar automações:', error);
+        toast({
+          title: "Erro ao carregar automações",
+          description: "Não foi possível carregar as automações. Tente novamente.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadAutomations();
+  }, [toast]);
+
+  const handleToggleRule = async (ruleId: string) => {
+    try {
+      const rule = automationRules.find(r => r.id === ruleId);
+      if (!rule) return;
+
+      const updatedRule = await automationsService.updateAutomation(ruleId, {
+        is_active: !rule.isActive
+      });
+
+      setAutomationRules(prev => 
+        prev.map(r => 
+          r.id === ruleId 
+            ? { ...r, isActive: updatedRule.is_active }
+            : r
+        )
+      );
+      
+      toast({
+        title: updatedRule.is_active ? "Automação ativada" : "Automação desativada",
+        description: `A regra "${rule.name}" foi ${updatedRule.is_active ? 'ativada' : 'desativada'}.`,
+      });
+    } catch (error) {
+      console.error('Erro ao atualizar automação:', error);
+      toast({
+        title: "Erro ao atualizar automação",
+        description: "Não foi possível atualizar a automação. Tente novamente.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleDeleteRule = (ruleId: string) => {
-    const rule = automationRules.find(r => r.id === ruleId);
-    setAutomationRules(prev => prev.filter(r => r.id !== ruleId));
-    
-    toast({
-      title: "Automação removida",
-      description: `A regra "${rule?.name}" foi removida com sucesso.`,
-    });
+  const handleDeleteRule = async (ruleId: string) => {
+    try {
+      const rule = automationRules.find(r => r.id === ruleId);
+      await automationsService.deleteAutomation(ruleId);
+      setAutomationRules(prev => prev.filter(r => r.id !== ruleId));
+      
+      toast({
+        title: "Automação removida",
+        description: `A regra "${rule?.name}" foi removida com sucesso.`,
+      });
+    } catch (error) {
+      console.error('Erro ao remover automação:', error);
+      toast({
+        title: "Erro ao remover automação",
+        description: "Não foi possível remover a automação. Tente novamente.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleCreateRule = () => {
+  const handleCreateRule = async () => {
     if (!newRule.name || !newRule.description) {
       toast({
         title: "Campos obrigatórios",
@@ -155,32 +163,164 @@ export default function Automations() {
       return;
     }
 
-    const rule: AutomationRule = {
-      id: Date.now().toString(),
-      name: newRule.name,
-      description: newRule.description,
-      type: newRule.type,
-      isActive: false,
-      conditions: {
-        trigger: newRule.trigger,
-        frequency: newRule.frequency || undefined,
-        amount: newRule.amount ? parseFloat(newRule.amount) : undefined,
-        category: newRule.category || undefined,
-        account: newRule.account || undefined
-      },
-      actions: {
-        type: newRule.actionType,
-        value: newRule.actionValue
-      }
-    };
+    try {
+      const createdRule = await automationsService.createAutomation({
+        name: newRule.name,
+        description: newRule.description,
+        type: newRule.type,
+        is_active: false,
+        conditions: {
+          trigger: newRule.trigger,
+          frequency: newRule.frequency || undefined,
+          amount: newRule.amount ? parseFloat(newRule.amount) : undefined,
+          category: newRule.category || undefined,
+          account: newRule.account || undefined
+        },
+        actions: {
+          type: newRule.actionType,
+          value: newRule.actionValue
+        }
+      });
 
-    setAutomationRules(prev => [...prev, rule]);
-    
-    toast({
-      title: "Automação criada!",
-      description: `A regra "${rule.name}" foi criada com sucesso.`,
+      setAutomationRules(prev => [...prev, {
+        id: createdRule.id,
+        name: createdRule.name,
+        description: createdRule.description || '',
+        type: createdRule.type,
+        isActive: createdRule.is_active,
+        conditions: createdRule.conditions,
+        actions: createdRule.actions,
+        lastRun: createdRule.last_run,
+        nextRun: createdRule.next_run
+      }]);
+      
+      toast({
+        title: "Automação criada!",
+        description: `A regra "${createdRule.name}" foi criada com sucesso.`,
+      });
+
+      setNewRule({
+        name: '',
+        description: '',
+        type: 'recurring_transaction',
+        trigger: 'monthly',
+        frequency: '',
+        amount: '',
+        category: '',
+        account: '',
+        actionType: 'add_transaction',
+        actionValue: 'income'
+      });
+      setShowNewRule(false);
+    } catch (error) {
+      console.error('Erro ao criar automação:', error);
+      toast({
+        title: "Erro ao criar automação",
+        description: "Não foi possível criar a automação. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEditRule = (ruleId: string) => {
+    const rule = automationRules.find(r => r.id === ruleId);
+    if (!rule) return;
+
+    setEditingRuleId(ruleId);
+    setNewRule({
+      name: rule.name,
+      description: rule.description,
+      type: rule.type,
+      trigger: rule.conditions.trigger,
+      frequency: rule.conditions.frequency || '',
+      amount: rule.conditions.amount?.toString() || '',
+      category: rule.conditions.category || '',
+      account: rule.conditions.account || '',
+      actionType: rule.actions.type,
+      actionValue: rule.actions.value
     });
+    setShowNewRule(true);
+  };
 
+  const handleUpdateRule = async () => {
+    if (!editingRuleId) return;
+    if (!newRule.name || !newRule.description) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Por favor, preencha nome e descrição.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const updatedRule = await automationsService.updateAutomation(editingRuleId, {
+        name: newRule.name,
+        description: newRule.description,
+        type: newRule.type,
+        conditions: {
+          trigger: newRule.trigger,
+          frequency: newRule.frequency || undefined,
+          amount: newRule.amount ? parseFloat(newRule.amount) : undefined,
+          category: newRule.category || undefined,
+          account: newRule.account || undefined
+        },
+        actions: {
+          type: newRule.actionType,
+          value: newRule.actionValue
+        }
+      });
+
+      setAutomationRules(prev => 
+        prev.map(r => 
+          r.id === editingRuleId 
+            ? {
+                id: updatedRule.id,
+                name: updatedRule.name,
+                description: updatedRule.description || '',
+                type: updatedRule.type,
+                isActive: updatedRule.is_active,
+                conditions: updatedRule.conditions,
+                actions: updatedRule.actions,
+                lastRun: updatedRule.last_run,
+                nextRun: updatedRule.next_run
+              }
+            : r
+        )
+      );
+      
+      toast({
+        title: "Automação atualizada!",
+        description: `A regra "${updatedRule.name}" foi atualizada com sucesso.`,
+      });
+
+      setEditingRuleId(null);
+      setNewRule({
+        name: '',
+        description: '',
+        type: 'recurring_transaction',
+        trigger: 'monthly',
+        frequency: '',
+        amount: '',
+        category: '',
+        account: '',
+        actionType: 'add_transaction',
+        actionValue: 'income'
+      });
+      setShowNewRule(false);
+    } catch (error) {
+      console.error('Erro ao atualizar automação:', error);
+      toast({
+        title: "Erro ao atualizar automação",
+        description: "Não foi possível atualizar a automação. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingRuleId(null);
+    setShowNewRule(false);
     setNewRule({
       name: '',
       description: '',
@@ -193,7 +333,6 @@ export default function Automations() {
       actionType: 'add_transaction',
       actionValue: 'income'
     });
-    setShowNewRule(false);
   };
 
   const getRuleTypeIcon = (type: string) => {
@@ -277,13 +416,13 @@ export default function Automations() {
         </Card>
       </div>
 
-      {/* New Rule Form */}
+      {/* New/Edit Rule Form */}
       {showNewRule && (
         <Card className="bg-gradient-card shadow-card-custom border-dashed">
           <CardHeader>
-            <CardTitle>Nova Automação</CardTitle>
+            <CardTitle>{editingRuleId ? 'Editar Automação' : 'Nova Automação'}</CardTitle>
             <CardDescription>
-              Configure uma nova regra de automação
+              {editingRuleId ? 'Edite os dados da regra de automação' : 'Configure uma nova regra de automação'}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -411,11 +550,11 @@ export default function Automations() {
             )}
 
             <div className="flex gap-2">
-              <Button onClick={handleCreateRule}>
+              <Button onClick={editingRuleId ? handleUpdateRule : handleCreateRule}>
                 <Plus className="h-4 w-4 mr-2" />
-                Criar Automação
+                {editingRuleId ? 'Salvar Alterações' : 'Criar Automação'}
               </Button>
-              <Button variant="outline" onClick={() => setShowNewRule(false)}>
+              <Button variant="outline" onClick={handleCancelEdit}>
                 Cancelar
               </Button>
             </div>
@@ -424,8 +563,18 @@ export default function Automations() {
       )}
 
       {/* Automation Rules */}
-      <div className="space-y-4">
-        {automationRules.map((rule) => {
+      {isLoading ? (
+        <Card className="bg-gradient-card shadow-card-custom">
+          <CardContent className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <Zap className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4 animate-pulse" />
+              <p className="text-muted-foreground">Carregando automações...</p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {automationRules.map((rule) => {
           const Icon = getRuleTypeIcon(rule.type);
           
           return (
@@ -473,7 +622,11 @@ export default function Automations() {
                       onCheckedChange={() => handleToggleRule(rule.id)}
                     />
                     
-                    <Button variant="outline" size="sm">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleEditRule(rule.id)}
+                    >
                       <Settings className="h-4 w-4" />
                     </Button>
                     
@@ -494,9 +647,10 @@ export default function Automations() {
             </Card>
           );
         })}
-      </div>
+        </div>
+      )}
 
-      {automationRules.length === 0 && (
+      {!isLoading && automationRules.length === 0 && (
         <Card className="bg-gradient-card shadow-card-custom">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Zap className="h-16 w-16 text-muted-foreground/50 mb-4" />
