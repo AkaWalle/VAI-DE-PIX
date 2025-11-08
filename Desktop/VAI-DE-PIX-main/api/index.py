@@ -21,8 +21,8 @@ app = FastAPI(
     title="VAI DE PIX API",
     description="API completa para sistema de controle financeiro pessoal",
     version="1.0.0",
-    docs_url="/api/docs",
-    redoc_url="/api/redoc"
+    docs_url="/docs",
+    redoc_url="/redoc"
 )
 
 # CORS configuration
@@ -41,17 +41,17 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
-app.include_router(transactions.router, prefix="/api/transactions", tags=["Transactions"])
-app.include_router(goals.router, prefix="/api/goals", tags=["Goals"])
-app.include_router(envelopes.router, prefix="/api/envelopes", tags=["Envelopes"])
-app.include_router(categories.router, prefix="/api/categories", tags=["Categories"])
-app.include_router(accounts.router, prefix="/api/accounts", tags=["Accounts"])
-app.include_router(reports.router, prefix="/api/reports", tags=["Reports"])
-app.include_router(automations.router, prefix="/api/automations", tags=["Automations"])
+app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
+app.include_router(transactions.router, prefix="/transactions", tags=["Transactions"])
+app.include_router(goals.router, prefix="/goals", tags=["Goals"])
+app.include_router(envelopes.router, prefix="/envelopes", tags=["Envelopes"])
+app.include_router(categories.router, prefix="/categories", tags=["Categories"])
+app.include_router(accounts.router, prefix="/accounts", tags=["Accounts"])
+app.include_router(reports.router, prefix="/reports", tags=["Reports"])
+app.include_router(automations.router, prefix="/automations", tags=["Automations"])
 
 # Root endpoint
-@app.get("/api")
+@app.get("/")
 async def api_root():
     return {
         "message": "VAI DE PIX API",
@@ -61,7 +61,7 @@ async def api_root():
     }
 
 # Health check
-@app.get("/api/health")
+@app.get("/health")
 async def health_check():
     return {
         "status": "healthy",
