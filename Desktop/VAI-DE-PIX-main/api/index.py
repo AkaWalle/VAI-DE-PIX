@@ -73,6 +73,6 @@ async def health_check():
 # Mangum automatically handles the path from Vercel
 handler = Mangum(app, lifespan="off")
 
-# Export for Vercel
+# Export for Vercel - must be named 'handler' for Vercel to detect it
 __all__ = ["handler"]
 
