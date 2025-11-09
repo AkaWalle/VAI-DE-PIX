@@ -10,10 +10,15 @@ from pathlib import Path
 backend_path = Path(__file__).parent.parent / "backend"
 sys.path.insert(0, str(backend_path))
 
+# Ensure backend path is in Python path
+if str(backend_path) not in sys.path:
+    sys.path.insert(0, str(backend_path))
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from mangum import Mangum
 
+# Import routers from backend
 from routers import auth, transactions, goals, envelopes, categories, accounts, reports, automations
 
 # Create FastAPI app
