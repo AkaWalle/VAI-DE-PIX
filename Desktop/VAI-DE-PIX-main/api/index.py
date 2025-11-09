@@ -26,15 +26,11 @@ app = FastAPI(
 )
 
 # CORS configuration
-frontend_url = os.getenv("FRONTEND_URL", "https://vai-de-hkeqh4jav-akawalles-projects.vercel.app")
+frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+# Permitir todas as origens do Vercel (será filtrado pelo middleware)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        frontend_url,
-        "http://localhost:3000",
-        "https://*.vercel.app",
-        "https://*.vercel.sh"
-    ],
+    allow_origins=["*"],  # Permitir todas as origens durante desenvolvimento/produção
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -69,7 +65,7 @@ async def health_check():
     }
 
 # Vercel serverless function handler
-# Export handler for Vercel
+# Mangum automatically handles the path from Vercel
 handler = Mangum(app, lifespan="off")
 
 # Export for Vercel
