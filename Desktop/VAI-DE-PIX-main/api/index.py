@@ -29,8 +29,7 @@ app = FastAPI(
     description="API completa para sistema de controle financeiro pessoal",
     version="1.0.0",
     docs_url="/docs",
-    redoc_url="/redoc",
-    root_path="/api"  # Set root path for API
+    redoc_url="/redoc"
 )
 
 # Middleware to strip /api prefix from path
