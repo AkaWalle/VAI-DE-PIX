@@ -110,8 +110,10 @@ async def health_check():
 async def debug_database():
     """Debug endpoint to check database connection and tables"""
     try:
-        from database import engine, DATABASE_URL
-        from sqlalchemy import text, inspect
+        from database import engine
+        from sqlalchemy import text
+        import os
+        DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./vai_de_pix.db")
         
         # Get database info
         db_info = {
@@ -165,10 +167,12 @@ async def debug_database():
         return db_info
         
     except Exception as e:
+        import os
+        db_url = os.getenv("DATABASE_URL", "not set")
         return {
             "status": "error",
             "error": str(e),
-            "database_url": DATABASE_URL[:50] + "..." if len(DATABASE_URL) > 50 else DATABASE_URL if 'DATABASE_URL' in locals() else "not set"
+            "database_url": db_url[:50] + "..." if len(db_url) > 50 else db_url
         }
 
 # Debug endpoint - Test query
