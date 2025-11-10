@@ -67,9 +67,10 @@ async def health_check():
     """Health check endpoint that verifies database connection"""
     try:
         from database import engine
+        from sqlalchemy import text
         # Try to connect to database
         with engine.connect() as conn:
-            conn.execute("SELECT 1")
+            conn.execute(text("SELECT 1"))
         return {
             "status": "healthy",
             "database": "connected"
