@@ -105,6 +105,104 @@ async def health_check():
             "error": str(e)
         }
 
+# Debug endpoint - Database info
+@app.get("/debug/db")
+async def debug_database():
+    """Debug endpoint to check database connection and tables"""
+    try:
+        from database import engine, DATABASE_URL
+        from sqlalchemy import text, inspect
+        
+        # Get database info
+        db_info = {
+            "database_url": DATABASE_URL[:50] + "..." if len(DATABASE_URL) > 50 else DATABASE_URL,
+            "database_type": "PostgreSQL" if "postgresql" in DATABASE_URL else "SQLite",
+            "connection": "ok",
+            "tables": []
+        }
+        
+        # Try to connect and get tables
+        with engine.connect() as conn:
+            # Test connection
+            conn.execute(text("SELECT 1"))
+            
+            # Get list of tables
+            if "postgresql" in DATABASE_URL:
+                result = conn.execute(text("""
+                    SELECT table_name 
+                    FROM information_schema.tables 
+                    WHERE table_schema = 'public'
+                    ORDER BY table_name
+                """))
+                tables = [row[0] for row in result]
+            else:
+                # SQLite
+                result = conn.execute(text("""
+                    SELECT name 
+                    FROM sqlite_master 
+                    WHERE type='table' 
+                    ORDER BY name
+                """))
+                tables = [row[0] for row in result]
+            
+            db_info["tables"] = tables
+            
+            # Get row counts for each table
+            table_counts = {}
+            for table in tables:
+                try:
+                    if "postgresql" in DATABASE_URL:
+                        count_result = conn.execute(text(f'SELECT COUNT(*) FROM "{table}"'))
+                    else:
+                        count_result = conn.execute(text(f'SELECT COUNT(*) FROM {table}'))
+                    count = count_result.scalar()
+                    table_counts[table] = count
+                except Exception as e:
+                    table_counts[table] = f"error: {str(e)}"
+            
+            db_info["table_counts"] = table_counts
+        
+        return db_info
+        
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": str(e),
+            "database_url": DATABASE_URL[:50] + "..." if len(DATABASE_URL) > 50 else DATABASE_URL if 'DATABASE_URL' in locals() else "not set"
+        }
+
+# Debug endpoint - Test query
+@app.get("/debug/test-query")
+async def debug_test_query():
+    """Test endpoint that performs a simple database query"""
+    try:
+        from database import get_db
+        from sqlalchemy import text
+        
+        # Get database session
+        db = next(get_db())
+        
+        # Perform test query
+        result = db.execute(text("SELECT NOW() as current_time, version() as db_version"))
+        row = result.fetchone()
+        
+        db.close()
+        
+        return {
+            "status": "success",
+            "query_executed": True,
+            "result": {
+                "current_time": str(row[0]) if row else None,
+                "db_version": str(row[1]) if row and len(row) > 1 else None
+            }
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "query_executed": False,
+            "error": str(e)
+        }
+
 # Vercel serverless function handler
 # Mangum automatically handles the path from Vercel
 # The root_path="/api" in FastAPI app handles the prefix
