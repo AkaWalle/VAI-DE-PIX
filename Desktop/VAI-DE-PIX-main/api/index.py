@@ -64,10 +64,22 @@ async def api_root():
 # Health check
 @app.get("/health")
 async def health_check():
-    return {
-        "status": "healthy",
-        "database": "connected"
-    }
+    """Health check endpoint that verifies database connection"""
+    try:
+        from database import engine
+        # Try to connect to database
+        with engine.connect() as conn:
+            conn.execute("SELECT 1")
+        return {
+            "status": "healthy",
+            "database": "connected"
+        }
+    except Exception as e:
+        return {
+            "status": "unhealthy",
+            "database": "disconnected",
+            "error": str(e)
+        }
 
 # Vercel serverless function handler
 # Mangum automatically handles the path from Vercel
