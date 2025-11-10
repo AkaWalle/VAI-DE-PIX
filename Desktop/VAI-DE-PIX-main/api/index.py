@@ -14,8 +14,10 @@ sys.path.insert(0, str(backend_path))
 if str(backend_path) not in sys.path:
     sys.path.insert(0, str(backend_path))
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
+from starlette.middleware.base import BaseHTTPMiddleware
 from mangum import Mangum
 
 # Import routers from backend
@@ -30,6 +32,27 @@ app = FastAPI(
     redoc_url="/redoc",
     root_path="/api"  # Set root path for API
 )
+
+# Middleware to strip /api prefix from path
+class StripAPIPrefixMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        # Remove /api prefix from path if present
+        if request.url.path.startswith("/api/"):
+            # Create new path without /api prefix
+            new_path = request.url.path[4:]  # Remove "/api"
+            # Create new request with modified path
+            scope = request.scope.copy()
+            scope["path"] = new_path
+            request = Request(scope, request.receive)
+        elif request.url.path == "/api":
+            scope = request.scope.copy()
+            scope["path"] = "/"
+            request = Request(scope, request.receive)
+        
+        return await call_next(request)
+
+# Add middleware to strip /api prefix
+app.add_middleware(StripAPIPrefixMiddleware)
 
 # CORS configuration
 frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
