@@ -8,14 +8,14 @@
       "use": "@vercel/python"
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "src": "/api/(.*)",
-      "dest": "/api/index"
+      "source": "/api/(.*)",
+      "destination": "/api/index"
     },
     {
-      "src": "/((?!api|assets|favicon|.*\\.(ico|png|jpg|jpeg|svg|css|js|woff|woff2|ttf|eot)).*)",
-      "dest": "/index.html"
+      "source": "/((?!api|assets|favicon|.*\\.(ico|png|jpg|jpeg|svg|css|js|woff|woff2|ttf|eot)).*)",
+      "destination": "/index.html"
     }
   ],
   "functions": {
