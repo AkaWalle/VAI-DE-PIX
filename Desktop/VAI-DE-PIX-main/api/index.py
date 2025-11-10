@@ -14,9 +14,11 @@ sys.path.insert(0, str(backend_path))
 if str(backend_path) not in sys.path:
     sys.path.insert(0, str(backend_path))
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from mangum import Mangum
+from starlette.middleware.base import BaseHTTPMiddleware
 
 # Import routers from backend
 from routers import auth, transactions, goals, envelopes, categories, accounts, reports, automations
@@ -27,7 +29,8 @@ app = FastAPI(
     description="API completa para sistema de controle financeiro pessoal",
     version="1.0.0",
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
+    root_path="/api"  # Set root path for API
 )
 
 # CORS configuration
@@ -84,6 +87,7 @@ async def health_check():
 
 # Vercel serverless function handler
 # Mangum automatically handles the path from Vercel
+# The root_path="/api" in FastAPI app handles the prefix
 handler = Mangum(app, lifespan="off")
 
 # Export for Vercel - must be named 'handler' for Vercel to detect it
