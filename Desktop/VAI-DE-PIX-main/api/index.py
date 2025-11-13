@@ -213,5 +213,5 @@ async def debug_test_query():
 handler = Mangum(app, lifespan="off")
 
 # Export for Vercel - must be named 'handler' for Vercel to detect it
-__all__ = ["handler"]
+# This is the entry point for Vercel serverless functions
 

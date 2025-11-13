@@ -16,7 +16,8 @@
     "api/index.py": {
       "runtime": "python3.9",
       "includeFiles": "backend/**",
-      "maxDuration": 30
+      "maxDuration": 30,
+      "memory": 1024
     }
   }
 }
