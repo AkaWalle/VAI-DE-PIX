@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { ActionButton } from '@/components/ui/action-button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { useTheme } from '@/components/theme-providerr';
+import { useTheme } from '@/components/theme-provider';
 import { formatCurrency } from '@/utils/format';
 import { 
   User, 

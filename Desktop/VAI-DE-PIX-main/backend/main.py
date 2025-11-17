@@ -3,9 +3,12 @@ Servidor de desenvolvimento para VAI DE PIX API
 Execute: python main.py
 """
 
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from sqlalchemy.orm import Session
 import uvicorn
 from datetime import datetime
@@ -19,27 +22,50 @@ from auth_utils import verify_token
 # Load environment variables
 load_dotenv()
 
+# Rate limiter
+limiter = Limiter(key_func=get_remote_address)
+
 app = FastAPI(
     title="VAI DE PIX API",
     description="API completa para sistema de controle financeiro pessoal",
-    version="1.0.0",
+    version="1.1.0",
     docs_url="/docs",
     redoc_url="/redoc"
 )
 
-# CORS configuration - Permitir frontend em desenvolvimento
-frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        frontend_url, 
-        "http://localhost:3000", 
+# Configurar rate limiter
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# CORS configuration - Configuração baseada em ambiente
+is_production = os.getenv("ENVIRONMENT", "development").lower() == "production"
+frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5000")
+
+# Origens permitidas baseadas no ambiente
+if is_production:
+    # Em produção, apenas origens específicas
+    allowed_origins = [
+        frontend_url,
+        os.getenv("FRONTEND_URL_PRODUCTION", ""),
+    ]
+    # Remove strings vazias
+    allowed_origins = [origin for origin in allowed_origins if origin]
+else:
+    # Em desenvolvimento, permitir localhost e rede local
+    allowed_origins = [
+        frontend_url,
+        "http://localhost:3000",
+        "http://localhost:5000",
         "http://localhost:8080",
         "http://localhost:8081",
         "http://127.0.0.1:3000",
-        "http://127.0.0.1:8080",
-        "*"  # Permitir todas as origens em desenvolvimento
-    ],
+        "http://127.0.0.1:5000",
+        "http://127.0.0.1:8000",
+    ]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
@@ -48,6 +74,9 @@ app.add_middleware(
 
 # Security
 security = HTTPBearer()
+
+# Injetar limiter no router de autenticação
+auth.limiter = limiter
 
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])

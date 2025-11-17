@@ -1,10 +1,10 @@
 import { Outlet } from "react-router-dom"
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
-import { ThemeProvider } from "@/components/theme-providerr"
+import { ThemeProvider } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
 import { Moon, Sun } from "lucide-react"
-import { useTheme } from "@/components/theme-providerr"
+import { useTheme } from "@/components/theme-provider"
 import { useLoadData } from "@/hooks/use-load-data"
 
 function ThemeToggle() {

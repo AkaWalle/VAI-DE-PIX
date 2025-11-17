@@ -11,7 +11,15 @@ export default defineConfig(({ mode }) => ({
     strictPort: true,
   },
   optimizeDeps: {
-    force: true, // Força a reotimização das dependências
+    // Apenas forçar em desenvolvimento quando necessário
+    force: process.env.NODE_ENV === 'development' ? false : false,
+    // Incluir dependências que devem ser pré-otimizadas
+    include: [
+      'react',
+      'react-dom',
+      'react-router-dom',
+      '@tanstack/react-query',
+    ],
   },
   plugins: [
     react(),
