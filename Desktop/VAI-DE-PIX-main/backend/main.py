@@ -75,6 +75,9 @@ app.add_middleware(
 # Security
 security = HTTPBearer()
 
+# Injetar limiter no router de autenticação
+auth.limiter = limiter
+
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(transactions.router, prefix="/api/transactions", tags=["Transactions"])

@@ -4,8 +4,9 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from typing import Optional
 from pydantic import BaseModel, EmailStr, validator
-from slowapi import Limiter
+from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 import re
 
 from database import get_db
@@ -13,6 +14,9 @@ from models import User, Category
 from auth_utils import create_access_token, verify_password, get_password_hash, get_current_user
 
 router = APIRouter()
+
+# Rate limiter será criado e injetado do app principal
+limiter = None
 
 # Pydantic models for request/response
 class UserCreate(BaseModel):
@@ -71,13 +75,6 @@ async def register(
     db: Session = Depends(get_db)
 ):
     try:
-        # Rate limiting: 5 registros por hora por IP
-        limiter = request.app.state.limiter
-        @limiter.limit("5/hour")
-        def _check_rate():
-            pass
-        _check_rate()
-        
         # Check if user already exists
         existing_user = db.query(User).filter(User.email == user_data.email).first()
         if existing_user:
@@ -150,13 +147,6 @@ async def login(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    # Rate limiting: 10 tentativas por hora por IP
-    limiter = request.app.state.limiter
-    @limiter.limit("10/hour")
-    def _check_rate():
-        pass
-    _check_rate()
-    
     # Authenticate user - normalize email to lowercase for comparison
     email_lower = login_data.email.lower()
     user = db.query(User).filter(User.email == email_lower).first()
