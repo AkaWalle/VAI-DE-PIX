@@ -13,7 +13,7 @@ import os
 from dotenv import load_dotenv
 
 from database import get_db
-from routers import auth, transactions, goals, envelopes, categories, accounts, reports, automations
+from routers import auth, transactions, goals, envelopes, categories, accounts, reports
 from auth_utils import verify_token
 
 # Load environment variables
@@ -31,10 +31,19 @@ app = FastAPI(
 frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[frontend_url, "http://localhost:3000", "http://localhost:8081", "http://localhost:8080", "*"],  # Permitir frontend
+    allow_origins=[
+        frontend_url, 
+        "http://localhost:3000", 
+        "http://localhost:8080",
+        "http://localhost:8081",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:8080",
+        "*"  # Permitir todas as origens em desenvolvimento
+    ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Security
@@ -48,7 +57,6 @@ app.include_router(envelopes.router, prefix="/api/envelopes", tags=["Envelopes"]
 app.include_router(categories.router, prefix="/api/categories", tags=["Categories"])
 app.include_router(accounts.router, prefix="/api/accounts", tags=["Accounts"])
 app.include_router(reports.router, prefix="/api/reports", tags=["Reports"])
-app.include_router(automations.router, prefix="/api/automations", tags=["Automations"])
 
 # API Routes
 @app.get("/")

@@ -59,7 +59,9 @@ frontend_dist = Path(__file__).parent.parent / "dist"
 
 # Servir arquivos estáticos
 app.mount("/assets", StaticFiles(directory=str(frontend_dist / "assets")), name="assets")
-app.mount("/examples", StaticFiles(directory=str(frontend_dist / "examples")), name="examples")
+# Montar /examples apenas se o diretório existir
+if (frontend_dist / "examples").exists():
+    app.mount("/examples", StaticFiles(directory=str(frontend_dist / "examples")), name="examples")
 
 # Servir arquivos estáticos individuais
 @app.get("/favicon.svg")
@@ -81,6 +83,11 @@ async def robots():
 @app.get("/site.webmanifest")
 async def manifest():
     return FileResponse(str(frontend_dist / "site.webmanifest"))
+
+# Rota raiz serve o frontend (DEVE VIR ANTES DAS ROTAS DA API)
+@app.get("/")
+async def root():
+    return FileResponse(str(frontend_dist / "index.html"))
 
 # API Routes
 @app.get("/api")
@@ -108,11 +115,6 @@ async def protected_route(
 ):
     user = verify_token(credentials.credentials, db)
     return {"message": f"Hello {user.name}!", "user_id": user.id}
-
-# Rota raiz serve o frontend
-@app.get("/")
-async def root():
-    return FileResponse(str(frontend_dist / "index.html"))
 
 # Servir o frontend para todas as outras rotas (SPA routing)
 @app.get("/{full_path:path}")

@@ -21,40 +21,54 @@ import Auth from "./pages/Auth";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <PersistenceManager />
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          {/* Public route for authentication */}
-          <Route path="/auth" element={<Auth />} />
-          
-          {/* Protected routes */}
-          <Route path="/" element={
-            <ProtectedRoute>
-              <MainLayout />
-            </ProtectedRoute>
-          }>
-            <Route index element={<Dashboard />} />
-            <Route path="transactions" element={<Transactions />} />
-            <Route path="goals" element={<Goals />} />
-            <Route path="envelopes" element={<Envelopes />} />
-            <Route path="shared-expenses" element={<SharedExpenses />} />
-            <Route path="reports" element={<Reports />} />
-            <Route path="trends" element={<Trends />} />
-            <Route path="automations" element={<Automations />} />
-            <Route path="settings" element={<Settings />} />
-          </Route>
-          
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  // Error boundary simples
+  try {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <PersistenceManager />
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              {/* Public route for authentication */}
+              <Route path="/auth" element={<Auth />} />
+              
+              {/* Protected routes */}
+              <Route path="/" element={
+                <ProtectedRoute>
+                  <MainLayout />
+                </ProtectedRoute>
+              }>
+                <Route index element={<Dashboard />} />
+                <Route path="transactions" element={<Transactions />} />
+                <Route path="goals" element={<Goals />} />
+                <Route path="envelopes" element={<Envelopes />} />
+                <Route path="shared-expenses" element={<SharedExpenses />} />
+                <Route path="reports" element={<Reports />} />
+                <Route path="trends" element={<Trends />} />
+                <Route path="automations" element={<Automations />} />
+                <Route path="settings" element={<Settings />} />
+              </Route>
+              
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </QueryClientProvider>
+    );
+  } catch (error) {
+    console.error('❌ Erro ao renderizar App:', error);
+    return (
+      <div style={{ padding: '20px', color: 'red' }}>
+        <h1>Erro ao carregar aplicação</h1>
+        <p>{error instanceof Error ? error.message : 'Erro desconhecido'}</p>
+        <pre>{error instanceof Error ? error.stack : String(error)}</pre>
+      </div>
+    );
+  }
+};
 
 export default App;

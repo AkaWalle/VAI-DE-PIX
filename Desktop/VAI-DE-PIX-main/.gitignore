@@ -74,3 +74,35 @@ env/
 .venv
 
 .vercel
+
+# Vite cache (pode ser regenerado)
+node_modules/.vite/
+
+# OS specific
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE - manter apenas extensões recomendadas
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+.idea/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
