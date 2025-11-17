@@ -111,8 +111,8 @@ pip install -r requirements.txt
 
 # Criar .env se não existir
 if [ ! -f ".env" ]; then
-    if [ -f "env.example" ]; then
-        cp env.example .env
+    if [ -f ".env.example" ]; then
+        cp .env.example .env
         echo -e "${YELLOW}📝 Arquivo .env criado. Por favor, edite com suas configurações.${NC}"
     else
         cat > .env << EOF
