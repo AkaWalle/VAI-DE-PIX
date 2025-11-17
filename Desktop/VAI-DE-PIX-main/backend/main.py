@@ -27,19 +27,35 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# CORS configuration - Permitir frontend em desenvolvimento
-frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        frontend_url, 
-        "http://localhost:3000", 
+# CORS configuration - Configuração baseada em ambiente
+is_production = os.getenv("ENVIRONMENT", "development").lower() == "production"
+frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5000")
+
+# Origens permitidas baseadas no ambiente
+if is_production:
+    # Em produção, apenas origens específicas
+    allowed_origins = [
+        frontend_url,
+        os.getenv("FRONTEND_URL_PRODUCTION", ""),
+    ]
+    # Remove strings vazias
+    allowed_origins = [origin for origin in allowed_origins if origin]
+else:
+    # Em desenvolvimento, permitir localhost e rede local
+    allowed_origins = [
+        frontend_url,
+        "http://localhost:3000",
+        "http://localhost:5000",
         "http://localhost:8080",
         "http://localhost:8081",
         "http://127.0.0.1:3000",
-        "http://127.0.0.1:8080",
-        "*"  # Permitir todas as origens em desenvolvimento
-    ],
+        "http://127.0.0.1:5000",
+        "http://127.0.0.1:8000",
+    ]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],

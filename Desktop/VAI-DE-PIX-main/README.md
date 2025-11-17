@@ -60,10 +60,13 @@ Um sistema moderno e intuitivo para gerenciar suas finanças pessoais com análi
 
 ### Pré-requisitos
 - **Node.js** >= 18.0.0
+- **Python** >= 3.9
 - **npm**, **yarn** ou **pnpm**
+- **pip** (gerenciador de pacotes Python)
 
 ### 1. Instalação
 
+#### Frontend
 ```bash
 # Verificar versão do Node.js
 node -v
@@ -76,10 +79,85 @@ yarn install
 pnpm install
 ```
 
-### 2. Desenvolvimento
-
+#### Backend
 ```bash
-# Iniciar servidor de desenvolvimento
+# Navegar para o diretório backend
+cd backend
+
+# Criar ambiente virtual (recomendado)
+python -m venv venv
+
+# Ativar ambiente virtual
+# Windows:
+venv\Scripts\activate
+# Linux/Mac:
+source venv/bin/activate
+
+# Instalar dependências
+pip install -r requirements.txt
+
+# Configurar variáveis de ambiente
+# Opção 1: Usar script automático (recomendado)
+python scripts/setup_env.py
+
+# Opção 2: Copiar manualmente
+cp .env.example .env
+# Edite o arquivo .env com suas configurações
+
+# Validar configuração
+python scripts/validate_env.py
+```
+
+### 2. Configuração de Ambiente
+
+#### Variáveis de Ambiente do Backend (.env)
+```env
+# Database Configuration
+DATABASE_URL=sqlite:///./vai_de_pix.db  # SQLite para desenvolvimento
+# ou
+# DATABASE_URL=postgresql://user:password@localhost:5432/vai_de_pix  # PostgreSQL
+
+# Security
+SECRET_KEY=your-super-secret-key-here-change-in-production
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+
+# Server Configuration
+PORT=8000
+HOST=0.0.0.0
+DEBUG=True
+
+# Frontend URL (for CORS)
+FRONTEND_URL=http://localhost:5000
+```
+
+#### Variáveis de Ambiente do Frontend (.env.local)
+```env
+# API Configuration
+VITE_API_URL=http://localhost:8000/api
+
+# App Configuration
+VITE_APP_NAME=VAI DE PIX
+VITE_APP_VERSION=1.0.0
+```
+
+### 3. Desenvolvimento
+
+#### Iniciar Backend
+```bash
+cd backend
+# Com ambiente virtual ativado
+python main.py
+```
+
+**Backend disponível em:**
+- **API:** http://localhost:8000
+- **Documentação:** http://localhost:8000/docs
+- **Health Check:** http://localhost:8000/api/health
+
+#### Iniciar Frontend
+```bash
+# Na raiz do projeto
 npm run dev
 # ou
 yarn dev
@@ -87,11 +165,11 @@ yarn dev
 pnpm dev
 ```
 
-**Acessos disponíveis:**
-- **Local:** http://localhost:8080/
-- **Rede:** http://192.168.x.x:8080/
+**Frontend disponível em:**
+- **Local:** http://localhost:5000/
+- **Rede:** http://192.168.x.x:5000/
 
-### 3. Build para Produção
+### 4. Build para Produção
 
 ```bash
 # Gerar build otimizada
@@ -101,7 +179,7 @@ npm run build
 npm run preview
 ```
 
-### 4. Verificação de Código
+### 5. Verificação de Código
 
 ```bash
 # Executar linter
