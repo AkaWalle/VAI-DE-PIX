@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { MainLayout } from "./layouts/main-layouts";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { PersistenceManager } from "./components/PersistenceManager";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import "./App.css";
 import Dashboard from "./pages/dashboard";
 import Transactions from "./pages/Transactions";
@@ -22,9 +23,8 @@ import Auth from "./pages/Auth";
 const queryClient = new QueryClient();
 
 const App = () => {
-  // Error boundary simples
-  try {
-    return (
+  return (
+    <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <PersistenceManager />
@@ -58,17 +58,8 @@ const App = () => {
           </BrowserRouter>
         </TooltipProvider>
       </QueryClientProvider>
-    );
-  } catch (error) {
-    console.error('❌ Erro ao renderizar App:', error);
-    return (
-      <div style={{ padding: '20px', color: 'red' }}>
-        <h1>Erro ao carregar aplicação</h1>
-        <p>{error instanceof Error ? error.message : 'Erro desconhecido'}</p>
-        <pre>{error instanceof Error ? error.stack : String(error)}</pre>
-      </div>
-    );
-  }
+    </ErrorBoundary>
+  );
 };
 
 export default App;
