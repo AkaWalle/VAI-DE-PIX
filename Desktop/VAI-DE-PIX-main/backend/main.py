@@ -3,9 +3,12 @@ Servidor de desenvolvimento para VAI DE PIX API
 Execute: python main.py
 """
 
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from sqlalchemy.orm import Session
 import uvicorn
 from datetime import datetime
@@ -19,6 +22,9 @@ from auth_utils import verify_token
 # Load environment variables
 load_dotenv()
 
+# Rate limiter
+limiter = Limiter(key_func=get_remote_address)
+
 app = FastAPI(
     title="VAI DE PIX API",
     description="API completa para sistema de controle financeiro pessoal",
@@ -26,6 +32,10 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc"
 )
+
+# Configurar rate limiter
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS configuration - Configuração baseada em ambiente
 is_production = os.getenv("ENVIRONMENT", "development").lower() == "production"

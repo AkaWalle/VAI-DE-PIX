@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,17 +9,29 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { PersistenceManager } from "./components/PersistenceManager";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import "./App.css";
-import Dashboard from "./pages/dashboard";
-import Transactions from "./pages/Transactions";
-import Goals from "./pages/Goals";
-import Envelopes from "./pages/Envelopes";
-import SharedExpenses from "./pages/SharedExpenses";
-import Reports from "./pages/Reports";
-import Trends from "./pages/Trends";
-import Automations from "./pages/Automations";
-import Settings from "./pages/Settings";
-import NotFound from "./pages/NotFound";
-import Auth from "./pages/Auth";
+
+// Lazy loading de páginas para melhor performance
+const Dashboard = lazy(() => import("./pages/dashboard"));
+const Transactions = lazy(() => import("./pages/Transactions"));
+const Goals = lazy(() => import("./pages/Goals"));
+const Envelopes = lazy(() => import("./pages/Envelopes"));
+const SharedExpenses = lazy(() => import("./pages/SharedExpenses"));
+const Reports = lazy(() => import("./pages/Reports"));
+const Trends = lazy(() => import("./pages/Trends"));
+const Automations = lazy(() => import("./pages/Automations"));
+const Settings = lazy(() => import("./pages/Settings"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const Auth = lazy(() => import("./pages/Auth"));
+
+// Componente de loading para lazy loaded routes
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center bg-background">
+    <div className="text-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+      <p className="text-muted-foreground">Carregando...</p>
+    </div>
+  </div>
+);
 
 const queryClient = new QueryClient();
 
@@ -31,30 +44,32 @@ const App = () => {
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <Routes>
-              {/* Public route for authentication */}
-              <Route path="/auth" element={<Auth />} />
-              
-              {/* Protected routes */}
-              <Route path="/" element={
-                <ProtectedRoute>
-                  <MainLayout />
-                </ProtectedRoute>
-              }>
-                <Route index element={<Dashboard />} />
-                <Route path="transactions" element={<Transactions />} />
-                <Route path="goals" element={<Goals />} />
-                <Route path="envelopes" element={<Envelopes />} />
-                <Route path="shared-expenses" element={<SharedExpenses />} />
-                <Route path="reports" element={<Reports />} />
-                <Route path="trends" element={<Trends />} />
-                <Route path="automations" element={<Automations />} />
-                <Route path="settings" element={<Settings />} />
-              </Route>
-              
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                {/* Public route for authentication */}
+                <Route path="/auth" element={<Auth />} />
+                
+                {/* Protected routes */}
+                <Route path="/" element={
+                  <ProtectedRoute>
+                    <MainLayout />
+                  </ProtectedRoute>
+                }>
+                  <Route index element={<Dashboard />} />
+                  <Route path="transactions" element={<Transactions />} />
+                  <Route path="goals" element={<Goals />} />
+                  <Route path="envelopes" element={<Envelopes />} />
+                  <Route path="shared-expenses" element={<SharedExpenses />} />
+                  <Route path="reports" element={<Reports />} />
+                  <Route path="trends" element={<Trends />} />
+                  <Route path="automations" element={<Automations />} />
+                  <Route path="settings" element={<Settings />} />
+                </Route>
+                
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
           </BrowserRouter>
         </TooltipProvider>
       </QueryClientProvider>

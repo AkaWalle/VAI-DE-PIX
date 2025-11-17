@@ -1,9 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr, validator
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+import re
 
 from database import get_db
 from models import User, Category
@@ -14,8 +17,27 @@ router = APIRouter()
 # Pydantic models for request/response
 class UserCreate(BaseModel):
     name: str
-    email: str
+    email: EmailStr
     password: str
+    
+    @validator('name')
+    def validate_name(cls, v):
+        if not v or len(v.strip()) < 2:
+            raise ValueError('Nome deve ter pelo menos 2 caracteres')
+        if len(v) > 100:
+            raise ValueError('Nome deve ter no máximo 100 caracteres')
+        # Remover caracteres perigosos
+        if re.search(r'[<>"\']', v):
+            raise ValueError('Nome contém caracteres inválidos')
+        return v.strip()
+    
+    @validator('password')
+    def validate_password(cls, v):
+        if not v or len(v) < 6:
+            raise ValueError('Senha deve ter pelo menos 6 caracteres')
+        if len(v) > 128:
+            raise ValueError('Senha deve ter no máximo 128 caracteres')
+        return v
 
 class UserResponse(BaseModel):
     id: str
@@ -33,30 +55,28 @@ class Token(BaseModel):
     user: UserResponse
 
 class LoginRequest(BaseModel):
-    email: str
+    email: EmailStr
     password: str
+    
+    @validator('password')
+    def validate_password(cls, v):
+        if not v:
+            raise ValueError('Senha é obrigatória')
+        return v
 
 @router.post("/register", response_model=Token)
-async def register(user_data: UserCreate, db: Session = Depends(get_db)):
+async def register(
+    user_data: UserCreate, 
+    request: Request,
+    db: Session = Depends(get_db)
+):
     try:
-        # Validate input
-        if not user_data.name or len(user_data.name.strip()) < 2:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Nome deve ter pelo menos 2 caracteres"
-            )
-        
-        if not user_data.email or "@" not in user_data.email:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email inválido"
-            )
-        
-        if not user_data.password or len(user_data.password) < 6:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Senha deve ter pelo menos 6 caracteres"
-            )
+        # Rate limiting: 5 registros por hora por IP
+        limiter = request.app.state.limiter
+        @limiter.limit("5/hour")
+        def _check_rate():
+            pass
+        _check_rate()
         
         # Check if user already exists
         existing_user = db.query(User).filter(User.email == user_data.email).first()
@@ -66,11 +86,11 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
                 detail="Email já está em uso"
             )
         
-        # Create new user
+        # Create new user (validação já feita pelo Pydantic)
         hashed_password = get_password_hash(user_data.password)
         db_user = User(
-            name=user_data.name.strip(),
-            email=user_data.email.strip().lower(),
+            name=user_data.name,
+            email=user_data.email.lower(),
             hashed_password=hashed_password,
             is_active=True
         )
@@ -125,9 +145,21 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
         )
 
 @router.post("/login", response_model=Token)
-async def login(login_data: LoginRequest, db: Session = Depends(get_db)):
-    # Authenticate user
-    user = db.query(User).filter(User.email == login_data.email).first()
+async def login(
+    login_data: LoginRequest, 
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    # Rate limiting: 10 tentativas por hora por IP
+    limiter = request.app.state.limiter
+    @limiter.limit("10/hour")
+    def _check_rate():
+        pass
+    _check_rate()
+    
+    # Authenticate user - normalize email to lowercase for comparison
+    email_lower = login_data.email.lower()
+    user = db.query(User).filter(User.email == email_lower).first()
     
     if not user or not verify_password(login_data.password, user.hashed_password):
         raise HTTPException(
