@@ -28,7 +28,7 @@ limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(
     title="VAI DE PIX API",
     description="API completa para sistema de controle financeiro pessoal",
-    version="1.0.0",
+    version="1.1.0",
     docs_url="/docs",
     redoc_url="/redoc"
 )
