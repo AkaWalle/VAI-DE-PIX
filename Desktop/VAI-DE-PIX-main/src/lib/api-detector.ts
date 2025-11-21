@@ -105,7 +105,13 @@ export function getApiUrl(): string {
     return envUrl;
   }
 
-  // Padrão
+  // Em desenvolvimento, usar proxy do Vite (relativo)
+  // Em produção, usar URL absoluta
+  if (import.meta.env.DEV) {
+    return '/api';
+  }
+
+  // Padrão para produção
   return 'http://localhost:8000/api';
 }
 

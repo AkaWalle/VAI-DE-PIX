@@ -2,11 +2,16 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from database import get_db
 from models import Category, User
 from auth_utils import get_current_user
+from core.security import validate_ownership
+from core.logging_config import get_logger
+from repositories.category_repository import CategoryRepository
+
+logger = get_logger(__name__)
 
 router = APIRouter()
 
@@ -29,9 +34,8 @@ class CategoryResponse(BaseModel):
     color: str
     icon: str
     created_at: datetime
-
-    class Config:
-        from_attributes = True
+    
+    model_config = ConfigDict(from_attributes=True)
 
 @router.get("/", response_model=List[CategoryResponse])
 async def get_categories(
@@ -40,12 +44,8 @@ async def get_categories(
     db: Session = Depends(get_db)
 ):
     """Get user's categories."""
-    query = db.query(Category).filter(Category.user_id == current_user.id)
-    
-    if type_filter:
-        query = query.filter(Category.type == type_filter)
-    
-    return query.all()
+    category_repo = CategoryRepository(db)
+    return category_repo.get_by_user(current_user.id, type_filter=type_filter)
 
 @router.post("/", response_model=CategoryResponse)
 async def create_category(
@@ -72,11 +72,9 @@ async def update_category(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Update a category."""
-    db_category = db.query(Category).filter(
-        Category.id == category_id,
-        Category.user_id == current_user.id
-    ).first()
+    """Update a category with explicit ownership validation."""
+    category_repo = CategoryRepository(db)
+    db_category = category_repo.get_by_user_and_id(current_user.id, category_id)
     
     if not db_category:
         raise HTTPException(
@@ -84,12 +82,27 @@ async def update_category(
             detail="Categoria não encontrada"
         )
     
+    # Validação explícita de ownership (defense in depth)
+    validate_ownership(db_category.user_id, current_user.id, "categoria")
+    
     update_data = category_update.model_dump(exclude_unset=True)
-    for field, value in update_data.items():
-        setattr(db_category, field, value)
+    # Atribuição direta ao invés de setattr
+    if 'name' in update_data:
+        db_category.name = update_data['name']
+    if 'type' in update_data:
+        db_category.type = update_data['type']
+    if 'color' in update_data:
+        db_category.color = update_data['color']
+    if 'icon' in update_data:
+        db_category.icon = update_data['icon']
     
     db.commit()
     db.refresh(db_category)
+    
+    logger.info(
+        f"Categoria atualizada: ID={category_id}, Nome={db_category.name}",
+        extra={"user_id": current_user.id, "category_id": category_id}
+    )
     
     return db_category
 
@@ -99,11 +112,9 @@ async def delete_category(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Delete a category."""
-    db_category = db.query(Category).filter(
-        Category.id == category_id,
-        Category.user_id == current_user.id
-    ).first()
+    """Delete a category with explicit ownership validation."""
+    category_repo = CategoryRepository(db)
+    db_category = category_repo.get_by_user_and_id(current_user.id, category_id)
     
     if not db_category:
         raise HTTPException(
@@ -111,7 +122,15 @@ async def delete_category(
             detail="Categoria não encontrada"
         )
     
+    # Validação explícita de ownership (defense in depth)
+    validate_ownership(db_category.user_id, current_user.id, "categoria")
+    
     db.delete(db_category)
     db.commit()
+    
+    logger.info(
+        f"Categoria deletada: ID={category_id}, Nome={db_category.name}",
+        extra={"user_id": current_user.id, "category_id": category_id}
+    )
     
     return {"message": "Categoria removida com sucesso"}

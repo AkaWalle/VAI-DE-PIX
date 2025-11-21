@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, Text, ForeignKey, JSON, Index, CheckConstraint
+from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, Text, ForeignKey, JSON, Index, CheckConstraint, Numeric
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from database import Base
@@ -12,16 +12,18 @@ class User(Base):
     email = Column(String(255), unique=True, nullable=False, index=True)
     hashed_password = Column(String(255), nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
+    theme = Column(String(20), nullable=True, server_default='system')  # system, light, dark
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
     
     # Relationships
     accounts = relationship("Account", back_populates="user", cascade="all, delete-orphan")
     categories = relationship("Category", back_populates="user", cascade="all, delete-orphan")
-    transactions = relationship("Transaction", back_populates="user", cascade="all, delete-orphan")
+    transactions = relationship("Transaction", back_populates="user", cascade="all, delete-orphan", foreign_keys="[Transaction.user_id]")
     goals = relationship("Goal", back_populates="user", cascade="all, delete-orphan")
     envelopes = relationship("Envelope", back_populates="user", cascade="all, delete-orphan")
     automation_rules = relationship("AutomationRule", back_populates="user", cascade="all, delete-orphan")
+    tags = relationship("Tag", back_populates="user", cascade="all, delete-orphan")
     
     # Constraints
     # Note: Regex constraints removed for SQLite compatibility
@@ -35,9 +37,10 @@ class Account(Base):
     
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String(100), nullable=False)
-    type = Column(String(20), nullable=False)  # checking, savings, investment, credit, cash
-    balance = Column(Float, default=0.0, nullable=False)
+    account_type = Column(String(20), nullable=False, name="account_type")  # checking, savings, investment, credit, cash
+    balance = Column(Numeric(15, 2), default=0.0, nullable=False)  # Mantido para compatibilidade, mas sempre calculado a partir de transações
     user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    deleted_at = Column(DateTime(timezone=True), nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
     
@@ -47,9 +50,9 @@ class Account(Base):
     
     # Constraints and Indexes
     __table_args__ = (
-        CheckConstraint("type IN ('checking', 'savings', 'investment', 'credit', 'cash')", name="check_account_type"),
+        CheckConstraint("account_type IN ('checking', 'savings', 'investment', 'credit', 'cash')", name="check_account_type"),
         CheckConstraint("length(name) >= 1", name="check_account_name_length"),
-        Index('idx_accounts_user_type', 'user_id', 'type'),
+        Index('idx_accounts_user_type', 'user_id', 'account_type'),
     )
 
 class Category(Base):
@@ -61,6 +64,7 @@ class Category(Base):
     color = Column(String(7), nullable=False)  # Hex color format
     icon = Column(String(10), nullable=False)
     user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    deleted_at = Column(DateTime(timezone=True), nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
     
@@ -84,29 +88,43 @@ class Transaction(Base):
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     date = Column(DateTime(timezone=True), nullable=False, index=True)
     account_id = Column(String, ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False, index=True)
-    category_id = Column(String, ForeignKey("categories.id", ondelete="CASCADE"), nullable=False, index=True)
-    type = Column(String(20), nullable=False)  # income, expense
-    amount = Column(Float, nullable=False)
+    category_id = Column(String, ForeignKey("categories.id", ondelete="CASCADE"), nullable=True, index=True)  # Nullable para transferências
+    type = Column(String(20), nullable=False)  # income, expense, transfer
+    amount = Column(Numeric(15, 2), nullable=False)
     description = Column(String(200), nullable=False)
-    tags = Column(JSON, nullable=True)
     user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    transfer_transaction_id = Column(String, ForeignKey("transactions.id", ondelete="SET NULL"), nullable=True, index=True)
+    deleted_at = Column(DateTime(timezone=True), nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
     
     # Relationships
-    user = relationship("User", back_populates="transactions")
+    user = relationship("User", back_populates="transactions", foreign_keys=[user_id])
     account = relationship("Account", back_populates="transactions")
     category = relationship("Category", back_populates="transactions")
+    # Self-relation para transferências
+    transfer_transaction = relationship(
+        "Transaction", 
+        remote_side=[id], 
+        foreign_keys=[transfer_transaction_id], 
+        post_update=True,
+        backref="counterpart_transaction"
+    )
+    transaction_tags = relationship("TransactionTag", back_populates="transaction", cascade="all, delete-orphan")
     
     # Constraints and Indexes
     __table_args__ = (
-        CheckConstraint("type IN ('income', 'expense')", name="check_transaction_type"),
+        CheckConstraint("type IN ('income', 'expense', 'transfer')", name="check_transaction_type"),
         CheckConstraint("amount > 0", name="check_transaction_amount_positive"),
         CheckConstraint("length(description) >= 1", name="check_transaction_description_length"),
         Index('idx_transactions_user_date', 'user_id', 'date'),
         Index('idx_transactions_user_type', 'user_id', 'type'),
         Index('idx_transactions_account_date', 'account_id', 'date'),
         Index('idx_transactions_category_date', 'category_id', 'date'),
+        Index('idx_transactions_date', 'date'),
+        Index('idx_transactions_account_id', 'account_id'),
+        Index('idx_transactions_user_id', 'user_id'),
+        Index('idx_transactions_category_id', 'category_id'),
     )
 
 class Goal(Base):
@@ -121,7 +139,9 @@ class Goal(Base):
     category = Column(String(50), nullable=False)
     priority = Column(String(20), nullable=False)  # low, medium, high
     status = Column(String(20), default="active", nullable=False)  # active, achieved, on_track, at_risk, overdue
+    progress_percentage = Column(Float, default=0.0, nullable=False)  # Calculado e armazenado, não calculado em GET
     user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    deleted_at = Column(DateTime(timezone=True), nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
     
@@ -150,6 +170,7 @@ class Envelope(Base):
     target_amount = Column(Float, nullable=True)
     color = Column(String(7), nullable=False)  # Hex color format
     description = Column(Text, nullable=True)
+    progress_percentage = Column(Float, nullable=True)  # Calculado e armazenado, não calculado em GET
     user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
@@ -180,6 +201,7 @@ class AutomationRule(Base):
     last_run = Column(DateTime(timezone=True), nullable=True)
     next_run = Column(DateTime(timezone=True), nullable=True, index=True)
     user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    deleted_at = Column(DateTime(timezone=True), nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
     
@@ -193,4 +215,45 @@ class AutomationRule(Base):
         Index('idx_automation_user_active', 'user_id', 'is_active'),
         Index('idx_automation_user_type', 'user_id', 'type'),
         Index('idx_automation_next_run', 'next_run'),
+    )
+
+class Tag(Base):
+    __tablename__ = "tags"
+    
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    name = Column(String(50), nullable=False)
+    color = Column(String(7), nullable=True)  # Hex color format (opcional)
+    user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    deleted_at = Column(DateTime(timezone=True), nullable=True, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
+    
+    # Relationships
+    user = relationship("User", back_populates="tags")
+    transaction_tags = relationship("TransactionTag", back_populates="tag", cascade="all, delete-orphan")
+    
+    # Constraints and Indexes
+    __table_args__ = (
+        CheckConstraint("length(name) >= 1", name="check_tag_name_length"),
+        Index('idx_tags_user_name', 'user_id', 'name', unique=True),  # Unique constraint
+        Index('idx_tags_user_id', 'user_id'),
+    )
+
+class TransactionTag(Base):
+    __tablename__ = "transaction_tags"
+    
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    transaction_id = Column(String, ForeignKey("transactions.id", ondelete="CASCADE"), nullable=False, index=True)
+    tag_id = Column(String, ForeignKey("tags.id", ondelete="CASCADE"), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    
+    # Relationships
+    transaction = relationship("Transaction", back_populates="transaction_tags")
+    tag = relationship("Tag", back_populates="transaction_tags")
+    
+    # Constraints and Indexes
+    __table_args__ = (
+        Index('idx_transaction_tags_transaction', 'transaction_id'),
+        Index('idx_transaction_tags_tag', 'tag_id'),
+        Index('idx_transaction_tags_unique', 'transaction_id', 'tag_id', unique=True),
     )

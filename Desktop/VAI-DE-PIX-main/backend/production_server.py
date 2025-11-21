@@ -17,29 +17,74 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 from database import get_db
-from routers import auth, transactions, goals, envelopes, categories, accounts, reports
+from routers import auth, transactions, goals, envelopes, categories, accounts, reports, automations
 from auth_utils import verify_token
+from core.logging_config import setup_logging, get_logger
+from core.security_headers import SecurityHeadersMiddleware
 
 # Load environment variables
 load_dotenv()
+
+# Configurar logging antes de qualquer outra coisa
+setup_logging()
+logger = get_logger(__name__)
 
 # Tabelas devem ser gerenciadas via Alembic (alembic upgrade head)
 
 app = FastAPI(
     title="VAI DE PIX API",
     description="API completa para sistema de controle financeiro pessoal",
-    version="1.0.0",
+    version="2.0.0",
     docs_url="/docs",
     redoc_url="/redoc"
 )
 
-# CORS configuration
+# Adicionar middleware de segurança HTTP (deve vir ANTES do CORS)
+app.add_middleware(SecurityHeadersMiddleware)
+
+# CORS configuration - Configuração baseada em ambiente (SEGURANÇA CRÍTICA)
+is_production = os.getenv("ENVIRONMENT", "development").lower() == "production"
+frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5000")
+
+# Origens permitidas baseadas no ambiente
+if is_production:
+    # Em produção, apenas origens específicas - NUNCA permitir "*"
+    allowed_origins = [
+        frontend_url,
+        os.getenv("FRONTEND_URL_PRODUCTION", ""),
+    ]
+    # Remove strings vazias
+    allowed_origins = [origin for origin in allowed_origins if origin]
+    
+    if not allowed_origins:
+        logger.warning(
+            "Nenhuma origem permitida configurada para produção. "
+            "Defina FRONTEND_URL ou FRONTEND_URL_PRODUCTION."
+        )
+        allowed_origins = [frontend_url]  # Fallback mínimo
+    
+    logger.info(f"CORS configurado para produção com {len(allowed_origins)} origem(ns) permitida(s)")
+else:
+    # Em desenvolvimento, permitir localhost e rede local
+    allowed_origins = [
+        frontend_url,
+        "http://localhost:3000",
+        "http://localhost:5000",
+        "http://localhost:8080",
+        "http://localhost:8081",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5000",
+        "http://127.0.0.1:8000",
+    ]
+    logger.info("CORS configurado para desenvolvimento (localhost permitido)")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Permitir todas as origens durante desenvolvimento
+    allow_origins=allowed_origins,  # NUNCA "*" em produção
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Security
@@ -53,6 +98,7 @@ app.include_router(envelopes.router, prefix="/api/envelopes", tags=["Envelopes"]
 app.include_router(categories.router, prefix="/api/categories", tags=["Categories"])
 app.include_router(accounts.router, prefix="/api/accounts", tags=["Accounts"])
 app.include_router(reports.router, prefix="/api/reports", tags=["Reports"])
+app.include_router(automations.router, prefix="/api/automations", tags=["Automations"])
 
 # Configurar caminho para arquivos estáticos
 frontend_dist = Path(__file__).parent.parent / "dist"
@@ -128,11 +174,11 @@ async def serve_spa(full_path: str):
     return FileResponse(str(frontend_dist / "index.html"))
 
 if __name__ == "__main__":
-    print("🚀 Iniciando servidor de produção VAI DE PIX...")
-    print(f"📁 Servindo frontend de: {frontend_dist}")
-    print("🔑 Login de admin: admin@vaidepix.com / 123456")
-    print("🌐 Acesse: http://localhost:8000")
-    print("📚 API Docs: http://localhost:8000/docs")
+    logger.info("🚀 Iniciando servidor de produção VAI DE PIX...")
+    logger.info(f"📁 Servindo frontend de: {frontend_dist}")
+    logger.info(f"🌐 Acesse: http://localhost:{os.getenv('PORT', 8000)}")
+    logger.info(f"📚 API Docs: http://localhost:{os.getenv('PORT', 8000)}/docs")
+    logger.info(f"🔒 Ambiente: {'PRODUÇÃO' if is_production else 'DESENVOLVIMENTO'}")
     
     uvicorn.run(
         "production_server:app",

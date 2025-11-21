@@ -3,24 +3,38 @@ Servidor de desenvolvimento para VAI DE PIX API
 Execute: python main.py
 """
 
-from fastapi import FastAPI, Depends, HTTPException, Request
+from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.exceptions import HTTPException as FastAPIHTTPException
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
 import uvicorn
 from datetime import datetime
 import os
 from dotenv import load_dotenv
 
 from database import get_db
-from routers import auth, transactions, goals, envelopes, categories, accounts, reports
+from routers import auth, transactions, goals, envelopes, categories, accounts, reports, automations, tags
 from auth_utils import verify_token
+from core.logging_config import setup_logging, get_logger
+from core.security_headers import SecurityHeadersMiddleware
+from core.exception_handlers import (
+    http_exception_handler,
+    general_exception_handler,
+    sqlalchemy_exception_handler
+)
+from core.recurring_job import start_scheduler, stop_scheduler
 
 # Load environment variables
 load_dotenv()
+
+# Configurar logging
+setup_logging()
+logger = get_logger(__name__)
 
 # Rate limiter
 limiter = Limiter(key_func=get_remote_address)
@@ -28,7 +42,7 @@ limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(
     title="VAI DE PIX API",
     description="API completa para sistema de controle financeiro pessoal",
-    version="1.1.0",
+    version="2.0.0",
     docs_url="/docs",
     redoc_url="/redoc"
 )
@@ -36,6 +50,14 @@ app = FastAPI(
 # Configurar rate limiter
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Exception handlers globais
+app.add_exception_handler(FastAPIHTTPException, http_exception_handler)
+app.add_exception_handler(SQLAlchemyError, sqlalchemy_exception_handler)
+app.add_exception_handler(Exception, general_exception_handler)
+
+# Adicionar middleware de segurança HTTP (deve vir ANTES do CORS)
+app.add_middleware(SecurityHeadersMiddleware)
 
 # CORS configuration - Configuração baseada em ambiente
 is_production = os.getenv("ENVIRONMENT", "development").lower() == "production"
@@ -75,7 +97,7 @@ app.add_middleware(
 # Security
 security = HTTPBearer()
 
-# Injetar limiter no router de autenticação
+# Injetar limiter nos routers
 auth.limiter = limiter
 
 # Include routers
@@ -86,6 +108,8 @@ app.include_router(envelopes.router, prefix="/api/envelopes", tags=["Envelopes"]
 app.include_router(categories.router, prefix="/api/categories", tags=["Categories"])
 app.include_router(accounts.router, prefix="/api/accounts", tags=["Accounts"])
 app.include_router(reports.router, prefix="/api/reports", tags=["Reports"])
+app.include_router(automations.router, prefix="/api/automations", tags=["Automations"])
+app.include_router(tags.router, prefix="/api/tags", tags=["Tags"])
 
 # API Routes
 @app.get("/")
@@ -123,12 +147,28 @@ async def protected_route(
     user = verify_token(credentials.credentials, db)
     return {"message": f"Hello {user.name}!", "user_id": user.id}
 
+@app.on_event("startup")
+async def startup_event():
+    """Evento de inicialização da aplicação."""
+    logger.info("🚀 Iniciando VAI DE PIX API...")
+    # Iniciar scheduler de recorrências apenas em produção ou se explicitamente habilitado
+    if os.getenv("ENABLE_RECURRING_JOBS", "false").lower() == "true" or os.getenv("ENVIRONMENT", "development").lower() == "production":
+        start_scheduler()
+        logger.info("✅ Job de transações recorrentes habilitado")
+    else:
+        logger.info("ℹ️  Job de transações recorrentes desabilitado (use ENABLE_RECURRING_JOBS=true para habilitar)")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Evento de encerramento da aplicação."""
+    logger.info("🛑 Encerrando VAI DE PIX API...")
+    stop_scheduler()
+
 if __name__ == "__main__":
-    print("🚀 Iniciando servidor de desenvolvimento VAI DE PIX API...")
-    print("🔑 Login de admin: admin@vaidepix.com / 123456")
-    print("🌐 API disponível em: http://localhost:8000")
-    print("📚 Documentação: http://localhost:8000/docs")
-    print("💡 Frontend deve rodar separadamente (npm run dev)")
+    logger.info("🚀 Iniciando servidor de desenvolvimento VAI DE PIX API...")
+    logger.info(f"🌐 API disponível em: http://localhost:{os.getenv('PORT', 8000)}")
+    logger.info(f"📚 Documentação: http://localhost:{os.getenv('PORT', 8000)}/docs")
+    logger.info("💡 Frontend deve rodar separadamente (npm run dev)")
     
     uvicorn.run(
         "main:app",

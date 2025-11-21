@@ -1,6 +1,7 @@
 import { Button, ButtonProps } from '@/components/ui/button';
 import { Loader2, LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import React from 'react';
 
 interface ActionButtonProps extends Omit<ButtonProps, 'children'> {
   icon?: LucideIcon;
@@ -9,7 +10,9 @@ interface ActionButtonProps extends Omit<ButtonProps, 'children'> {
   loadingText?: string;
 }
 
-export function ActionButton({
+export const ActionButton = React.forwardRef<HTMLButtonElement, ActionButtonProps>(
+  function ActionButton(
+    {
   icon: Icon,
   children,
   loading = false,
@@ -17,12 +20,15 @@ export function ActionButton({
   className,
   disabled,
   ...props
-}: ActionButtonProps) {
+    },
+    ref
+  ) {
   const buttonText = typeof children === 'string' ? children : '';
   const ariaLabel = buttonText || (loadingText && loading ? loadingText : undefined);
 
   return (
     <Button
+        ref={ref}
       className={cn("gap-2", className)}
       disabled={disabled || loading}
       aria-label={ariaLabel}
@@ -42,3 +48,4 @@ export function ActionButton({
     </Button>
   );
 }
+);

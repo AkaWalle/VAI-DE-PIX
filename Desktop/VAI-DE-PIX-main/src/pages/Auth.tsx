@@ -66,6 +66,18 @@ export default function Auth() {
       return;
     }
 
+    // Validação adicional de complexidade (recomendação)
+    const hasUpper = /[A-Z]/.test(registerForm.password);
+    const hasLower = /[a-z]/.test(registerForm.password);
+    const hasDigit = /\d/.test(registerForm.password);
+    const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(registerForm.password);
+    const complexityScore = [hasUpper, hasLower, hasDigit, hasSpecial].filter(Boolean).length;
+
+    if (complexityScore < 2) {
+      setError('Senha fraca. Use maiúsculas, minúsculas, números ou símbolos');
+      return;
+    }
+
     try {
       await register(registerForm.name, registerForm.email, registerForm.password);
       toast({

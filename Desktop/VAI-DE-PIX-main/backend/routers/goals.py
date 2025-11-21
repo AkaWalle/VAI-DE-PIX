@@ -2,11 +2,17 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from database import get_db
 from models import Goal, User
 from auth_utils import get_current_user
+from core.security import validate_ownership
+from core.logging_config import get_logger
+from core.goal_utils import update_goal_progress_and_status
+from repositories.goal_repository import GoalRepository
+
+logger = get_logger(__name__)
 
 router = APIRouter()
 
@@ -42,9 +48,8 @@ class GoalResponse(BaseModel):
     progress_percentage: float
     created_at: datetime
     updated_at: Optional[datetime]
-
-    class Config:
-        from_attributes = True
+    
+    model_config = ConfigDict(from_attributes=True)
 
 @router.get("/", response_model=List[GoalResponse])
 async def get_goals(
@@ -52,29 +57,9 @@ async def get_goals(
     db: Session = Depends(get_db)
 ):
     """Get user's goals."""
-    goals = db.query(Goal).filter(Goal.user_id == current_user.id).all()
-    
-    # Calculate progress percentage for each goal
-    for goal in goals:
-        goal.progress_percentage = min((goal.current_amount / goal.target_amount) * 100, 100)
-        
-        # Update status based on progress and date
-        today = datetime.now().date()
-        target_date = goal.target_date.date() if isinstance(goal.target_date, datetime) else goal.target_date
-        
-        if goal.current_amount >= goal.target_amount:
-            goal.status = "achieved"
-        elif target_date < today:
-            goal.status = "overdue"
-        elif (target_date - today).days <= 30 and goal.progress_percentage < 75:
-            goal.status = "at_risk"
-        elif goal.progress_percentage >= 50:
-            goal.status = "on_track"
-        else:
-            goal.status = "active"
-    
-    db.commit()
-    return goals
+    # Apenas retornar valores armazenados - ZERO cálculos em GET
+    goal_repo = GoalRepository(db)
+    return goal_repo.get_by_user(current_user.id)
 
 @router.post("/", response_model=GoalResponse)
 async def create_goal(
@@ -91,11 +76,10 @@ async def create_goal(
     )
     
     db.add(db_goal)
+    # Calcular progress_percentage e status na criação
+    update_goal_progress_and_status(db_goal)
     db.commit()
     db.refresh(db_goal)
-    
-    # Calculate progress percentage
-    db_goal.progress_percentage = 0.0
     
     return db_goal
 
@@ -106,10 +90,8 @@ async def get_goal(
     db: Session = Depends(get_db)
 ):
     """Get a specific goal."""
-    goal = db.query(Goal).filter(
-        Goal.id == goal_id,
-        Goal.user_id == current_user.id
-    ).first()
+    goal_repo = GoalRepository(db)
+    goal = goal_repo.get_by_user_and_id(current_user.id, goal_id)
     
     if not goal:
         raise HTTPException(
@@ -117,7 +99,7 @@ async def get_goal(
             detail="Meta não encontrada"
         )
     
-    goal.progress_percentage = min((goal.current_amount / goal.target_amount) * 100, 100)
+    # Retornar valor armazenado - ZERO cálculos em GET
     return goal
 
 @router.put("/{goal_id}", response_model=GoalResponse)
@@ -127,11 +109,9 @@ async def update_goal(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Update a goal."""
-    db_goal = db.query(Goal).filter(
-        Goal.id == goal_id,
-        Goal.user_id == current_user.id
-    ).first()
+    """Update a goal with explicit ownership validation."""
+    goal_repo = GoalRepository(db)
+    db_goal = goal_repo.get_by_user_and_id(current_user.id, goal_id)
     
     if not db_goal:
         raise HTTPException(
@@ -139,17 +119,38 @@ async def update_goal(
             detail="Meta não encontrada"
         )
     
-    # Update only provided fields
+    # Validação explícita de ownership (defense in depth)
+    validate_ownership(db_goal.user_id, current_user.id, "meta")
+    
+    # Update only provided fields - usar atribuição direta
     update_data = goal_update.model_dump(exclude_unset=True)
-    for field, value in update_data.items():
-        setattr(db_goal, field, value)
+    if 'name' in update_data:
+        db_goal.name = update_data['name']
+    if 'target_amount' in update_data:
+        db_goal.target_amount = update_data['target_amount']
+    if 'current_amount' in update_data:
+        db_goal.current_amount = update_data['current_amount']
+    if 'target_date' in update_data:
+        db_goal.target_date = update_data['target_date']
+    if 'description' in update_data:
+        db_goal.description = update_data['description']
+    if 'category' in update_data:
+        db_goal.category = update_data['category']
+    if 'priority' in update_data:
+        db_goal.priority = update_data['priority']
+    if 'status' in update_data:
+        db_goal.status = update_data['status']
     
     db_goal.updated_at = datetime.now()
+    # Recalcular progress_percentage e status após atualização
+    update_goal_progress_and_status(db_goal)
     db.commit()
     db.refresh(db_goal)
     
-    # Calculate progress percentage
-    db_goal.progress_percentage = min((db_goal.current_amount / db_goal.target_amount) * 100, 100)
+    logger.info(
+        f"Meta atualizada: ID={goal_id}, Nome={db_goal.name}",
+        extra={"user_id": current_user.id, "goal_id": goal_id}
+    )
     
     return db_goal
 
@@ -159,11 +160,9 @@ async def delete_goal(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Delete a goal."""
-    db_goal = db.query(Goal).filter(
-        Goal.id == goal_id,
-        Goal.user_id == current_user.id
-    ).first()
+    """Delete a goal with explicit ownership validation."""
+    goal_repo = GoalRepository(db)
+    db_goal = goal_repo.get_by_user_and_id(current_user.id, goal_id)
     
     if not db_goal:
         raise HTTPException(
@@ -171,8 +170,16 @@ async def delete_goal(
             detail="Meta não encontrada"
         )
     
+    # Validação explícita de ownership (defense in depth)
+    validate_ownership(db_goal.user_id, current_user.id, "meta")
+    
     db.delete(db_goal)
     db.commit()
+    
+    logger.info(
+        f"Meta deletada: ID={goal_id}, Nome={db_goal.name}",
+        extra={"user_id": current_user.id, "goal_id": goal_id}
+    )
     
     return {"message": "Meta removida com sucesso"}
 
@@ -184,17 +191,18 @@ async def add_value_to_goal(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Add value to a goal."""
-    db_goal = db.query(Goal).filter(
-        Goal.id == goal_id,
-        Goal.user_id == current_user.id
-    ).first()
+    """Add value to a goal with explicit ownership validation."""
+    goal_repo = GoalRepository(db)
+    db_goal = goal_repo.get_by_user_and_id(current_user.id, goal_id)
     
     if not db_goal:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Meta não encontrada"
         )
+    
+    # Validação explícita de ownership (defense in depth)
+    validate_ownership(db_goal.user_id, current_user.id, "meta")
     
     if amount <= 0:
         raise HTTPException(
@@ -205,9 +213,8 @@ async def add_value_to_goal(
     db_goal.current_amount += amount
     db_goal.updated_at = datetime.now()
     
-    # Update status if goal is achieved
-    if db_goal.current_amount >= db_goal.target_amount:
-        db_goal.status = "achieved"
+    # Recalcular progress_percentage e status após adicionar valor
+    update_goal_progress_and_status(db_goal)
     
     db.commit()
     db.refresh(db_goal)
@@ -215,5 +222,5 @@ async def add_value_to_goal(
     return {
         "message": "Valor adicionado com sucesso",
         "new_amount": db_goal.current_amount,
-        "progress_percentage": min((db_goal.current_amount / db_goal.target_amount) * 100, 100)
+        "progress_percentage": db_goal.progress_percentage
     }

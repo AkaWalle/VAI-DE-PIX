@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useFinancialStore } from '@/stores/financial-store';
+import { useAuthStore } from '@/stores/auth-store-index';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -36,11 +37,41 @@ export default function SharedExpenses() {
     sharedExpenses, 
     deleteSharedExpense, 
     markParticipantAsPaid, 
-    settleSharedExpense 
+    settleSharedExpense,
+    updateSharedExpense
   } = useFinancialStore();
+  const { user } = useAuthStore();
   const { toast } = useToast();
   const [showForm, setShowForm] = useState(false);
   const [editingExpense, setEditingExpense] = useState<string | null>(null);
+
+  // Corrigir dados antigos dos participantes quando o usuário estiver disponível
+  useEffect(() => {
+    if (!user) return;
+
+    sharedExpenses.forEach((expense) => {
+      const needsUpdate = expense.participants.some(p => 
+        (p.userId === 'current-user' || p.userId === user.id || 
+         (p.userName === 'Você' && p.userEmail === 'seu@email.com')) &&
+        (p.userName !== user.name || p.userEmail !== user.email)
+      );
+
+      if (needsUpdate) {
+        const updatedParticipants = expense.participants.map(p => {
+          const isCurrentUser = p.userId === 'current-user' || 
+                               p.userId === user.id ||
+                               (p.userName === 'Você' && p.userEmail === 'seu@email.com');
+          
+          if (isCurrentUser) {
+            return { ...p, userId: user.id, userName: user.name, userEmail: user.email };
+          }
+          return p;
+        });
+        
+        updateSharedExpense(expense.id, { ...expense, participants: updatedParticipants });
+      }
+    });
+  }, [user, sharedExpenses, updateSharedExpense]);
 
   const getStatusConfig = (status: string) => {
     switch (status) {
@@ -311,20 +342,31 @@ export default function SharedExpenses() {
                   <div className="space-y-3">
                     <h4 className="font-medium">Participantes:</h4>
                     <div className="grid gap-2">
-                      {expense.participants.map((participant) => (
+                      {expense.participants.map((participant) => {
+                        // Corrigir dados antigos do participante atual
+                        const isCurrentUser = participant.userId === user?.id || 
+                                             participant.userId === 'current-user' ||
+                                             (participant.userName === 'Você' && participant.userEmail === 'seu@email.com');
+                        
+                        // Usar dados reais do usuário se for o usuário atual
+                        const displayName = isCurrentUser && user ? user.name : participant.userName;
+                        const displayEmail = isCurrentUser && user ? user.email : participant.userEmail;
+                        const displayUserId = isCurrentUser && user ? user.id : participant.userId;
+                        
+                        return (
                         <div 
-                          key={participant.userId} 
+                          key={displayUserId} 
                           className="flex items-center justify-between p-3 border rounded-lg"
                         >
                           <div className="flex items-center gap-3">
                             <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
                               <span className="text-sm font-medium text-primary">
-                                {participant.userName.charAt(0).toUpperCase()}
+                                {displayName.charAt(0).toUpperCase()}
                               </span>
                             </div>
                             <div>
-                              <p className="font-medium">{participant.userName}</p>
-                              <p className="text-sm text-muted-foreground">{participant.userEmail}</p>
+                              <p className="font-medium">{displayName}</p>
+                              <p className="text-sm text-muted-foreground">{displayEmail}</p>
                             </div>
                           </div>
                           
@@ -341,14 +383,15 @@ export default function SharedExpenses() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => handleMarkAsPaid(expense.id, participant.userId)}
+                                onClick={() => handleMarkAsPaid(expense.id, displayUserId)}
                               >
                                 Marcar como Pago
                               </Button>
                             )}
                           </div>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
 

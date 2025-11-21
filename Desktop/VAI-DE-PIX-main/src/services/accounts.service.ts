@@ -4,14 +4,14 @@ import { API_ENDPOINTS } from '@/lib/api';
 export interface Account {
   id: string;
   name: string;
-  type: 'checking' | 'savings' | 'investment' | 'credit' | 'cash';
+  account_type: 'checking' | 'savings' | 'investment' | 'credit' | 'cash'; // Renomeado de 'type' para 'account_type'
   balance: number;
   created_at?: string;
 }
 
 export interface AccountCreate {
   name: string;
-  type: 'checking' | 'savings' | 'investment' | 'credit' | 'cash';
+  account_type: 'checking' | 'savings' | 'investment' | 'credit' | 'cash'; // Renomeado de 'type' para 'account_type'
   balance?: number;
 }
 

@@ -2,11 +2,17 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from database import get_db
 from models import Envelope, User
 from auth_utils import get_current_user
+from core.security import validate_ownership
+from core.logging_config import get_logger
+from core.envelope_utils import update_envelope_progress
+from repositories.envelope_repository import EnvelopeRepository
+
+logger = get_logger(__name__)
 
 router = APIRouter()
 
@@ -33,9 +39,8 @@ class EnvelopeResponse(BaseModel):
     description: Optional[str]
     progress_percentage: Optional[float]
     created_at: datetime
-
-    class Config:
-        from_attributes = True
+    
+    model_config = ConfigDict(from_attributes=True)
 
 @router.get("/", response_model=List[EnvelopeResponse])
 async def get_envelopes(
@@ -43,16 +48,9 @@ async def get_envelopes(
     db: Session = Depends(get_db)
 ):
     """Get user's envelopes."""
-    envelopes = db.query(Envelope).filter(Envelope.user_id == current_user.id).all()
-    
-    # Calculate progress percentage
-    for envelope in envelopes:
-        if envelope.target_amount:
-            envelope.progress_percentage = min((envelope.balance / envelope.target_amount) * 100, 100)
-        else:
-            envelope.progress_percentage = None
-    
-    return envelopes
+    # Apenas retornar valores armazenados - ZERO cálculos em GET
+    envelope_repo = EnvelopeRepository(db)
+    return envelope_repo.get_by_user(current_user.id)
 
 @router.post("/", response_model=EnvelopeResponse)
 async def create_envelope(
@@ -67,14 +65,10 @@ async def create_envelope(
     )
     
     db.add(db_envelope)
+    # Calcular progress_percentage na criação
+    update_envelope_progress(db_envelope)
     db.commit()
     db.refresh(db_envelope)
-    
-    # Calculate progress percentage
-    if db_envelope.target_amount:
-        db_envelope.progress_percentage = min((db_envelope.balance / db_envelope.target_amount) * 100, 100)
-    else:
-        db_envelope.progress_percentage = None
     
     return db_envelope
 
@@ -85,11 +79,9 @@ async def update_envelope(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Update an envelope."""
-    db_envelope = db.query(Envelope).filter(
-        Envelope.id == envelope_id,
-        Envelope.user_id == current_user.id
-    ).first()
+    """Update an envelope with explicit ownership validation."""
+    envelope_repo = EnvelopeRepository(db)
+    db_envelope = envelope_repo.get_by_user_and_id(current_user.id, envelope_id)
     
     if not db_envelope:
         raise HTTPException(
@@ -97,13 +89,32 @@ async def update_envelope(
             detail="Caixinha não encontrada"
         )
     
+    # Validação explícita de ownership (defense in depth)
+    validate_ownership(db_envelope.user_id, current_user.id, "caixinha")
+    
     update_data = envelope_update.model_dump(exclude_unset=True)
-    for field, value in update_data.items():
-        setattr(db_envelope, field, value)
+    # Atribuição direta ao invés de setattr
+    if 'name' in update_data:
+        db_envelope.name = update_data['name']
+    if 'balance' in update_data:
+        db_envelope.balance = update_data['balance']
+    if 'target_amount' in update_data:
+        db_envelope.target_amount = update_data['target_amount']
+    if 'color' in update_data:
+        db_envelope.color = update_data['color']
+    if 'description' in update_data:
+        db_envelope.description = update_data['description']
     
     db_envelope.updated_at = datetime.now()
+    # Recalcular progress_percentage após atualização
+    update_envelope_progress(db_envelope)
     db.commit()
     db.refresh(db_envelope)
+    
+    logger.info(
+        f"Caixinha atualizada: ID={envelope_id}, Nome={db_envelope.name}",
+        extra={"user_id": current_user.id, "envelope_id": envelope_id}
+    )
     
     return db_envelope
 
@@ -113,11 +124,9 @@ async def delete_envelope(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Delete an envelope."""
-    db_envelope = db.query(Envelope).filter(
-        Envelope.id == envelope_id,
-        Envelope.user_id == current_user.id
-    ).first()
+    """Delete an envelope with explicit ownership validation."""
+    envelope_repo = EnvelopeRepository(db)
+    db_envelope = envelope_repo.get_by_user_and_id(current_user.id, envelope_id)
     
     if not db_envelope:
         raise HTTPException(
@@ -125,8 +134,16 @@ async def delete_envelope(
             detail="Caixinha não encontrada"
         )
     
+    # Validação explícita de ownership (defense in depth)
+    validate_ownership(db_envelope.user_id, current_user.id, "caixinha")
+    
     db.delete(db_envelope)
     db.commit()
+    
+    logger.info(
+        f"Caixinha deletada: ID={envelope_id}, Nome={db_envelope.name}",
+        extra={"user_id": current_user.id, "envelope_id": envelope_id}
+    )
     
     return {"message": "Caixinha removida com sucesso"}
 
@@ -137,17 +154,18 @@ async def add_value_to_envelope(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Add value to an envelope."""
-    db_envelope = db.query(Envelope).filter(
-        Envelope.id == envelope_id,
-        Envelope.user_id == current_user.id
-    ).first()
+    """Add value to an envelope with explicit ownership validation."""
+    envelope_repo = EnvelopeRepository(db)
+    db_envelope = envelope_repo.get_by_user_and_id(current_user.id, envelope_id)
     
     if not db_envelope:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Caixinha não encontrada"
         )
+    
+    # Validação explícita de ownership (defense in depth)
+    validate_ownership(db_envelope.user_id, current_user.id, "caixinha")
     
     if amount <= 0:
         raise HTTPException(
@@ -157,6 +175,8 @@ async def add_value_to_envelope(
     
     db_envelope.balance += amount
     db_envelope.updated_at = datetime.now()
+    # Recalcular progress_percentage após adicionar valor
+    update_envelope_progress(db_envelope)
     db.commit()
     db.refresh(db_envelope)
     
@@ -172,17 +192,18 @@ async def withdraw_value_from_envelope(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Withdraw value from an envelope."""
-    db_envelope = db.query(Envelope).filter(
-        Envelope.id == envelope_id,
-        Envelope.user_id == current_user.id
-    ).first()
+    """Withdraw value from an envelope with explicit ownership validation."""
+    envelope_repo = EnvelopeRepository(db)
+    db_envelope = envelope_repo.get_by_user_and_id(current_user.id, envelope_id)
     
     if not db_envelope:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Caixinha não encontrada"
         )
+    
+    # Validação explícita de ownership (defense in depth)
+    validate_ownership(db_envelope.user_id, current_user.id, "caixinha")
     
     if amount <= 0:
         raise HTTPException(
@@ -198,6 +219,8 @@ async def withdraw_value_from_envelope(
     
     db_envelope.balance -= amount
     db_envelope.updated_at = datetime.now()
+    # Recalcular progress_percentage após retirar valor
+    update_envelope_progress(db_envelope)
     db.commit()
     db.refresh(db_envelope)
     

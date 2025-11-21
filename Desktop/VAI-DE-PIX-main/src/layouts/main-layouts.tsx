@@ -31,7 +31,7 @@ export function MainLayout() {
   return (
     <ThemeProvider>
       <SidebarProvider defaultOpen={true}>
-        <div className="min-h-screen flex w-full bg-background overflow-hidden">
+        <div className="min-h-screen flex w-full bg-background overflow-hidden relative">
           <AppSidebar />
           
           <div className="flex-1 flex flex-col min-w-0">
@@ -61,6 +61,7 @@ export function MainLayout() {
           </div>
         </div>
       </SidebarProvider>
+      
     </ThemeProvider>
   )
 }

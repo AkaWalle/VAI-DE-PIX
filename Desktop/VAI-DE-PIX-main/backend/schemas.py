@@ -2,7 +2,7 @@
 Schemas Pydantic para validação de dados da API VAI DE PIX
 """
 
-from pydantic import BaseModel, EmailStr, Field, validator
+from pydantic import BaseModel, EmailStr, Field, validator, ConfigDict
 from typing import Optional, List
 from datetime import datetime, date
 from enum import Enum
@@ -11,6 +11,7 @@ from enum import Enum
 class TransactionType(str, Enum):
     INCOME = "income"
     EXPENSE = "expense"
+    TRANSFER = "transfer"
 
 class AccountType(str, Enum):
     CHECKING = "checking"
@@ -55,8 +56,7 @@ class UserResponse(UserBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Auth Schemas
 class LoginRequest(BaseModel):
@@ -71,7 +71,7 @@ class Token(BaseModel):
 # Account Schemas
 class AccountBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
-    type: AccountType
+    account_type: AccountType = Field(..., description="Tipo da conta")
     balance: float = Field(0.0, ge=0, description="Saldo inicial da conta")
 
 class AccountCreate(AccountBase):
@@ -79,7 +79,7 @@ class AccountCreate(AccountBase):
 
 class AccountUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=100)
-    type: Optional[AccountType] = None
+    account_type: Optional[AccountType] = None
     balance: Optional[float] = Field(None, ge=0)
 
 class AccountResponse(AccountBase):
@@ -87,8 +87,7 @@ class AccountResponse(AccountBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Category Schemas
 class CategoryBase(BaseModel):
@@ -110,24 +109,32 @@ class CategoryResponse(CategoryBase):
     id: str
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Transaction Schemas
 class TransactionBase(BaseModel):
     date: datetime
     account_id: str
-    category_id: str
+    category_id: Optional[str] = None  # Nullable para transferências
     type: TransactionType
     amount: float = Field(..., gt=0, description="Valor da transação (sempre positivo)")
     description: str = Field(..., min_length=1, max_length=200)
-    tags: Optional[List[str]] = Field(default=[], max_items=10)
+    to_account_id: Optional[str] = None  # Para transferências - conta de destino
+    transfer_transaction_id: Optional[str] = None  # Preenchido automaticamente para transferências
 
     @validator('amount')
     def validate_amount(cls, v, values):
         """Valida se o valor é positivo"""
         if v <= 0:
             raise ValueError('O valor deve ser positivo')
+        return v
+    
+    @validator('category_id')
+    def validate_category_for_transfer(cls, v, values):
+        """Valida que transferências não precisam de categoria"""
+        if 'type' in values and values['type'] == 'transfer' and v is not None:
+            # Transferências podem ter categoria opcional, mas geralmente não têm
+            pass
         return v
 
 class TransactionCreate(TransactionBase):
@@ -140,15 +147,15 @@ class TransactionUpdate(BaseModel):
     type: Optional[TransactionType] = None
     amount: Optional[float] = Field(None, gt=0)
     description: Optional[str] = Field(None, min_length=1, max_length=200)
-    tags: Optional[List[str]] = Field(None, max_items=10)
+    to_account_id: Optional[str] = None  # Para transferências
 
 class TransactionResponse(TransactionBase):
     id: str
+    user_id: str
     created_at: datetime
     updated_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Goal Schemas
 class GoalBase(BaseModel):
@@ -192,8 +199,7 @@ class GoalResponse(GoalBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Envelope Schemas
 class EnvelopeBase(BaseModel):
@@ -218,8 +224,7 @@ class EnvelopeResponse(EnvelopeBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Automation Schemas
 class AutomationRuleBase(BaseModel):
@@ -248,8 +253,7 @@ class AutomationRuleResponse(AutomationRuleBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Report Schemas
 class MonthlySummaryResponse(BaseModel):
@@ -269,6 +273,37 @@ class FinancialOverviewResponse(BaseModel):
     active_goals: int
     completed_goals: int
     envelope_balance: float
+
+# Error Schemas
+# Tag Schemas
+class TagBase(BaseModel):
+    name: str = Field(..., min_length=1, max_length=50)
+    color: Optional[str] = Field(None, pattern="^#[0-9A-Fa-f]{6}$", description="Cor em formato hexadecimal")
+
+class TagCreate(TagBase):
+    pass
+
+class TagUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=50)
+    color: Optional[str] = Field(None, pattern="^#[0-9A-Fa-f]{6}$")
+
+class TagResponse(TagBase):
+    id: str
+    user_id: str
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+# TransactionTag Schemas
+class TransactionTagResponse(BaseModel):
+    id: str
+    transaction_id: str
+    tag_id: str
+    tag: TagResponse
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
 
 # Error Schemas
 class ErrorResponse(BaseModel):

@@ -1,7 +1,27 @@
 // API configuration for VAI DE PIX
+import { getApiUrl } from './api-detector';
+
+// Obter URL da API (prioridade: localStorage > env > padrão)
+// Em desenvolvimento, forçar uso do proxy se não houver URL customizada
+let apiUrl = getApiUrl();
+if (import.meta.env.DEV) {
+  // Se houver URL absoluta no localStorage, limpar para usar proxy
+  const storedUrl = localStorage.getItem('vai-de-pix-api-url');
+  if (storedUrl && (storedUrl.startsWith('http://') || storedUrl.startsWith('https://'))) {
+    // Se não for localhost:8000, manter; caso contrário, usar proxy
+    if (storedUrl.includes('localhost:8000') || storedUrl.includes('127.0.0.1:8000')) {
+      localStorage.removeItem('vai-de-pix-api-url');
+      apiUrl = '/api';
+    }
+  } else {
+    // Sem URL customizada, usar proxy
+    apiUrl = '/api';
+  }
+}
+
 export const API_CONFIG = {
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000/api',
-  timeout: 10000,
+  baseURL: apiUrl,
+  timeout: 120000, // 120 segundos (2 minutos) para dar tempo ao Ollama processar
 };
 
 // API endpoints
@@ -65,4 +85,5 @@ export const API_ENDPOINTS = {
     categories: '/reports/categories/summary',
     export: '/reports/export',
   },
+  
 } as const;

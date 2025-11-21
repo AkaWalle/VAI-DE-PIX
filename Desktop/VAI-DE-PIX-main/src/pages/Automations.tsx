@@ -88,7 +88,7 @@ export default function Automations() {
           nextRun: rule.next_run
         })));
       } catch (error) {
-        console.error('Erro ao carregar automações:', error);
+        // Erro ao carregar automações - logging no backend
         toast({
           title: "Erro ao carregar automações",
           description: "Não foi possível carregar as automações. Tente novamente.",
@@ -144,7 +144,7 @@ export default function Automations() {
         description: `A regra "${rule?.name}" foi removida com sucesso.`,
       });
     } catch (error) {
-      console.error('Erro ao remover automação:', error);
+      // Erro ao remover automação - logging no backend
       toast({
         title: "Erro ao remover automação",
         description: "Não foi possível remover a automação. Tente novamente.",
@@ -213,7 +213,7 @@ export default function Automations() {
       });
       setShowNewRule(false);
     } catch (error) {
-      console.error('Erro ao criar automação:', error);
+      // Erro ao criar automação - logging no backend
       toast({
         title: "Erro ao criar automação",
         description: "Não foi possível criar a automação. Tente novamente.",

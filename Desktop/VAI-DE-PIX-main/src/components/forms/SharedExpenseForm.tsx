@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useFinancialStore } from '@/stores/financial-store';
+import { useAuthStore } from '@/stores/auth-store-index';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -39,6 +40,7 @@ export function SharedExpenseForm({ expenseId, onClose, onSuccess }: SharedExpen
     addSharedExpense, 
     updateSharedExpense 
   } = useFinancialStore();
+  const { user } = useAuthStore();
 
   const [formData, setFormData] = useState({
     title: '',
@@ -49,15 +51,19 @@ export function SharedExpenseForm({ expenseId, onClose, onSuccess }: SharedExpen
     splitType: 'equal' as 'equal' | 'percentage' | 'custom'
   });
 
-  const [participants, setParticipants] = useState<Participant[]>([
-    {
-      userId: 'current-user',
-      userName: 'Você',
-      userEmail: 'seu@email.com',
-      amount: 0,
-      paid: false
+  // Inicializar com dados reais do usuário logado
+  const [participants, setParticipants] = useState<Participant[]>(() => {
+    if (user) {
+      return [{
+        userId: user.id,
+        userName: user.name,
+        userEmail: user.email,
+        amount: 0,
+        paid: false
+      }];
     }
-  ]);
+    return [];
+  });
 
   const [newParticipant, setNewParticipant] = useState({
     name: '',
@@ -66,6 +72,19 @@ export function SharedExpenseForm({ expenseId, onClose, onSuccess }: SharedExpen
 
   const isEditing = !!expenseId;
   const expense = isEditing ? sharedExpenses.find(e => e.id === expenseId) : null;
+
+  // Atualizar participantes quando o usuário for carregado
+  useEffect(() => {
+    if (user && participants.length === 0) {
+      setParticipants([{
+        userId: user.id,
+        userName: user.name,
+        userEmail: user.email,
+        amount: 0,
+        paid: false
+      }]);
+    }
+  }, [user]);
 
   useEffect(() => {
     if (expense) {
@@ -169,7 +188,7 @@ export function SharedExpenseForm({ expenseId, onClose, onSuccess }: SharedExpen
       currency: 'BRL' as const,
       category: formData.category,
       date: formData.date,
-      createdBy: 'current-user',
+      createdBy: user?.id || 'current-user',
       participants,
       status: 'pending' as const
     };

@@ -7,6 +7,56 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [2.0.0] - 2025-11-21
+
+### Adicionado
+- ✅ Cálculo de saldo derivado de transações (sempre calculado, nunca armazenado)
+- ✅ Soft delete em todas as entidades principais
+- ✅ Filtros avançados em transações (tags, busca por texto)
+- ✅ Exportação CSV completa
+- ✅ Job automático de transações recorrentes (APScheduler)
+- ✅ Rate limiting rigoroso em rotas críticas
+- ✅ Exception handlers globais
+- ✅ Sanitização de inputs (prevenção XSS)
+- ✅ Validação de limites máximos
+- ✅ Endpoint de reconciliação de saldo
+- ✅ Testes E2E completos (12 testes)
+- ✅ Script de recálculo de saldos
+- ✅ CI/CD completo (GitHub Actions)
+- ✅ Dockerfile otimizado multi-stage
+- ✅ Docker Compose para desenvolvimento
+- ✅ Configuração Railway para deploy
+- ✅ Documentação completa de deploy
+
+### Modificado
+- ✅ Saldo de contas sempre calculado a partir de transações
+- ✅ Todos os DELETE agora são soft delete
+- ✅ BaseRepository com filtro automático de deleted_at
+- ✅ AccountService com cálculo derivado de saldo
+- ✅ TransactionRepository com novos filtros (tag_ids, search)
+- ✅ Reports router com exportação CSV
+- ✅ Main.py com exception handlers globais
+- ✅ Auth router com rate limiting
+- ✅ Schemas com validação e sanitização
+
+### Segurança
+- ✅ Rate limiting: 5/min register, 10/min login
+- ✅ Exception handlers sem vazar stack trace em produção
+- ✅ Sanitização de inputs com bleach
+- ✅ Validação de limites (amount ≤ 999999.99, description ≤ 500)
+- ✅ Security headers (OWASP ASVS Nível 3)
+
+### Testes
+- ✅ 12 testes E2E completos
+- ✅ Testes de autenticação, transações, exportação, recorrências
+- ✅ Script de recálculo de saldos testado
+
+### DevOps
+- ✅ CI/CD pipeline completo
+- ✅ Build Docker otimizado
+- ✅ Deploy automático Railway
+- ✅ Docker Compose com PostgreSQL + Redis
+
 ## [1.1.0] - 2025-01-XX
 
 ### Adicionado

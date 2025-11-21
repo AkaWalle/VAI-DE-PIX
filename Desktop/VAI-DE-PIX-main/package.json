@@ -1,7 +1,7 @@
 {
   "name": "vai-de-pix",
   "private": true,
-  "version": "1.1.0",
+  "version": "2.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -14,7 +14,22 @@
     "clean": "rm -rf dist node_modules/.vite",
     "clean:all": "rm -rf dist node_modules/.vite node_modules",
     "format": "prettier --write \"src/**/*.{ts,tsx,json,css,md}\"",
-    "format:check": "prettier --check \"src/**/*.{ts,tsx,json,css,md}\""
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,json,css,md}\"",
+    "prepare": "husky install",
+    "validate": "concurrently \"npm run lint\" \"npm run type-check\" \"npm run format:check\" \"cd backend && python -m pytest --cov=backend --cov-report=term-missing --cov-fail-under=88\""
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,css,md}": [
+      "prettier --write"
+    ],
+    "backend/**/*.py": [
+      "ruff check --fix",
+      "black"
+    ]
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -77,10 +92,13 @@
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react-swc": "^3.11.0",
     "autoprefixer": "^10.4.21",
+    "concurrently": "^9.2.1",
     "eslint": "^9.32.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^15.15.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.6",
     "lovable-tagger": "^1.1.9",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",

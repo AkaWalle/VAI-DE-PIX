@@ -27,11 +27,9 @@ export const categoriesService = {
       }
       
       const url = `${API_ENDPOINTS.categories.list}${params.toString() ? `?${params.toString()}` : ''}`;
-      console.log('🌐 GET categorias:', url);
       apiHelpers.logRequest('GET', url);
       
       const response = await httpClient.get<Category[]>(url);
-      console.log('📦 Resposta categorias:', response.data);
       
       return apiHelpers.handleResponse(response);
     } catch (error: any) {

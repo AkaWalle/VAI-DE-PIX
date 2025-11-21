@@ -13,8 +13,8 @@ interface UseApiOptions {
   successMessage?: string;
 }
 
-export function useApi<T = any>(
-  apiFunction: (...args: any[]) => Promise<T>,
+export function useApi<T = unknown>(
+  apiFunction: (...args: unknown[]) => Promise<T>,
   options: UseApiOptions = {}
 ) {
   const { toast } = useToast();
@@ -31,7 +31,7 @@ export function useApi<T = any>(
   });
 
   const execute = useCallback(
-    async (...args: any[]): Promise<T | null> => {
+    async (...args: unknown[]): Promise<T | null> => {
       setState(prev => ({ ...prev, loading: true, error: null }));
 
       try {
@@ -51,8 +51,8 @@ export function useApi<T = any>(
         }
 
         return result;
-      } catch (error: any) {
-        const errorMessage = error.message || 'Erro inesperado';
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Erro inesperado';
         
         setState({
           data: null,
@@ -93,8 +93,8 @@ export function useApi<T = any>(
 }
 
 // Specialized hooks for common patterns
-export function useApiMutation<T = any>(
-  apiFunction: (...args: any[]) => Promise<T>,
+export function useApiMutation<T = unknown>(
+  apiFunction: (...args: unknown[]) => Promise<T>,
   options: UseApiOptions = {}
 ) {
   return useApi(apiFunction, {
@@ -104,8 +104,8 @@ export function useApiMutation<T = any>(
   });
 }
 
-export function useApiQuery<T = any>(
-  apiFunction: (...args: any[]) => Promise<T>,
+export function useApiQuery<T = unknown>(
+  apiFunction: (...args: unknown[]) => Promise<T>,
   options: UseApiOptions = {}
 ) {
   return useApi(apiFunction, {

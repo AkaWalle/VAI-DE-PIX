@@ -71,10 +71,25 @@ httpClient.interceptors.response.use(
       }
     }
     
-    // Handle network errors
+    // Handle network errors with more details
     if (!error.response) {
-      console.error('Network error:', error.message);
-      // Could show toast notification here
+      const baseURL = httpClient.defaults.baseURL;
+      const isTimeout = error.code === 'ECONNABORTED' || error.message.includes('timeout');
+      
+      console.error('❌ Network error:', {
+        message: error.message,
+        code: error.code,
+        baseURL,
+        isTimeout,
+        url: error.config?.url
+      });
+      
+      // Provide more helpful error message
+      if (isTimeout) {
+        error.message = `Timeout ao conectar com o servidor. O servidor pode estar demorando para responder. Verifique se o backend está rodando em ${baseURL}`;
+      } else if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {
+        error.message = `Não foi possível conectar ao servidor em ${baseURL}. Verifique se o backend está rodando.`;
+      }
     }
     
     return Promise.reject(error);
@@ -92,7 +107,28 @@ export const apiHelpers = {
   handleError: (error: AxiosError): string => {
     if (error.response?.data && typeof error.response.data === 'object') {
       const data = error.response.data as any;
-      return data.detail || data.message || 'Erro inesperado';
+      
+      // Tratar erros de validação do FastAPI/Pydantic (422)
+      if (error.response?.status === 422 && Array.isArray(data.detail)) {
+        const validationErrors = data.detail.map((err: any) => {
+          const field = err.loc?.[err.loc.length - 1] || 'campo';
+          const message = err.msg || 'Valor inválido';
+          return `${field}: ${message}`;
+        }).join(', ');
+        return validationErrors || 'Dados inválidos. Verifique os campos preenchidos.';
+      }
+      
+      // Tratar erro de detalhe simples
+      if (data.detail) {
+        if (typeof data.detail === 'string') {
+          return data.detail;
+        }
+        if (Array.isArray(data.detail) && data.detail.length > 0) {
+          return data.detail[0].msg || String(data.detail[0]);
+        }
+      }
+      
+      return data.message || 'Erro inesperado';
     }
     
     if (error.response?.status === 404) {
@@ -101,6 +137,10 @@ export const apiHelpers = {
     
     if (error.response?.status === 403) {
       return 'Acesso negado';
+    }
+    
+    if (error.response?.status === 422) {
+      return 'Dados inválidos. Verifique os campos preenchidos.';
     }
     
     if (error.response?.status >= 500) {
@@ -118,7 +158,6 @@ export const apiHelpers = {
   // Log API calls in development
   logRequest: (method: string, url: string, data?: any): void => {
     if (apiHelpers.isDev()) {
-      console.log(`🌐 API ${method.toUpperCase()}: ${url}`, data || '');
     }
   },
 };

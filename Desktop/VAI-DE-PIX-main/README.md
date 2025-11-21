@@ -4,11 +4,14 @@
 
 Um sistema moderno e intuitivo para gerenciar suas finanças pessoais com análises inteligentes, automações e interface responsiva.
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)
+![CI/CD](https://github.com/USERNAME/REPO/workflows/CI/CD%20Pipeline/badge.svg)
 ![React](https://img.shields.io/badge/React-18.3.1-blue.svg)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.8.3-blue.svg)
 ![Tailwind](https://img.shields.io/badge/Tailwind-3.4.17-blue.svg)
 ![Vite](https://img.shields.io/badge/Vite-5.4.19-purple.svg)
+![Python](https://img.shields.io/badge/Python-3.11-blue.svg)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.104.1-green.svg)
 
 ## 🌟 Funcionalidades
 
@@ -60,11 +63,30 @@ Um sistema moderno e intuitivo para gerenciar suas finanças pessoais com análi
 
 ### Pré-requisitos
 - **Node.js** >= 18.0.0
-- **Python** >= 3.9
+- **Python** >= 3.11
 - **npm**, **yarn** ou **pnpm**
 - **pip** (gerenciador de pacotes Python)
+- **Docker** e **Docker Compose** (opcional, para desenvolvimento local)
 
 ### 1. Instalação
+
+#### Opção A: Docker Compose (Recomendado para desenvolvimento)
+```bash
+# Copiar arquivo de exemplo de variáveis de ambiente
+cp backend/.env.example backend/.env
+# Editar backend/.env com suas configurações
+
+# Iniciar todos os serviços (PostgreSQL + Redis + Backend + Frontend)
+docker-compose up -d
+
+# Ver logs
+docker-compose logs -f backend
+
+# Parar serviços
+docker-compose down
+```
+
+#### Opção B: Instalação Manual
 
 #### Frontend
 ```bash
@@ -184,6 +206,48 @@ npm run preview
 ```bash
 # Executar linter
 npm run lint
+```
+
+### 6. Testes
+
+#### Testes Unitários
+```bash
+cd backend
+pytest tests/ -v
+```
+
+#### Testes E2E
+```bash
+# Instalar dependências de teste
+cd backend
+pip install -r requirements-test.txt
+
+# Instalar Playwright
+playwright install chromium
+
+# Rodar testes E2E
+pytest tests/e2e/ -v
+# ou usando Makefile
+make test-e2e
+```
+
+#### Todos os Testes
+```bash
+make test
+# ou
+cd backend && pytest tests/ tests/e2e/ -v
+```
+
+### 7. Scripts Úteis
+
+#### Recalcular Saldos
+```bash
+cd backend
+# Modo dry-run (simulação)
+python scripts/recalculate_all_balances.py --dry-run
+
+# Execução real
+python scripts/recalculate_all_balances.py
 ```
 
 ## 🔑 Credenciais de Teste

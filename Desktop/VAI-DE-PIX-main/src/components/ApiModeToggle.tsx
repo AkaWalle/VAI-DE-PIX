@@ -25,7 +25,11 @@ export function ApiModeToggle() {
       }
 
       try {
-        const response = await fetch('http://localhost:8000/api/health');
+        // Usar getApiUrl para obter URL configurada (localStorage > env > padrão)
+        const storedUrl = localStorage.getItem('vai-de-pix-api-url');
+        const apiUrl = storedUrl || import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+        const healthUrl = apiUrl.replace('/api', '/api/health');
+        const response = await fetch(healthUrl);
         if (response.ok) {
           setApiStatus('online');
         } else {

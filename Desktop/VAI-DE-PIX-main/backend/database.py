@@ -1,6 +1,13 @@
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+try:
+    # SQLAlchemy 2.0+
+    from sqlalchemy.orm import DeclarativeBase
+    _use_declarative_base = False
+except ImportError:
+    # SQLAlchemy 1.4
+    from sqlalchemy.ext.declarative import declarative_base
+    _use_declarative_base = True
 import os
 from dotenv import load_dotenv
 import sys
@@ -60,8 +67,22 @@ else:
 # Session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Base class for models
-Base = declarative_base()
+# Base class for models - compatível com SQLAlchemy 1.4 e 2.0+
+# Suprimir warning do SQLAlchemy 2.0 quando usando 1.4
+import warnings
+import os
+
+# Suprimir warning do SQLAlchemy 2.0
+os.environ.setdefault("SQLALCHEMY_SILENCE_UBER_WARNING", "1")
+
+if _use_declarative_base:
+    # Suprimir warning específico do declarative_base
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        Base = declarative_base()
+else:
+    class Base(DeclarativeBase):
+        pass
 
 # Dependency to get database session
 def get_db():

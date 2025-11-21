@@ -2,78 +2,63 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime, date
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from database import get_db
-from models import Transaction, User
+from models import Transaction, User, Account
 from auth_utils import get_current_user
+from core.security import validate_ownership
+from core.logging_config import get_logger
+from core.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, MIN_PAGE_SIZE
+from services.transaction_service import TransactionService
+from repositories.transaction_repository import TransactionRepository
+from repositories.account_repository import AccountRepository
+
+logger = get_logger(__name__)
 
 router = APIRouter()
 
-# Pydantic models
-class TransactionCreate(BaseModel):
-    date: datetime
-    account_id: str
-    category_id: str
-    type: str  # income, expense
-    amount: float
-    description: str
-    tags: Optional[List[str]] = []
+# Importar schemas do módulo schemas.py
+from schemas import TransactionCreate as TransactionCreateSchema, TransactionUpdate as TransactionUpdateSchema, TransactionResponse as TransactionResponseSchema
 
-class TransactionUpdate(BaseModel):
-    date: Optional[datetime] = None
-    account_id: Optional[str] = None
-    category_id: Optional[str] = None
-    type: Optional[str] = None
-    amount: Optional[float] = None
-    description: Optional[str] = None
-    tags: Optional[List[str]] = None
+# Pydantic models (mantidos para compatibilidade, mas usando schemas principais)
+class TransactionCreate(TransactionCreateSchema):
+    pass
 
-class TransactionResponse(BaseModel):
-    id: str
-    date: datetime
-    account_id: str
-    category_id: str
-    type: str
-    amount: float
-    description: str
-    tags: Optional[List[str]]
-    created_at: datetime
-    updated_at: Optional[datetime]
+class TransactionUpdate(TransactionUpdateSchema):
+    pass
 
-    class Config:
-        from_attributes = True
+class TransactionResponse(TransactionResponseSchema):
+    pass
 
 @router.get("/", response_model=List[TransactionResponse])
 async def get_transactions(
     skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=1000),
-    type_filter: Optional[str] = Query(None, regex="^(income|expense)$"),
+    limit: int = Query(DEFAULT_PAGE_SIZE, ge=MIN_PAGE_SIZE, le=MAX_PAGE_SIZE),
+    type_filter: Optional[str] = Query(None, pattern="^(income|expense|transfer)$"),
     category_id: Optional[str] = None,
     account_id: Optional[str] = None,
     start_date: Optional[date] = None,
     end_date: Optional[date] = None,
+    tag_ids: Optional[List[str]] = Query(None, description="Filtro por IDs de tags"),
+    search: Optional[str] = Query(None, description="Busca parcial em description"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Get user's transactions with filters."""
-    query = db.query(Transaction).filter(Transaction.user_id == current_user.id)
-    
-    # Apply filters
-    if type_filter:
-        query = query.filter(Transaction.type == type_filter)
-    if category_id:
-        query = query.filter(Transaction.category_id == category_id)
-    if account_id:
-        query = query.filter(Transaction.account_id == account_id)
-    if start_date:
-        query = query.filter(Transaction.date >= start_date)
-    if end_date:
-        query = query.filter(Transaction.date <= end_date)
-    
-    # Order by date descending and paginate
-    transactions = query.order_by(Transaction.date.desc()).offset(skip).limit(limit).all()
-    
+    transaction_repo = TransactionRepository(db)
+    transactions = transaction_repo.get_by_user(
+        user_id=current_user.id,
+        skip=skip,
+        limit=limit,
+        type_filter=type_filter,
+        category_id=category_id,
+        account_id=account_id,
+        start_date=start_date,
+        end_date=end_date,
+        tag_ids=tag_ids,
+        search=search
+    )
     return transactions
 
 @router.post("/", response_model=TransactionResponse)
@@ -82,14 +67,10 @@ async def create_transaction(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Create a new transaction."""
-    from models import Account
-    
-    # Get the account
-    account = db.query(Account).filter(
-        Account.id == transaction.account_id,
-        Account.user_id == current_user.id
-    ).first()
+    """Create a new transaction with atomic balance update."""
+    # Get the account using repository
+    account_repo = AccountRepository(db)
+    account = account_repo.get_by_user_and_id(current_user.id, transaction.account_id)
     
     if not account:
         raise HTTPException(
@@ -97,24 +78,28 @@ async def create_transaction(
             detail="Conta não encontrada"
         )
     
-    # Create transaction
-    db_transaction = Transaction(
-        **transaction.model_dump(),
-        user_id=current_user.id
-    )
-    
-    db.add(db_transaction)
-    
-    # Update account balance
-    if transaction.type == 'income':
-        account.balance += transaction.amount
-    else:  # expense
-        account.balance -= transaction.amount
-    
-    db.commit()
-    db.refresh(db_transaction)
-    
-    return db_transaction
+    try:
+        # Usar TransactionService para criar transação
+        db_transaction = TransactionService.create_transaction(
+            transaction_data=transaction.model_dump(),
+            account=account,
+            user_id=current_user.id,
+            db=db
+        )
+        return db_transaction
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            f"Erro ao criar transação: {str(e)}",
+            extra={"user_id": current_user.id, "account_id": transaction.account_id},
+            exc_info=True
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao criar transação"
+        )
 
 @router.get("/{transaction_id}", response_model=TransactionResponse)
 async def get_transaction(
@@ -123,10 +108,8 @@ async def get_transaction(
     db: Session = Depends(get_db)
 ):
     """Get a specific transaction."""
-    transaction = db.query(Transaction).filter(
-        Transaction.id == transaction_id,
-        Transaction.user_id == current_user.id
-    ).first()
+    transaction_repo = TransactionRepository(db)
+    transaction = transaction_repo.get_by_user_and_id(current_user.id, transaction_id)
     
     if not transaction:
         raise HTTPException(
@@ -143,13 +126,11 @@ async def update_transaction(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Update a transaction."""
-    from models import Account
+    """Update a transaction with atomic balance updates."""
+    transaction_repo = TransactionRepository(db)
+    account_repo = AccountRepository(db)
     
-    db_transaction = db.query(Transaction).filter(
-        Transaction.id == transaction_id,
-        Transaction.user_id == current_user.id
-    ).first()
+    db_transaction = transaction_repo.get_by_user_and_id(current_user.id, transaction_id)
     
     if not db_transaction:
         raise HTTPException(
@@ -157,24 +138,20 @@ async def update_transaction(
             detail="Transação não encontrada"
         )
     
-    # Get the old account to revert the balance change
-    old_account = db.query(Account).filter(Account.id == db_transaction.account_id).first()
-    
-    # Revert old transaction effect on account balance
-    if db_transaction.type == 'income':
-        old_account.balance -= db_transaction.amount
-    else:  # expense
-        old_account.balance += db_transaction.amount
+    # Get the old account using repository
+    old_account = account_repo.get_by_id(db_transaction.account_id)
+    if not old_account:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Conta original não encontrada"
+        )
     
     # Update only provided fields
     update_data = transaction_update.model_dump(exclude_unset=True)
     
     # Get new account if account_id is being updated
     new_account_id = update_data.get('account_id', db_transaction.account_id)
-    new_account = db.query(Account).filter(
-        Account.id == new_account_id,
-        Account.user_id == current_user.id
-    ).first()
+    new_account = account_repo.get_by_user_and_id(current_user.id, new_account_id)
     
     if not new_account:
         raise HTTPException(
@@ -182,25 +159,30 @@ async def update_transaction(
             detail="Conta não encontrada"
         )
     
-    # Apply updates
-    for field, value in update_data.items():
-        setattr(db_transaction, field, value)
-    
-    db_transaction.updated_at = datetime.now()
-    
-    # Apply new transaction effect on account balance
-    new_type = update_data.get('type', db_transaction.type)
-    new_amount = update_data.get('amount', db_transaction.amount)
-    
-    if new_type == 'income':
-        new_account.balance += new_amount
-    else:  # expense
-        new_account.balance -= new_amount
-    
-    db.commit()
-    db.refresh(db_transaction)
-    
-    return db_transaction
+    try:
+        # Usar TransactionService para atualizar transação
+        db_transaction = TransactionService.update_transaction(
+            db_transaction=db_transaction,
+            update_data=update_data,
+            old_account=old_account,
+            new_account=new_account,
+            user_id=current_user.id,
+            db=db
+        )
+        return db_transaction
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            f"Erro ao atualizar transação: {str(e)}",
+            extra={"user_id": current_user.id, "transaction_id": transaction_id},
+            exc_info=True
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao atualizar transação"
+        )
 
 @router.delete("/{transaction_id}")
 async def delete_transaction(
@@ -208,13 +190,11 @@ async def delete_transaction(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Delete a transaction."""
-    from models import Account
+    """Delete a transaction with atomic balance revert."""
+    transaction_repo = TransactionRepository(db)
+    account_repo = AccountRepository(db)
     
-    db_transaction = db.query(Transaction).filter(
-        Transaction.id == transaction_id,
-        Transaction.user_id == current_user.id
-    ).first()
+    db_transaction = transaction_repo.get_by_user_and_id(current_user.id, transaction_id)
     
     if not db_transaction:
         raise HTTPException(
@@ -222,20 +202,36 @@ async def delete_transaction(
             detail="Transação não encontrada"
         )
     
-    # Get the account to revert the balance change
-    account = db.query(Account).filter(Account.id == db_transaction.account_id).first()
+    # Get the account using repository
+    account = account_repo.get_by_id(db_transaction.account_id)
+    if not account:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Conta não encontrada"
+        )
     
-    if account:
-        # Revert transaction effect on account balance
-        if db_transaction.type == 'income':
-            account.balance -= db_transaction.amount
-        else:  # expense
-            account.balance += db_transaction.amount
-    
-    db.delete(db_transaction)
-    db.commit()
-    
-    return {"message": "Transação removida com sucesso"}
+    try:
+        # Usar TransactionService para deletar transação
+        TransactionService.delete_transaction(
+            db_transaction=db_transaction,
+            account=account,
+            user_id=current_user.id,
+            db=db
+        )
+        return {"message": "Transação removida com sucesso"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            f"Erro ao deletar transação: {str(e)}",
+            extra={"user_id": current_user.id, "transaction_id": transaction_id},
+            exc_info=True
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao remover transação"
+        )
 
 @router.get("/summary/monthly")
 async def get_monthly_summary(
@@ -245,14 +241,12 @@ async def get_monthly_summary(
     db: Session = Depends(get_db)
 ):
     """Get monthly transaction summary."""
-    from sqlalchemy import func, extract
-    
-    # Get transactions for the specified month
-    transactions = db.query(Transaction).filter(
-        Transaction.user_id == current_user.id,
-        extract('year', Transaction.date) == year,
-        extract('month', Transaction.date) == month
-    ).all()
+    transaction_repo = TransactionRepository(db)
+    transactions = transaction_repo.get_monthly_summary(
+        user_id=current_user.id,
+        year=year,
+        month=month
+    )
     
     # Calculate totals
     total_income = sum(t.amount for t in transactions if t.type == 'income')

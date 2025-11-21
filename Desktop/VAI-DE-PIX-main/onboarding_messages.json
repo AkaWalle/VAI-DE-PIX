@@ -1,0 +1,182 @@
+{
+  "welcome": {
+    "title": "Bem-vindo ao VAI DE PIX! 🎉",
+    "message": "Vamos transformar como você controla suas finanças. Em poucos minutos, você terá tudo configurado e pronto para usar.",
+    "cta": "Começar tour",
+    "skip": "Pular tour"
+  },
+  "tour": [
+    {
+      "step": 1,
+      "title": "Dashboard - Sua Visão Geral",
+      "message": "Aqui você vê tudo de uma vez: saldo total, receitas, despesas e economia do mês. Os gráficos mostram sua evolução financeira.",
+      "highlight": "dashboard",
+      "next": "Próximo",
+      "skip": "Pular"
+    },
+    {
+      "step": 2,
+      "title": "Transações - Controle Total",
+      "message": "Registre todas as suas receitas e despesas aqui. Use filtros para encontrar transações específicas e exporte seus dados quando precisar.",
+      "highlight": "transactions",
+      "next": "Próximo",
+      "skip": "Pular",
+      "back": "Voltar"
+    },
+    {
+      "step": 3,
+      "title": "Metas - Alcance Seus Objetivos",
+      "message": "Crie metas financeiras e acompanhe seu progresso. Visualize quanto falta para alcançar seus sonhos.",
+      "highlight": "goals",
+      "next": "Próximo",
+      "skip": "Pular",
+      "back": "Voltar"
+    },
+    {
+      "step": 4,
+      "title": "Caixinhas - Organize Seu Orçamento",
+      "message": "Use caixinhas para separar seu dinheiro por objetivo. Controle quanto você tem para cada categoria de gasto.",
+      "highlight": "envelopes",
+      "next": "Próximo",
+      "skip": "Pular",
+      "back": "Voltar"
+    },
+    {
+      "step": 5,
+      "title": "Relatórios - Entenda Seus Gastos",
+      "message": "Analise seus gastos por categoria, período e tendências. Exporte relatórios completos em CSV ou JSON.",
+      "highlight": "reports",
+      "next": "Próximo",
+      "skip": "Pular",
+      "back": "Voltar"
+    },
+    {
+      "step": 6,
+      "title": "Automações - Simplifique Sua Vida",
+      "message": "Configure transações recorrentes, lembretes e alertas. Deixe o VAI DE PIX trabalhar para você.",
+      "highlight": "automations",
+      "next": "Próximo",
+      "skip": "Pular",
+      "back": "Voltar"
+    },
+    {
+      "step": 7,
+      "title": "Configurações - Personalize",
+      "message": "Gerencie suas contas, categorias e preferências. Exporte seus dados ou faça backup completo.",
+      "highlight": "settings",
+      "next": "Finalizar",
+      "skip": "Pular",
+      "back": "Voltar"
+    }
+  ],
+  "completion": {
+    "title": "Tudo Pronto! 🚀",
+    "message": "Você já tem contas e categorias padrão criadas. Comece registrando sua primeira transação!",
+    "cta": "Criar primeira transação",
+    "later": "Explorar depois"
+  },
+  "tips": [
+    {
+      "id": "first_transaction",
+      "title": "💡 Dica: Primeira Transação",
+      "message": "Registre sua primeira receita ou despesa para ver o dashboard em ação!",
+      "trigger": "after_tour",
+      "dismissible": true
+    },
+    {
+      "id": "create_goal",
+      "title": "🎯 Dica: Crie uma Meta",
+      "message": "Defina uma meta financeira para começar a economizar com propósito.",
+      "trigger": "after_3_transactions",
+      "dismissible": true
+    },
+    {
+      "id": "use_envelopes",
+      "title": "📦 Dica: Use Caixinhas",
+      "message": "Organize seu orçamento criando caixinhas para diferentes objetivos ou categorias.",
+      "trigger": "after_1_goal",
+      "dismissible": true
+    },
+    {
+      "id": "automations",
+      "title": "🤖 Dica: Automatize",
+      "message": "Configure transações recorrentes para salários e contas mensais. Economize tempo!",
+      "trigger": "after_10_transactions",
+      "dismissible": true
+    },
+    {
+      "id": "export_data",
+      "title": "📤 Dica: Exporte Seus Dados",
+      "message": "Mantenha backup dos seus dados. Exporte regularmente em CSV ou JSON.",
+      "trigger": "after_30_days",
+      "dismissible": true
+    }
+  ],
+  "empty_states": {
+    "no_transactions": {
+      "title": "Nenhuma transação ainda",
+      "message": "Comece registrando sua primeira receita ou despesa!",
+      "cta": "Criar transação"
+    },
+    "no_goals": {
+      "title": "Nenhuma meta criada",
+      "message": "Crie uma meta financeira e comece a economizar com propósito.",
+      "cta": "Criar meta"
+    },
+    "no_envelopes": {
+      "title": "Nenhuma caixinha criada",
+      "message": "Organize seu orçamento criando caixinhas para diferentes objetivos.",
+      "cta": "Criar caixinha"
+    },
+    "no_automations": {
+      "title": "Nenhuma automação configurada",
+      "message": "Configure transações recorrentes e simplifique sua vida financeira.",
+      "cta": "Criar automação"
+    }
+  },
+  "achievements": [
+    {
+      "id": "first_transaction",
+      "title": "Primeiro Passo! 🎉",
+      "message": "Você registrou sua primeira transação. Continue assim!",
+      "icon": "🎯"
+    },
+    {
+      "id": "first_goal",
+      "title": "Sonhador! 💭",
+      "message": "Você criou sua primeira meta. Agora é trabalhar para alcançá-la!",
+      "icon": "🎯"
+    },
+    {
+      "id": "goal_achieved",
+      "title": "Conquistador! 🏆",
+      "message": "Parabéns! Você alcançou uma meta. Continue assim!",
+      "icon": "🏆"
+    },
+    {
+      "id": "10_transactions",
+      "title": "Em Ritmo! 📈",
+      "message": "Você já registrou 10 transações. Está no caminho certo!",
+      "icon": "📈"
+    },
+    {
+      "id": "30_days_active",
+      "title": "Consistente! ⭐",
+      "message": "30 dias usando o VAI DE PIX. Você está transformando suas finanças!",
+      "icon": "⭐"
+    },
+    {
+      "id": "first_automation",
+      "title": "Automatizado! 🤖",
+      "message": "Você configurou sua primeira automação. Agora é só acompanhar!",
+      "icon": "🤖"
+    }
+  ],
+  "notifications": {
+    "welcome_back": "Bem-vindo de volta! Veja o que aconteceu desde sua última visita.",
+    "goal_reminder": "Lembrete: Você tem uma meta que precisa de atenção.",
+    "recurring_due": "Transação recorrente executada automaticamente.",
+    "budget_alert": "Atenção: Você está próximo do limite de orçamento nesta categoria."
+  }
+}
+

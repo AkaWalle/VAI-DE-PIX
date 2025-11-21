@@ -4,6 +4,7 @@ services:
   # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
+    container_name: vai_de_pix_postgres
     environment:
       POSTGRES_DB: vai_de_pix
       POSTGRES_USER: vai_de_pix_user
@@ -17,41 +18,93 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - vai_de_pix_network
+
+  # Redis (para cache e jobs)
+  redis:
+    image: redis:7-alpine
+    container_name: vai_de_pix_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - vai_de_pix_network
 
   # FastAPI Backend
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: vai_de_pix_backend
     environment:
       DATABASE_URL: postgresql://vai_de_pix_user:vai_de_pix_pass@postgres:5432/vai_de_pix
-      SECRET_KEY: dev-secret-key-change-in-production
-      FRONTEND_URL: http://localhost:8080
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: dev-secret-key-change-in-production-minimum-32-characters
+      ENVIRONMENT: development
+      FRONTEND_URL: http://localhost:5000
+      PORT: 8000
+      HOST: 0.0.0.0
+      ENABLE_RECURRING_JOBS: "false"
+      LOG_LEVEL: DEBUG
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      OLLAMA_MODEL: phi3:mini
     ports:
       - "8000:8000"
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ./backend:/app
+      - /app/__pycache__
     command: python main.py
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 40s
+    networks:
+      - vai_de_pix_network
+    restart: unless-stopped
 
   # React Frontend (opcional - pode rodar separado)
   frontend:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vai_de_pix_frontend
     environment:
       VITE_API_URL: http://localhost:8000/api
     ports:
-      - "8080:8080"
+      - "5000:5000"
     depends_on:
       - backend
     volumes:
       - .:/app
       - /app/node_modules
     command: npm run dev
+    networks:
+      - vai_de_pix_network
+    restart: unless-stopped
 
 volumes:
   postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  vai_de_pix_network:
+    driver: bridge
+

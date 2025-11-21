@@ -38,7 +38,7 @@ export default function Settings() {
   
   const [newAccount, setNewAccount] = useState({
     name: '',
-    type: 'checking' as const,
+    account_type: 'checking' as const, // Corrigido: type → account_type
     balance: ''
   });
   
@@ -102,7 +102,7 @@ export default function Settings() {
     
     addAccount({
       name: newAccount.name,
-      type: newAccount.type,
+      account_type: newAccount.account_type, // Corrigido: type → account_type
       balance
     });
 
@@ -111,7 +111,7 @@ export default function Settings() {
       description: `A conta "${newAccount.name}" foi criada com sucesso.`,
     });
 
-    setNewAccount({ name: '', type: 'checking', balance: '' });
+    setNewAccount({ name: '', account_type: 'checking', balance: '' }); // Corrigido: type → account_type
     setShowNewAccount(false);
   };
 
@@ -308,8 +308,8 @@ export default function Settings() {
                   <div className="space-y-2">
                     <Label>Tipo</Label>
                     <Select
-                      value={newAccount.type}
-                      onValueChange={(value: any) => setNewAccount(prev => ({ ...prev, type: value }))}
+                      value={newAccount.account_type} // Corrigido: type → account_type
+                      onValueChange={(value: any) => setNewAccount(prev => ({ ...prev, account_type: value }))} // Corrigido: type → account_type
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -355,22 +355,22 @@ export default function Settings() {
               <div key={account.id} className="flex items-center justify-between p-3 border rounded-lg">
                 <div className="flex items-center gap-3">
                   <div className="text-2xl">
-                    {account.type === 'checking' ? '🏦' :
-                     account.type === 'savings' ? '🐷' :
-                     account.type === 'investment' ? '📈' :
-                     account.type === 'credit' ? '💳' : '💰'}
+                    {account.account_type === 'checking' ? '🏦' : // Corrigido: type → account_type
+                     account.account_type === 'savings' ? '🐷' : // Corrigido: type → account_type
+                     account.account_type === 'investment' ? '📈' : // Corrigido: type → account_type
+                     account.account_type === 'credit' ? '💳' : '💰'} {/* Corrigido: type → account_type */}
                   </div>
                   <div>
                     <p className="font-medium">{account.name}</p>
                     <p className="text-sm text-muted-foreground">
-                      {accountTypeLabels[account.type as keyof typeof accountTypeLabels]}
+                      {accountTypeLabels[account.account_type as keyof typeof accountTypeLabels]} {/* Corrigido: type → account_type */}
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
                   <p className="font-semibold">{formatCurrency(account.balance)}</p>
                   <Badge variant="outline" className="text-xs">
-                    {account.type}
+                    {account.account_type} {/* Corrigido: type → account_type */}
                   </Badge>
                 </div>
               </div>

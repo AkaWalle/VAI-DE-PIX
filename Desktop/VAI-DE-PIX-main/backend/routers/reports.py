@@ -1,13 +1,17 @@
 from fastapi import APIRouter, Depends, Query
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from sqlalchemy import func, extract
 from typing import List, Dict, Any
 from datetime import datetime, date, timedelta
 from pydantic import BaseModel
+import csv
+import io
 
 from database import get_db
 from models import Transaction, Goal, Envelope, Category, Account, User
 from auth_utils import get_current_user
+from repositories.report_repository import ReportRepository
 
 router = APIRouter()
 
@@ -42,12 +46,14 @@ async def get_financial_summary(
     end_date = datetime.now().date()
     start_date = end_date - timedelta(days=months * 30)
     
-    # Get transactions in period
-    transactions = db.query(Transaction).filter(
-        Transaction.user_id == current_user.id,
-        Transaction.date >= start_date,
-        Transaction.date <= end_date
-    ).all()
+    # Get transactions in period using repository
+    report_repo = ReportRepository(db)
+    transactions = report_repo.get_transactions_for_export(
+        user_id=current_user.id,
+        start_date=start_date
+    )
+    # Filtrar por end_date (não está no repository, mas pode ser adicionado)
+    transactions = [t for t in transactions if t.date.date() <= end_date]
     
     # Calculate totals
     total_income = sum(t.amount for t in transactions if t.type == 'income')
@@ -73,20 +79,12 @@ async def get_cashflow(
     end_date = datetime.now()
     start_date = end_date - timedelta(days=months * 30)
     
-    # Query monthly data
-    monthly_data = db.query(
-        extract('year', Transaction.date).label('year'),
-        extract('month', Transaction.date).label('month'),
-        Transaction.type,
-        func.sum(func.abs(Transaction.amount)).label('total')
-    ).filter(
-        Transaction.user_id == current_user.id,
-        Transaction.date >= start_date
-    ).group_by(
-        extract('year', Transaction.date),
-        extract('month', Transaction.date),
-        Transaction.type
-    ).all()
+    # Query monthly data using repository
+    report_repo = ReportRepository(db)
+    monthly_data = report_repo.get_cashflow_data(
+        user_id=current_user.id,
+        start_date=start_date
+    )
     
     # Process data into monthly format
     cashflow_dict = {}
@@ -126,7 +124,7 @@ async def get_cashflow(
 
 @router.get("/categories/summary", response_model=List[CategorySummary])
 async def get_category_summary(
-    type_filter: str = Query("expense", regex="^(income|expense)$"),
+    type_filter: str = Query("expense", pattern="^(income|expense)$"),
     months: int = Query(6, ge=1, le=12),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -135,23 +133,13 @@ async def get_category_summary(
     end_date = datetime.now().date()
     start_date = end_date - timedelta(days=months * 30)
     
-    # Query category totals
-    category_data = db.query(
-        Transaction.category_id,
-        Category.name.label('category_name'),
-        func.sum(func.abs(Transaction.amount)).label('total_amount'),
-        func.count(Transaction.id).label('transaction_count')
-    ).join(
-        Category, Transaction.category_id == Category.id
-    ).filter(
-        Transaction.user_id == current_user.id,
-        Transaction.type == type_filter,
-        Transaction.date >= start_date
-    ).group_by(
-        Transaction.category_id, Category.name
-    ).order_by(
-        func.sum(func.abs(Transaction.amount)).desc()
-    ).all()
+    # Query category totals using repository
+    report_repo = ReportRepository(db)
+    category_data = report_repo.get_category_summary(
+        user_id=current_user.id,
+        type_filter=type_filter,
+        start_date=start_date
+    )
     
     # Calculate total for percentages
     total_amount = sum(item.total_amount for item in category_data)
@@ -170,26 +158,143 @@ async def get_category_summary(
     
     return result
 
+def _serialize_transaction(t: Transaction) -> dict:
+    """Serializa transação para exportação."""
+    return {
+        "id": t.id,
+        "date": t.date.isoformat(),
+        "type": t.type,
+        "amount": t.amount,
+        "description": t.description,
+        "account_id": t.account_id,
+        "category_id": t.category_id,
+        "tags": t.tags
+    }
+
+
+def _serialize_goal(g: Goal) -> dict:
+    """Serializa goal para exportação."""
+    return {
+        "id": g.id,
+        "name": g.name,
+        "target_amount": g.target_amount,
+        "current_amount": g.current_amount,
+        "target_date": g.target_date.isoformat(),
+        "status": g.status,
+        "priority": g.priority
+    }
+
+
+def _serialize_envelope(e: Envelope) -> dict:
+    """Serializa envelope para exportação."""
+    return {
+        "id": e.id,
+        "name": e.name,
+        "balance": e.balance,
+        "target_amount": e.target_amount,
+        "color": e.color
+    }
+
+
+def _serialize_category(c: Category) -> dict:
+    """Serializa categoria para exportação."""
+    return {
+        "id": c.id,
+        "name": c.name,
+        "type": c.type,
+        "color": c.color,
+        "icon": c.icon
+    }
+
+
+def _serialize_account(a: Account) -> dict:
+    """Serializa conta para exportação."""
+    return {
+        "id": a.id,
+        "name": a.name,
+        "type": a.type,
+        "balance": a.balance
+    }
+
+
 @router.get("/export")
 async def export_data(
     months: int = Query(6, ge=1, le=24),
+    format: str = Query("json", pattern="^(json|csv)$"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Export user's financial data."""
+    """Export user's financial data in JSON or CSV format."""
     end_date = datetime.now().date()
     start_date = end_date - timedelta(days=months * 30)
     
-    # Get all user data
-    transactions = db.query(Transaction).filter(
-        Transaction.user_id == current_user.id,
-        Transaction.date >= start_date
-    ).all()
+    # Usar repository para buscar todos os dados
+    report_repo = ReportRepository(db)
+    transactions = report_repo.get_transactions_for_export(
+        user_id=current_user.id,
+        start_date=start_date
+    )
+    # Filtrar por end_date
+    transactions = [t for t in transactions if t.date.date() <= end_date]
     
-    goals = db.query(Goal).filter(Goal.user_id == current_user.id).all()
-    envelopes = db.query(Envelope).filter(Envelope.user_id == current_user.id).all()
-    categories = db.query(Category).filter(Category.user_id == current_user.id).all()
-    accounts = db.query(Account).filter(Account.user_id == current_user.id).all()
+    if format == "csv":
+        # Gerar CSV
+        output = io.StringIO()
+        writer = csv.writer(output, delimiter=';', quoting=csv.QUOTE_ALL)
+        
+        # Cabeçalho
+        writer.writerow([
+            "Data", "Tipo", "Valor (R$)", "Descrição", 
+            "Conta", "Categoria", "Tags"
+        ])
+        
+        # Dados
+        for t in transactions:
+            # Buscar nome da conta e categoria
+            account_name = db.query(Account).filter(Account.id == t.account_id).first()
+            account_name = account_name.name if account_name else "N/A"
+            
+            category_name = "N/A"
+            if t.category_id:
+                category = db.query(Category).filter(Category.id == t.category_id).first()
+                category_name = category.name if category else "N/A"
+            
+            # Buscar tags
+            from models import TransactionTag, Tag
+            tag_names = []
+            if hasattr(t, 'transaction_tags'):
+                for tt in t.transaction_tags:
+                    tag = db.query(Tag).filter(Tag.id == tt.tag_id).first()
+                    if tag:
+                        tag_names.append(tag.name)
+            tags_str = ", ".join(tag_names) if tag_names else ""
+            
+            # Formatar valor
+            amount_str = f"R$ {float(t.amount):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            
+            writer.writerow([
+                t.date.strftime("%d/%m/%Y"),
+                "Receita" if t.type == "income" else "Despesa" if t.type == "expense" else "Transferência",
+                amount_str,
+                t.description,
+                account_name,
+                category_name,
+                tags_str
+            ])
+        
+        csv_content = output.getvalue()
+        output.close()
+        
+        return Response(
+            content=csv_content,
+            media_type="text/csv",
+            headers={
+                "Content-Disposition": f"attachment; filename=vaidepix_export_{datetime.now().strftime('%Y%m%d')}.csv"
+            }
+        )
+    
+    # JSON (padrão)
+    user_data = report_repo.get_all_user_data(current_user.id)
     
     return {
         "export_date": datetime.now().isoformat(),
@@ -203,54 +308,10 @@ async def export_data(
             "months": months
         },
         "data": {
-            "transactions": [
-                {
-                    "id": t.id,
-                    "date": t.date.isoformat(),
-                    "type": t.type,
-                    "amount": t.amount,
-                    "description": t.description,
-                    "account_id": t.account_id,
-                    "category_id": t.category_id,
-                    "tags": t.tags
-                } for t in transactions
-            ],
-            "goals": [
-                {
-                    "id": g.id,
-                    "name": g.name,
-                    "target_amount": g.target_amount,
-                    "current_amount": g.current_amount,
-                    "target_date": g.target_date.isoformat(),
-                    "status": g.status,
-                    "priority": g.priority
-                } for g in goals
-            ],
-            "envelopes": [
-                {
-                    "id": e.id,
-                    "name": e.name,
-                    "balance": e.balance,
-                    "target_amount": e.target_amount,
-                    "color": e.color
-                } for e in envelopes
-            ],
-            "categories": [
-                {
-                    "id": c.id,
-                    "name": c.name,
-                    "type": c.type,
-                    "color": c.color,
-                    "icon": c.icon
-                } for c in categories
-            ],
-            "accounts": [
-                {
-                    "id": a.id,
-                    "name": a.name,
-                    "type": a.type,
-                    "balance": a.balance
-                } for a in accounts
-            ]
+            "transactions": [_serialize_transaction(t) for t in transactions],
+            "goals": [_serialize_goal(g) for g in user_data['goals']],
+            "envelopes": [_serialize_envelope(e) for e in user_data['envelopes']],
+            "categories": [_serialize_category(c) for c in user_data['categories']],
+            "accounts": [_serialize_account(a) for a in user_data['accounts']]
         }
     }
