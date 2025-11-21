@@ -4,14 +4,6 @@
   "outputDirectory": "dist",
   "installCommand": "npm install",
   "framework": "vite",
-  "functions": {
-    "api/index.py": {
-      "runtime": "python3.11"
-    }
-  },
-  "env": {
-    "PYTHON_VERSION": "3.11"
-  },
   "rewrites": [
     {
       "source": "/api/(.*)",
