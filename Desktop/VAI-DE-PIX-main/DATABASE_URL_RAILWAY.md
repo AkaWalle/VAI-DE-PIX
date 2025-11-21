@@ -45,6 +45,19 @@ DATABASE_URL=postgresql://postgres:OkqhtgBPqgGnlMHVmBtGhapAMNhZtWDc@postgres.rai
 
 ## 🔍 ONDE ENCONTRAR NO RAILWAY
 
+### Método 1: Via Interface Web
+
+1. **Acesse a página de variáveis do seu serviço:**
+   ```
+   https://railway.com/project/403d6713-86e0-4137-ae91-22422d32e6cd/service/7441b5d4-321e-41e0-afec-055851b9da06/variables?environmentId=06828dff-9390-4b17-becb-e44206b79edf
+   ```
+
+2. **Nessa página, procure por `DATABASE_URL` na lista de variáveis**
+
+3. **Clique em `DATABASE_URL` para ver/copiar o valor**
+
+### Método 2: Via Dashboard
+
 1. **Acesse:** https://railway.app
 2. **Abra seu projeto**
 3. **Clique no serviço PostgreSQL** (Postgres)
