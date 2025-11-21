@@ -24,13 +24,5 @@
         }
       ]
     }
-  ],
-  "functions": {
-    "api/index.py": {
-      "runtime": "@vercel/python",
-      "includeFiles": "backend/**",
-      "maxDuration": 30,
-      "memory": 1024
-    }
-  }
+  ]
 }
