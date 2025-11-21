@@ -1,13 +1,13 @@
 # Requirements para Vercel Serverless Functions
-# Este arquivo deve estar na raiz do projeto para o Vercel detectar Python
+# Python 3.11 (Vercel padrão)
 
 # Core FastAPI
 fastapi==0.104.1
 mangum==0.17.0
 
-# Database
+# Database (CRÍTICO: usar -binary para serverless)
 sqlalchemy==1.4.53
-psycopg2-binary==2.9.9
+psycopg2-binary==2.9.11
 alembic==1.13.1
 
 # Authentication & Security
@@ -33,5 +33,8 @@ bleach==6.1.0
 # Environment
 python-dotenv==1.0.0
 
-# Scheduler (desabilitado em serverless, mas necessário para imports)
+# Scheduler (necessário para imports, mas desabilitado em serverless)
 apscheduler==3.10.4
+
+# Type hints (compatibilidade Python 3.11)
+typing-extensions==4.8.0

@@ -12,6 +12,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import text
 import uvicorn
 from datetime import datetime
 import os
@@ -131,11 +132,23 @@ async def api_root():
     }
 
 @app.get("/api/health")
-async def health_check():
+async def health_check(db: Session = Depends(get_db)):
+    """Health check que testa conexão com banco de dados."""
+    try:
+        # Teste simples de conexão (sem query pesada)
+        db.execute(text("SELECT 1"))
+        db.commit()
+        db_status = "connected"
+    except Exception as e:
+        db.rollback()
+        db_status = f"error: {str(e)[:50]}"
+    
     return {
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
-        "database": "connected"
+        "database": db_status,
+        "environment": os.getenv("ENVIRONMENT", "unknown"),
+        "serverless": IS_SERVERLESS
     }
 
 # Protected route example
@@ -147,22 +160,37 @@ async def protected_route(
     user = verify_token(credentials.credentials, db)
     return {"message": f"Hello {user.name}!", "user_id": user.id}
 
-@app.on_event("startup")
-async def startup_event():
-    """Evento de inicialização da aplicação."""
-    logger.info("🚀 Iniciando VAI DE PIX API...")
-    # Iniciar scheduler de recorrências apenas em produção ou se explicitamente habilitado
-    if os.getenv("ENABLE_RECURRING_JOBS", "false").lower() == "true" or os.getenv("ENVIRONMENT", "development").lower() == "production":
-        start_scheduler()
-        logger.info("✅ Job de transações recorrentes habilitado")
-    else:
-        logger.info("ℹ️  Job de transações recorrentes desabilitado (use ENABLE_RECURRING_JOBS=true para habilitar)")
+# Verificar se está rodando em serverless (Vercel, Lambda, etc.)
+IS_SERVERLESS = os.getenv("VERCEL") is not None or os.getenv("AWS_LAMBDA_FUNCTION_NAME") is not None
 
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Evento de encerramento da aplicação."""
-    logger.info("🛑 Encerrando VAI DE PIX API...")
-    stop_scheduler()
+if not IS_SERVERLESS:
+    # Apenas usar eventos de startup/shutdown em ambientes não-serverless
+    @app.on_event("startup")
+    async def startup_event():
+        """Evento de inicialização da aplicação."""
+        logger.info("🚀 Iniciando VAI DE PIX API...")
+        # Iniciar scheduler de recorrências apenas se explicitamente habilitado
+        # Em serverless, jobs recorrentes devem ser feitos via cron externo
+        if os.getenv("ENABLE_RECURRING_JOBS", "false").lower() == "true":
+            try:
+                start_scheduler()
+                logger.info("✅ Job de transações recorrentes habilitado")
+            except Exception as e:
+                logger.warning(f"⚠️  Erro ao iniciar scheduler: {e}")
+        else:
+            logger.info("ℹ️  Job de transações recorrentes desabilitado (use ENABLE_RECURRING_JOBS=true para habilitar)")
+
+    @app.on_event("shutdown")
+    async def shutdown_event():
+        """Evento de encerramento da aplicação."""
+        logger.info("🛑 Encerrando VAI DE PIX API...")
+        try:
+            stop_scheduler()
+        except Exception:
+            pass  # Ignorar erros no shutdown
+else:
+    # Em serverless, apenas log
+    logger.info("🚀 VAI DE PIX API iniciada em modo serverless (scheduler desabilitado)")
 
 if __name__ == "__main__":
     logger.info("🚀 Iniciando servidor de desenvolvimento VAI DE PIX API...")
