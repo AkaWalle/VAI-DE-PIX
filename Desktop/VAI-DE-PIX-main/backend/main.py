@@ -66,11 +66,16 @@ frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5000")
 
 # Origens permitidas baseadas no ambiente
 if is_production:
-    # Em produção, apenas origens específicas
+    # Em produção, permitir Vercel e origens específicas
     allowed_origins = [
         frontend_url,
         os.getenv("FRONTEND_URL_PRODUCTION", ""),
     ]
+    # Permitir localhost para testes locais em produção
+    allowed_origins.extend([
+        "http://localhost:3000",
+        "http://localhost:5000",
+    ])
     # Remove strings vazias
     allowed_origins = [origin for origin in allowed_origins if origin]
 else:
@@ -86,14 +91,28 @@ else:
         "http://127.0.0.1:8000",
     ]
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allow_headers=["*"],
-    expose_headers=["*"],
-)
+# Configurar CORS com suporte para Vercel
+if is_production:
+    # Em produção, usar regex para permitir qualquer subdomínio .vercel.app
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=allowed_origins,
+        allow_origin_regex=r"https://.*\.vercel\.app",  # Permite qualquer subdomínio .vercel.app
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+        allow_headers=["*"],
+        expose_headers=["*"],
+    )
+else:
+    # Em desenvolvimento, apenas origens específicas
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=allowed_origins,
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+        allow_headers=["*"],
+        expose_headers=["*"],
+    )
 
 # Security
 security = HTTPBearer()

@@ -156,12 +156,41 @@ FRONTEND_URL=http://localhost:5000
 #### Variáveis de Ambiente do Frontend (.env.local)
 ```env
 # API Configuration
+# Para desenvolvimento local (backend rodando em localhost:8000)
 VITE_API_URL=http://localhost:8000/api
+
+# Para produção (backend no Railway)
+# Substitua pela URL real do seu backend no Railway
+# Exemplo: VITE_API_URL=https://seu-backend.up.railway.app/api
+# VITE_API_URL=https://seu-backend.up.railway.app/api
 
 # App Configuration
 VITE_APP_NAME=VAI DE PIX
 VITE_APP_VERSION=1.0.0
 ```
+
+#### 🔗 Configuração para Produção (Railway + Vercel)
+
+**Frontend no Vercel + Backend no Railway:**
+
+1. **Obter URL do Backend no Railway:**
+   - Acesse o dashboard do Railway: https://railway.app
+   - Encontre o serviço do backend
+   - Copie a URL pública (formato: `https://seu-backend.up.railway.app`)
+
+2. **Configurar no Vercel:**
+   - Acesse: https://vercel.com/akawalles-projects/vai-de-pix/settings/environment-variables
+   - Adicione a variável:
+     - **Name:** `VITE_API_URL`
+     - **Value:** `https://seu-backend.up.railway.app/api` (substitua pela URL real)
+     - **Environment:** Production, Preview, Development
+   - Salve e faça re-deploy
+
+3. **Testar:**
+   - Acesse o frontend no Vercel
+   - Abra o Console do navegador (F12)
+   - Verifique se não há erros de CORS
+   - Teste login/registro
 
 ### 3. Desenvolvimento
 
@@ -200,6 +229,38 @@ npm run build
 # Visualizar build localmente
 npm run preview
 ```
+
+#### 🚀 Deploy em Produção (Vercel + Railway)
+
+**Arquitetura:**
+- **Frontend:** Vercel (React/Vite)
+- **Backend:** Railway (FastAPI + PostgreSQL)
+
+**Configuração Rápida:**
+
+1. **Backend no Railway:**
+   - ✅ Backend já está configurado e rodando no Railway
+   - ✅ PostgreSQL conectado e saudável
+   - ✅ Copie a URL pública do backend (ex: `https://seu-backend.up.railway.app`)
+
+2. **Frontend no Vercel:**
+   - Configure a variável de ambiente `VITE_API_URL` no Vercel:
+     ```bash
+     # Via CLI
+     vercel env add VITE_API_URL production
+     # Cole: https://seu-backend.up.railway.app/api
+     ```
+   - Ou via Dashboard:
+     - Settings → Environment Variables
+     - Adicione: `VITE_API_URL` = `https://seu-backend.up.railway.app/api`
+   - Faça re-deploy após adicionar a variável
+
+3. **Testar:**
+   - Acesse o frontend no Vercel
+   - Teste login/registro (deve conectar ao backend no Railway)
+   - Verifique Console do navegador (F12) para erros
+
+**✅ Pronto!** O app estará 100% funcional com frontend no Vercel e backend/DB no Railway.
 
 ### 5. Verificação de Código
 

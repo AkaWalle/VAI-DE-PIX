@@ -49,19 +49,36 @@ if DATABASE_URL:
 if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
+# Limpar parâmetros inválidos da DATABASE_URL (ex: ?db_type=postgresql)
+# PostgreSQL não reconhece parâmetros como db_type, então removemos tudo após ?
+if DATABASE_URL and "?" in DATABASE_URL:
+    # Separar URL base dos parâmetros
+    base_url, params = DATABASE_URL.split("?", 1)
+    # Manter apenas parâmetros válidos do PostgreSQL (se houver)
+    # Por enquanto, removemos todos os parâmetros para evitar erros
+    # Se precisar de parâmetros específicos, adicione aqui
+    DATABASE_URL = base_url
+
 # Create engine
 if DATABASE_URL.startswith("sqlite"):
     engine = create_engine(
         DATABASE_URL, 
         connect_args={"check_same_thread": False},  # SQLite specific
-        encoding='utf-8'
+        encoding='utf-8',
+        pool_pre_ping=True,  # Verificar conexão antes de usar
     )
 else:
     # Para PostgreSQL, garantir codificação UTF-8 e usar client_encoding
+    # pool_pre_ping=True garante que conexões mortas sejam recriadas
     engine = create_engine(
         DATABASE_URL,
-        connect_args={"client_encoding": "utf8"} if "postgresql" in DATABASE_URL else {},
-        encoding='utf-8'
+        connect_args={
+            "client_encoding": "utf8",
+            "connect_timeout": 10,  # Timeout de 10 segundos
+        } if "postgresql" in DATABASE_URL else {},
+        encoding='utf-8',
+        pool_pre_ping=True,  # Verificar conexão antes de usar
+        pool_recycle=3600,  # Reciclar conexões após 1 hora
     )
 
 # Session factory

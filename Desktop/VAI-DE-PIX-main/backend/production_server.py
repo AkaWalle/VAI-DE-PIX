@@ -48,11 +48,16 @@ frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5000")
 
 # Origens permitidas baseadas no ambiente
 if is_production:
-    # Em produção, apenas origens específicas - NUNCA permitir "*"
+    # Em produção, permitir Vercel e origens específicas
     allowed_origins = [
         frontend_url,
         os.getenv("FRONTEND_URL_PRODUCTION", ""),
     ]
+    # Permitir localhost para testes locais em produção
+    allowed_origins.extend([
+        "http://localhost:3000",
+        "http://localhost:5000",
+    ])
     # Remove strings vazias
     allowed_origins = [origin for origin in allowed_origins if origin]
     
@@ -78,14 +83,28 @@ else:
     ]
     logger.info("CORS configurado para desenvolvimento (localhost permitido)")
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=allowed_origins,  # NUNCA "*" em produção
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allow_headers=["*"],
-    expose_headers=["*"],
-)
+# Configurar CORS com suporte para Vercel
+if is_production:
+    # Em produção, usar regex para permitir qualquer subdomínio .vercel.app
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=allowed_origins,
+        allow_origin_regex=r"https://.*\.vercel\.app",  # Permite qualquer subdomínio .vercel.app
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+        allow_headers=["*"],
+        expose_headers=["*"],
+    )
+else:
+    # Em desenvolvimento, apenas origens específicas
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=allowed_origins,
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+        allow_headers=["*"],
+        expose_headers=["*"],
+    )
 
 # Security
 security = HTTPBearer()
@@ -146,11 +165,27 @@ async def api_root():
     }
 
 @app.get("/api/health")
-async def health_check():
+async def health_check(db: Session = Depends(get_db)):
+    """Health check que testa conexão real com banco de dados."""
+    from sqlalchemy import text
+    try:
+        # Teste real de conexão com SELECT 1
+        db.execute(text("SELECT 1"))
+        db.commit()
+        db_status = "connected"
+        db_error = None
+    except Exception as e:
+        db.rollback()
+        db_status = "error"
+        db_error = str(e)[:200]  # Limitar tamanho da mensagem de erro
+        logger.error(f"Erro ao conectar com banco de dados: {e}")
+    
     return {
-        "status": "healthy",
+        "status": "healthy" if db_status == "connected" else "degraded",
         "timestamp": datetime.now().isoformat(),
-        "database": "connected"
+        "database": db_status,
+        "database_error": db_error if db_error else None,
+        "environment": os.getenv("ENVIRONMENT", "unknown"),
     }
 
 # Protected route example
