@@ -50,14 +50,27 @@ if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 # Limpar parâmetros inválidos da DATABASE_URL (ex: ?db_type=postgresql)
-# PostgreSQL não reconhece parâmetros como db_type, então removemos tudo após ?
-if DATABASE_URL and "?" in DATABASE_URL:
-    # Separar URL base dos parâmetros
-    base_url, params = DATABASE_URL.split("?", 1)
-    # Manter apenas parâmetros válidos do PostgreSQL (se houver)
-    # Por enquanto, removemos todos os parâmetros para evitar erros
-    # Se precisar de parâmetros específicos, adicione aqui
-    DATABASE_URL = base_url
+# Railway injeta automaticamente ?db_type=postgresql que não é reconhecido pelo PostgreSQL
+# Removemos especificamente ?db_type= e qualquer outro parâmetro inválido
+if DATABASE_URL:
+    # Remover ?db_type=postgresql especificamente (problema comum do Railway)
+    if "?db_type=" in DATABASE_URL:
+        DATABASE_URL = DATABASE_URL.split("?db_type=")[0]
+        # Se houver outros parâmetros após db_type, também removemos
+        if "?" in DATABASE_URL:
+            DATABASE_URL = DATABASE_URL.split("?")[0]
+    
+    # Remover qualquer outro parâmetro inválido (fallback geral)
+    # PostgreSQL não reconhece parâmetros como db_type, então removemos tudo após ?
+    elif "?" in DATABASE_URL:
+        # Separar URL base dos parâmetros
+        base_url, params = DATABASE_URL.split("?", 1)
+        # Por enquanto, removemos todos os parâmetros para evitar erros
+        # Se precisar de parâmetros específicos válidos do PostgreSQL, adicione aqui
+        DATABASE_URL = base_url
+    
+    # Atualizar variável de ambiente para garantir consistência
+    os.environ["DATABASE_URL"] = DATABASE_URL
 
 # Create engine
 if DATABASE_URL.startswith("sqlite"):
