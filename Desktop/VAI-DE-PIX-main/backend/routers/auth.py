@@ -24,6 +24,16 @@ router = APIRouter()
 # Rate limiter será criado e injetado do app principal
 limiter = None
 
+class RateLimitWrapper:
+    """Wrapper para aplicar rate limit apenas se limiter estiver disponível."""
+    def __init__(self, limit_str: str):
+        self.limit_str = limit_str
+    
+    def __call__(self, func):
+        if limiter is not None:
+            return limiter.limit(self.limit_str)(func)
+        return func
+
 # Pydantic models for request/response
 class UserCreate(BaseModel):
     name: str
@@ -83,7 +93,7 @@ class LoginRequest(BaseModel):
         return v
 
 @router.post("/register", response_model=Token)
-@limiter.limit("5/minute")
+@RateLimitWrapper("5/minute")
 async def register(
     user_data: UserCreate, 
     request: Request,
@@ -326,7 +336,7 @@ def ensure_default_data(user_id: str, db: Session):
         raise
 
 @router.post("/login", response_model=Token)
-@limiter.limit("10/minute")
+@RateLimitWrapper("10/minute")
 async def login(
     login_data: LoginRequest, 
     request: Request,

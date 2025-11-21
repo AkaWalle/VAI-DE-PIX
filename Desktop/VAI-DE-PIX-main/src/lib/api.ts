@@ -84,6 +84,8 @@ export const API_ENDPOINTS = {
     cashflow: '/reports/cashflow',
     categories: '/reports/categories/summary',
     export: '/reports/export',
+    monthlyComparison: '/reports/monthly-comparison',
+    wealthEvolution: '/reports/wealth-evolution',
   },
   
 } as const;

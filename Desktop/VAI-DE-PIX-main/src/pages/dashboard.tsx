@@ -1,9 +1,11 @@
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { useFinancialStore } from '@/stores/financial-store';
 import { FinancialCard } from '@/components/ui/financial-card';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { formatCurrency } from '@/utils/format';
+import { httpClient } from '@/lib/http-client';
+import { API_ENDPOINTS } from '@/lib/api';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -12,7 +14,8 @@ import {
   CreditCard,
   ArrowUpRight,
   ArrowDownRight,
-  PiggyBank
+  PiggyBank,
+  LineChart
 } from 'lucide-react';
 import {
   AreaChart,
@@ -26,7 +29,9 @@ import {
   Pie,
   Cell,
   BarChart,
-  Bar
+  Bar,
+  LineChart as RechartsLineChart,
+  Line
 } from 'recharts';
 // Removed ChartTooltip imports to avoid context requirement outside ChartContainer
 
@@ -45,10 +50,34 @@ export default function Dashboard() {
     accounts
   } = useFinancialStore();
 
+  const [monthlyComparison, setMonthlyComparison] = useState<any>(null);
+  const [wealthEvolution, setWealthEvolution] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
   // Atualizar dateRange para o mês atual quando o componente for montado
   useEffect(() => {
     updateDateRangeToCurrentMonth();
   }, [updateDateRangeToCurrentMonth]);
+
+  // Buscar dados da API
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        const [comparisonRes, wealthRes] = await Promise.all([
+          httpClient.get(API_ENDPOINTS.reports.monthlyComparison),
+          httpClient.get(API_ENDPOINTS.reports.wealthEvolution, { params: { months: 12 } })
+        ]);
+        setMonthlyComparison(comparisonRes.data);
+        setWealthEvolution(wealthRes.data);
+      } catch (error) {
+        console.error('Erro ao buscar dados do dashboard:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDashboardData();
+  }, []);
 
   const totalBalance = getTotalBalance();
   const monthlyIncome = getIncomeThisMonth();
@@ -113,11 +142,11 @@ export default function Dashboard() {
           value={formatCurrency(totalBalance)}
           icon={Wallet}
           variant="balance"
-          trend={{
-            value: 12.5,
-            direction: totalBalance > 20000 ? 'up' : 'down',
+          trend={monthlyComparison ? {
+            value: Math.abs(monthlyComparison.balance_percentage_change),
+            direction: monthlyComparison.balance_change >= 0 ? 'up' : 'down',
             label: 'vs mês anterior'
-          }}
+          } : undefined}
         />
         
         <FinancialCard
@@ -126,6 +155,11 @@ export default function Dashboard() {
           icon={TrendingUp}
           variant="income"
           description="Entradas confirmadas"
+          trend={monthlyComparison ? {
+            value: Math.abs(monthlyComparison.income_percentage_change),
+            direction: monthlyComparison.income_change >= 0 ? 'up' : 'down',
+            label: 'vs mês anterior'
+          } : undefined}
         />
         
         <FinancialCard
@@ -134,6 +168,11 @@ export default function Dashboard() {
           icon={TrendingDown}
           variant="expense"
           description="Gastos registrados"
+          trend={monthlyComparison ? {
+            value: Math.abs(monthlyComparison.expense_percentage_change),
+            direction: monthlyComparison.expense_change >= 0 ? 'up' : 'down',
+            label: 'vs mês anterior'
+          } : undefined}
         />
         
         <FinancialCard
@@ -147,6 +186,75 @@ export default function Dashboard() {
 
       {/* Charts Section */}
       <div className="grid gap-6 md:grid-cols-2">
+        {/* Wealth Evolution Chart */}
+        <Card className="bg-gradient-card shadow-card-custom">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <LineChart className="h-5 w-5 text-primary" />
+              Evolução do Patrimônio
+            </CardTitle>
+            <CardDescription>
+              Soma de todas as contas ao longo do tempo
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="flex items-center justify-center h-[300px]">
+                <div className="text-muted-foreground">Carregando...</div>
+              </div>
+            ) : wealthEvolution.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <RechartsLineChart data={wealthEvolution}>
+                  <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                  <XAxis 
+                    dataKey="date" 
+                    tick={{ fontSize: 12 }}
+                    tickFormatter={(value) => {
+                      const date = new Date(value);
+                      return `${date.getMonth() + 1}/${date.getFullYear().toString().slice(-2)}`;
+                    }}
+                  />
+                  <YAxis 
+                    tick={{ fontSize: 12 }}
+                    tickFormatter={(value) => formatCurrency(value, { abbreviated: true })}
+                  />
+                  <Tooltip
+                    formatter={(value) => formatCurrency(Number(value))}
+                    labelFormatter={(value) => {
+                      const date = new Date(value);
+                      return date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+                    }}
+                    contentStyle={{
+                      background: 'hsl(var(--card))',
+                      color: 'hsl(var(--card-foreground))',
+                      border: '1px solid hsl(var(--border))',
+                      padding: '8px 12px',
+                      borderRadius: 8,
+                      boxShadow: '0 10px 15px -3px rgba(0,0,0,0.3), 0 4px 6px -2px rgba(0,0,0,0.1)',
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="total_balance"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth={2}
+                    dot={{ r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+                </RechartsLineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                <div className="text-center">
+                  <LineChart className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg font-medium mb-2">Nenhum dado disponível</p>
+                  <p className="text-sm">Adicione transações para ver a evolução do patrimônio</p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Cashflow Chart */}
         <Card className="bg-gradient-card shadow-card-custom">
           <CardHeader>

@@ -36,6 +36,20 @@ class FinancialSummary(BaseModel):
     period_start: date
     period_end: date
 
+class MonthlyComparison(BaseModel):
+    current_month: dict
+    previous_month: dict
+    income_change: float
+    expense_change: float
+    balance_change: float
+    income_percentage_change: float
+    expense_percentage_change: float
+    balance_percentage_change: float
+
+class WealthEvolution(BaseModel):
+    date: str
+    total_balance: float
+
 @router.get("/summary")
 async def get_financial_summary(
     months: int = Query(6, ge=1, le=24),
@@ -216,6 +230,42 @@ def _serialize_account(a: Account) -> dict:
         "balance": a.balance
     }
 
+
+@router.get("/monthly-comparison", response_model=MonthlyComparison)
+async def get_monthly_comparison(
+    year: int = Query(None),
+    month: int = Query(None),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get comparison between current month and previous month."""
+    now = datetime.now()
+    target_year = year if year else now.year
+    target_month = month if month else now.month
+    
+    report_repo = ReportRepository(db)
+    comparison = report_repo.get_monthly_comparison(
+        user_id=current_user.id,
+        year=target_year,
+        month=target_month
+    )
+    
+    return MonthlyComparison(**comparison)
+
+@router.get("/wealth-evolution", response_model=List[WealthEvolution])
+async def get_wealth_evolution(
+    months: int = Query(12, ge=1, le=24),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get wealth evolution over time (total balance of all accounts)."""
+    report_repo = ReportRepository(db)
+    evolution = report_repo.get_wealth_evolution(
+        user_id=current_user.id,
+        months=months
+    )
+    
+    return [WealthEvolution(**item) for item in evolution]
 
 @router.get("/export")
 async def export_data(

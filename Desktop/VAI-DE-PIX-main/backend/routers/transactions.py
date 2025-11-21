@@ -233,6 +233,64 @@ async def delete_transaction(
             detail="Erro ao remover transação"
         )
 
+@router.post("/{transaction_id}/restore")
+async def restore_transaction(
+    transaction_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Restore a soft-deleted transaction."""
+    transaction_repo = TransactionRepository(db)
+    account_repo = AccountRepository(db)
+    
+    # Buscar transação deletada (incluindo soft-deleted)
+    db_transaction = db.query(Transaction).filter(
+        Transaction.id == transaction_id,
+        Transaction.user_id == current_user.id
+    ).first()
+    
+    if not db_transaction:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Transação não encontrada"
+        )
+    
+    if not db_transaction.deleted_at:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Transação não está deletada"
+        )
+    
+    try:
+        # Restaurar transação
+        db_transaction.deleted_at = None
+        db.add(db_transaction)
+        
+        # Recalcular saldo da conta
+        account = account_repo.get_by_id(db_transaction.account_id)
+        if account:
+            from services.account_service import AccountService
+            new_balance = AccountService.calculate_balance_from_transactions(account.id, db)
+            account.balance = float(new_balance)
+            db.add(account)
+        
+        db.commit()
+        db.refresh(db_transaction)
+        
+        return {"message": "Transação restaurada com sucesso", "transaction": transaction_repo.to_dict(db_transaction)}
+        
+    except Exception as e:
+        db.rollback()
+        logger.error(
+            f"Erro ao restaurar transação: {str(e)}",
+            extra={"user_id": current_user.id, "transaction_id": transaction_id},
+            exc_info=True
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao restaurar transação"
+        )
+
 @router.get("/summary/monthly")
 async def get_monthly_summary(
     year: int = Query(datetime.now().year),
