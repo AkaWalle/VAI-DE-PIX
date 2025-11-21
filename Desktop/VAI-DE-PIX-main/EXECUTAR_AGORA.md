@@ -30,7 +30,12 @@
 3. **Adicione/Verifique:**
 
 ```env
+# OPÇÃO 1: Referência automática (RECOMENDADO)
 DATABASE_URL=${{Postgres.DATABASE_URL}}
+
+# OPÇÃO 2: URL manual (se a referência não funcionar)
+# DATABASE_URL=postgresql://postgres:OkqhtgBPqgGnlMHVmBtGhapAMNhZtWDc@postgres.railway.internal:5432/railway
+
 SECRET_KEY=sua-chave-32-caracteres-minimo-aqui
 ENVIRONMENT=production
 LOG_LEVEL=INFO
@@ -38,7 +43,10 @@ FRONTEND_URL=https://seu-frontend.vercel.app
 FRONTEND_URL_PRODUCTION=https://seu-frontend.vercel.app
 ```
 
-4. **⚠️ IMPORTANTE:** Se `DATABASE_URL` tiver `?db_type=postgresql`, REMOVA!
+4. **⚠️ IMPORTANTE:** 
+   - **Recomendado:** Use `${{Postgres.DATABASE_URL}}` (referência automática)
+   - **Alternativa:** URL manual: `postgresql://postgres:OkqhtgBPqgGnlMHVmBtGhapAMNhZtWDc@postgres.railway.internal:5432/railway`
+   - Se `DATABASE_URL` tiver `?db_type=postgresql`, REMOVA!
    - Formato correto: `postgresql://user:pass@host:5432/dbname`
 
 5. **Execute migrations:**

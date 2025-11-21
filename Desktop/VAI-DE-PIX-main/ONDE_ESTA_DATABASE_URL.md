@@ -15,7 +15,16 @@
 
 **Formato esperado:**
 ```
+# URL Interna (Railway)
+postgresql://postgres:OkqhtgBPqgGnlMHVmBtGhapAMNhZtWDc@postgres.railway.internal:5432/railway
+
+# OU URL Pública (se disponível)
 postgresql://postgres:senha@containers-us-west-xxx.railway.app:5432/railway
+```
+
+**📝 Sua URL atual do PostgreSQL:**
+```
+postgresql://postgres:OkqhtgBPqgGnlMHVmBtGhapAMNhZtWDc@postgres.railway.internal:5432/railway
 ```
 
 ---
@@ -96,7 +105,8 @@ DATABASE_URL=${{Postgres.DATABASE_URL}}
 
 **Se copiar manualmente:**
 ```env
-DATABASE_URL=postgresql://postgres:senha@host:5432/railway
+# URL Interna do Railway
+DATABASE_URL=postgresql://postgres:OkqhtgBPqgGnlMHVmBtGhapAMNhZtWDc@postgres.railway.internal:5432/railway
 ```
 
 **⚠️ LEMBRE-SE:** 

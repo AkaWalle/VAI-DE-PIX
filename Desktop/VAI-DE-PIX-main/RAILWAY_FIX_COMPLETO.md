@@ -35,7 +35,11 @@
 
 ```env
 # Database (gerado automaticamente pelo Railway PostgreSQL)
+# OPÇÃO 1: Referência automática (RECOMENDADO)
 DATABASE_URL=${{Postgres.DATABASE_URL}}
+
+# OPÇÃO 2: URL manual (se a referência não funcionar)
+# DATABASE_URL=postgresql://postgres:OkqhtgBPqgGnlMHVmBtGhapAMNhZtWDc@postgres.railway.internal:5432/railway
 
 # Security (OBRIGATÓRIO - gere uma chave segura)
 SECRET_KEY=sua-chave-super-secreta-minimo-32-caracteres-aleatorios-aqui
@@ -56,9 +60,12 @@ ENABLE_RECURRING_JOBS=true
 ```
 
 **⚠️ IMPORTANTE:** 
+- **Recomendado:** Use `${{Postgres.DATABASE_URL}}` para referência automática
+- **Alternativa:** Se precisar usar URL manual, use a URL interna do Railway
 - `DATABASE_URL` deve ser limpa (sem `?db_type=postgresql`)
 - Se a URL tiver parâmetros extras, remova manualmente
 - Formato correto: `postgresql://user:pass@host:5432/dbname`
+- **URL interna:** `postgresql://postgres:OkqhtgBPqgGnlMHVmBtGhapAMNhZtWDc@postgres.railway.internal:5432/railway`
 
 ### CLIQUE 2: Executar Migrations
 
