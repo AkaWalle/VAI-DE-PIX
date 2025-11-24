@@ -1,0 +1,110 @@
+# Dependencies
+node_modules/
+backend/venv/
+backend/__pycache__/
+
+# Build outputs
+dist/
+build/
+.vite/
+dist-ssr/
+
+# Environment files
+.env
+.env.local
+.env.production
+.env.development
+backend/.env
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+backend/vai_de_pix.db
+
+# IDE files
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# OS files
+.DS_Store
+Thumbs.db
+*.tmp
+*.temp
+
+# Cache
+.cache/
+.parcel-cache/
+.next/
+.nuxt/
+
+# Testing
+coverage/
+.nyc_output/
+
+# Temporary files
+*.local
+.vercel
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+env/
+.venv
+
+.vercel
+
+# Vite cache (pode ser regenerado)
+node_modules/.vite/
+
+# OS specific
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE - manter apenas extensões recomendadas
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+.idea/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+.vercel
