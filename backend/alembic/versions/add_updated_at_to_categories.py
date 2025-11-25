@@ -1,7 +1,7 @@
 """add updated_at to categories
 
 Revision ID: add_updated_at_categories
-Revises: c42fc5c6c743
+Revises: 15d45461cc8f
 Create Date: 2025-11-25 18:00:00.000000
 
 """
@@ -13,7 +13,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision: str = 'add_updated_at_categories'
-down_revision: Union[str, Sequence[str], None] = 'c42fc5c6c743'
+down_revision: Union[str, Sequence[str], None] = '15d45461cc8f'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
