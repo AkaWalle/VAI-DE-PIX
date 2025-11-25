@@ -81,15 +81,6 @@ routers_path = backend_path / "routers"
 if not routers_path.exists():
     raise ImportError(f"Routers directory not found at {routers_path}. Backend path: {backend_path}")
 
-from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response
-from starlette.middleware.base import BaseHTTPMiddleware
-from mangum import Mangum
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
-from slowapi.errors import RateLimitExceeded
-
 # LOGS DETALHADOS NO INÍCIO DO MÓDULO
 print("=" * 80)
 print("→ [API/INDEX] Iniciando carregamento do módulo api/index.py")
@@ -107,6 +98,24 @@ print(f"→ [API/INDEX] DATABASE_URL presente: {bool(db_url and db_url != 'NÃO 
 print(f"→ [API/INDEX] SECRET_KEY presente: {bool(secret_key and secret_key != 'NÃO CONFIGURADO')}")
 print(f"→ [API/INDEX] ENVIRONMENT: {os.getenv('ENVIRONMENT', 'NÃO CONFIGURADO')}")
 print(f"→ [API/INDEX] VERCEL: {os.getenv('VERCEL', 'NÃO CONFIGURADO')}")
+
+# Importar dependências com tratamento de erro
+print("→ [API/INDEX] Importando dependências do FastAPI...")
+try:
+    from fastapi import FastAPI, Request
+    from fastapi.middleware.cors import CORSMiddleware
+    from fastapi.responses import Response
+    from starlette.middleware.base import BaseHTTPMiddleware
+    from mangum import Mangum
+    from slowapi import Limiter, _rate_limit_exceeded_handler
+    from slowapi.util import get_remote_address
+    from slowapi.errors import RateLimitExceeded
+    print("→ [API/INDEX] Dependências importadas com sucesso!")
+except ImportError as e:
+    print(f"→ [API/INDEX] ERRO ao importar dependências: {type(e).__name__}: {str(e)}")
+    import traceback
+    traceback.print_exc()
+    raise
 
 # Import routers from backend
 # The backend directory is now in sys.path, so we can import directly
@@ -408,7 +417,15 @@ async def debug_test_query():
 # IMPORTANTE: O Vercel faz rewrite de /api/(.*) para /api/index
 # O Mangum recebe o path completo incluindo /api
 # O middleware StripAPIPrefixMiddleware remove o /api antes de processar
-handler = Mangum(app, lifespan="off", api_gateway_base_path="/api")
+print("→ [API/INDEX] Criando handler Mangum...")
+try:
+    handler = Mangum(app, lifespan="off")
+    print("→ [API/INDEX] Handler criado com sucesso!")
+except Exception as e:
+    print(f"→ [API/INDEX] ERRO ao criar handler: {type(e).__name__}: {str(e)}")
+    import traceback
+    traceback.print_exc()
+    raise
 
 # Export for Vercel - must be named 'handler' for Vercel to detect it
 # This is the entry point for Vercel serverless functions
