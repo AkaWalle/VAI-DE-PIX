@@ -7,42 +7,79 @@ import sys
 from pathlib import Path
 
 # Determine backend path - Vercel includes files via includeFiles
-# The backend directory should be available at /var/task/backend
 current_file = Path(__file__).resolve()
+
+# Debug: Log current state
+debug_info = {
+    "current_file": str(current_file),
+    "cwd": str(Path.cwd()),
+    "sys_path": sys.path.copy(),
+    "files_in_task": []
+}
+
+# Try to list files in /var/task to see what's available
+try:
+    task_dir = Path("/var/task")
+    if task_dir.exists():
+        debug_info["files_in_task"] = [str(p) for p in task_dir.iterdir() if p.is_dir()][:10]
+except Exception as e:
+    debug_info["task_dir_error"] = str(e)
 
 # Try multiple paths for backend
 backend_paths = [
-    current_file.parent.parent / "backend",  # Relative to api/index.py
+    current_file.parent.parent / "backend",  # Relative to api/index.py: /var/task/backend
     Path("/var/task/backend"),  # Vercel serverless function path
     Path.cwd() / "backend",  # Current working directory
+    Path("/var/task") / "backend",  # Alternative Vercel path
 ]
 
 backend_path = None
 for path in backend_paths:
+    path_resolved = path.resolve() if path.exists() else path
+    debug_info[f"checking_{str(path)}"] = {
+        "exists": path.exists(),
+        "resolved": str(path_resolved),
+        "has_routers": (path / "routers").exists() if path.exists() else False
+    }
     if path.exists() and (path / "routers").exists():
         backend_path = path
         break
 
 if backend_path is None:
-    # If backend not found, try to find it
-    possible_backend = current_file.parent.parent / "backend"
-    if possible_backend.exists():
-        backend_path = possible_backend
+    # Last attempt: check if backend files are in the same directory
+    current_dir = current_file.parent
+    if (current_dir / "routers").exists():
+        backend_path = current_dir
     else:
-        raise ImportError(
-            f"Backend directory not found. Tried: {backend_paths}. "
-            f"Current file: {current_file}. CWD: {Path.cwd()}"
-        )
+        # Raise error with debug info
+        error_msg = f"""
+Backend directory not found!
 
-# Add backend to Python path
-backend_str = str(backend_path.resolve())
+Debug Info:
+{debug_info}
+
+Tried paths:
+{chr(10).join(f'  - {p} (exists: {p.exists()})' for p in backend_paths)}
+
+Current file: {current_file}
+CWD: {Path.cwd()}
+"""
+        raise ImportError(error_msg)
+
+# Add backend to Python path (must be first)
+backend_str = str(backend_path.resolve() if backend_path.exists() else backend_path)
 if backend_str not in sys.path:
     sys.path.insert(0, backend_str)
 
 # Also add parent directory for absolute imports
-parent_dir = str(backend_path.parent.resolve())
+parent_dir = str(backend_path.parent.resolve() if backend_path.parent.exists() else backend_path.parent)
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
+
+# Verify routers can be found
+routers_path = backend_path / "routers"
+if not routers_path.exists():
+    raise ImportError(f"Routers directory not found at {routers_path}. Backend path: {backend_path}")
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -52,7 +89,17 @@ from mangum import Mangum
 
 # Import routers from backend
 # The backend directory is now in sys.path, so we can import directly
-from routers import auth, transactions, goals, envelopes, categories, accounts, reports, automations
+try:
+    from routers import auth, transactions, goals, envelopes, categories, accounts, reports, automations
+except ImportError as e:
+    # More detailed error message
+    raise ImportError(
+        f"Failed to import routers. "
+        f"Backend path: {backend_path}, "
+        f"Routers path exists: {routers_path.exists()}, "
+        f"sys.path: {sys.path[:5]}, "
+        f"Error: {str(e)}"
+    )
 
 # Create FastAPI app
 app = FastAPI(
