@@ -118,18 +118,18 @@ class CORSOptionsMiddleware(BaseHTTPMiddleware):
         
         # Libera TODAS as origens do Vercel (preview + produção + localhost)
         # Segue a mesma lógica do middleware Next.js que funciona 100%
-        if (
-            origin and (
-                "vercel.app" in origin or
-                "localhost" in origin or
-                origin == "https://vai-de-pix.vercel.app"
-            )
-        ):
+        # SEMPRE permitir qualquer origem do Vercel ou localhost
+        if not origin:
+            # Se não houver origin, permitir todas
+            allowed_origin = "*"
+            allow_credentials = "false"
+        elif "vercel.app" in origin or "localhost" in origin:
+            # Qualquer subdomínio .vercel.app ou localhost - usar origem específica
             allowed_origin = origin
             allow_credentials = "true"
         else:
-            # Fallback para produção específica
-            allowed_origin = "https://vai-de-pix.vercel.app"
+            # Qualquer outra origem - permitir também (mais permissivo possível)
+            allowed_origin = origin if origin else "*"
             allow_credentials = "true"
         
         # Handle OPTIONS preflight requests
@@ -172,43 +172,30 @@ class StripAPIPrefixMiddleware(BaseHTTPMiddleware):
         
         return await call_next(request)
 
-# Add middlewares in correct order (CORS first, then strip prefix)
-app.add_middleware(CORSOptionsMiddleware)
+# IMPORTANTE: Ordem dos middlewares no FastAPI
+# No FastAPI, middlewares são executados na ORDEM INVERSA
+# Último adicionado = primeiro executado
+# 
+# Ordem de execução (do primeiro ao último):
+# 1. CORSMiddleware do FastAPI (adicionado por último = primeiro executado)
+# 2. CORSOptionsMiddleware (adicionado no meio)  
+# 3. StripAPIPrefixMiddleware (adicionado primeiro = último executado)
+
+# Primeiro: Strip prefix (executado por último - remove /api antes de processar)
 app.add_middleware(StripAPIPrefixMiddleware)
 
-# CORS configuration
-# Em produção, permitir qualquer subdomínio .vercel.app
-frontend_url = os.getenv("FRONTEND_URL")
-frontend_url_prod = os.getenv("FRONTEND_URL_PRODUCTION")
-is_production = os.getenv("ENVIRONMENT", "").lower() == "production" or os.getenv("VERCEL") == "1"
+# Segundo: CORS customizado (executado no meio - adiciona headers dinamicamente)
+app.add_middleware(CORSOptionsMiddleware)
 
-if is_production:
-    # Em produção, permitir todas as origens do Vercel dinamicamente
-    # O middleware CORSOptionsMiddleware vai tratar isso corretamente
-    # Aqui apenas configuramos uma lista base para o CORSMiddleware do FastAPI
-    allowed_origins = []
-    
-    # Adicionar URLs específicas se configuradas
-    if frontend_url:
-        allowed_origins.append(frontend_url)
-    if frontend_url_prod:
-        allowed_origins.append(frontend_url_prod)
-    
-    # Se não houver URLs específicas, permitir todas (o middleware customizado vai filtrar)
-    if not allowed_origins:
-        allowed_origins = ["*"]
-else:
-    # Em desenvolvimento, permitir localhost
-    allowed_origins = ["*"]
-
-# CORS Middleware adicional (redundante mas garante compatibilidade)
+# Terceiro: CORS do FastAPI (executado primeiro - primeira camada de CORS)
+# Permite TODAS as origens - o middleware customizado ajusta dinamicamente depois
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allow_headers=["Content-Type", "Authorization", "X-Requested-With", "*"],
-    expose_headers=["*"],
+    allow_origins=["*"],  # Permitir TODAS as origens (sem restrição)
+    allow_credentials=True,  # Permitir credentials
+    allow_methods=["*"],  # Permitir TODOS os métodos
+    allow_headers=["*"],  # Permitir TODOS os headers
+    expose_headers=["*"],  # Expor TODOS os headers
     max_age=3600,  # Cache preflight por 1 hora
 )
 
