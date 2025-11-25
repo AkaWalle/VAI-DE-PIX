@@ -1,0 +1,7 @@
+# Configuração do Raspberry Pi 5
+# Este arquivo contém as configurações de conexão
+
+RPI_IP=192.168.10.130
+RPI_USER=pi
+RPI_DIR=~/vai-de-pix
+

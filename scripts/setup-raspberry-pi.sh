@@ -151,20 +151,46 @@ if [[ ! $build_frontend =~ ^[Nn]$ ]]; then
     echo -e "${GREEN}✅ Build concluído!${NC}"
 fi
 
-# Criar script de inicialização
+# Criar script de inicialização otimizado para RPi 5
 cat > start-vai-de-pix.sh << 'EOF'
 #!/bin/bash
 
-# Script para iniciar VAI DE PIX
+# Script para iniciar VAI DE PIX no Raspberry Pi 5
 
 cd "$(dirname "$0")"
 
-echo "🚀 Iniciando VAI DE PIX..."
+echo "🚀 Iniciando VAI DE PIX no Raspberry Pi 5..."
+echo "================================================"
 
-# Iniciar backend
+# Verificar se estamos no diretório correto
+if [ ! -d "backend" ]; then
+    echo "❌ Erro: Execute este script a partir da raiz do projeto"
+    exit 1
+fi
+
+# Iniciar backend com Gunicorn (otimizado para RPi 5)
 cd backend
 source venv/bin/activate
-python production_server.py &
+
+# Usar configuração otimizada para RPi 5 se existir
+if [ -f "gunicorn_config.rpi5.py" ]; then
+    echo "📦 Usando configuração otimizada para Raspberry Pi 5"
+    export GUNICORN_WORKERS=2
+    python -m gunicorn production_server:app \
+        -c gunicorn_config.rpi5.py \
+        --bind 0.0.0.0:8000 \
+        --workers 2 \
+        --worker-class uvicorn.workers.UvicornWorker &
+else
+    echo "📦 Usando configuração padrão"
+    export GUNICORN_WORKERS=2
+    python -m gunicorn production_server:app \
+        -c gunicorn_config.py \
+        --bind 0.0.0.0:8000 \
+        --workers 2 \
+        --worker-class uvicorn.workers.UvicornWorker &
+fi
+
 BACKEND_PID=$!
 cd ..
 
@@ -172,20 +198,29 @@ echo "✅ Backend iniciado (PID: $BACKEND_PID)"
 echo "📝 Para parar: kill $BACKEND_PID"
 echo "🌐 Backend: http://localhost:8000"
 echo "📚 Docs: http://localhost:8000/docs"
+echo "🏥 Health: http://localhost:8000/api/health"
 
-# Iniciar frontend (servidor simples)
+# O backend já serve o frontend buildado em produção
+# Não precisamos de servidor separado para o frontend
 if [ -d "dist" ]; then
-    cd dist
-    python3 -m http.server 8080 &
-    FRONTEND_PID=$!
-    cd ..
-    echo "✅ Frontend iniciado (PID: $FRONTEND_PID)"
-    echo "🌐 Frontend: http://localhost:8080"
+    echo "✅ Frontend será servido pelo backend em: http://localhost:8000"
+else
+    echo "⚠️  Frontend não buildado. Execute: npm run build"
 fi
 
 echo ""
-echo "✅ VAI DE PIX está rodando!"
-echo "Pressione Ctrl+C para parar"
+echo "================================================"
+echo "✅ VAI DE PIX está rodando no Raspberry Pi 5!"
+echo "================================================"
+echo ""
+echo "Para parar o servidor:"
+echo "  kill $BACKEND_PID"
+echo ""
+echo "Para ver logs:"
+echo "  tail -f backend/logs/*.log"
+echo ""
+
+# Aguardar processos
 wait
 EOF
 
