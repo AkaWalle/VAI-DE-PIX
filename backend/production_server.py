@@ -118,16 +118,27 @@ async def protected_route(
 
 # Servir o frontend para todas as outras rotas (SPA routing)
 # IMPORTANTE: Esta rota deve ser a ÚLTIMA e NÃO deve capturar rotas /api/*
-# O FastAPI processa rotas mais específicas primeiro, então rotas /api/* já foram processadas
-@app.get("/{full_path:path}")
+# O FastAPI processa rotas na ordem de registro, mas rotas mais específicas têm prioridade
+# Por segurança, verificamos explicitamente que não é uma rota de API
+@app.api_route("/{full_path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"])
 async def serve_spa(full_path: str, request: Request):
     """Serve o frontend React para todas as rotas não-API"""
-    # Se a rota começa com /api, não servir o frontend
-    # Isso não deveria acontecer se as rotas da API estiverem registradas corretamente
-    if full_path.startswith("api/") or request.url.path.startswith("/api/"):
+    # NUNCA servir frontend para rotas de API - verificar em múltiplos lugares
+    path = request.url.path
+    
+    # Se for rota de API, retornar 404 (as rotas da API devem ter sido processadas antes)
+    if path.startswith("/api/"):
         raise HTTPException(status_code=404, detail="API endpoint not found")
     
-    # Servir o index.html para todas as outras rotas (SPA routing)
+    # Também verificar o full_path (sem barra inicial)
+    if full_path.startswith("api/"):
+        raise HTTPException(status_code=404, detail="API endpoint not found")
+    
+    # Para requisições que não são GET, não servir o frontend
+    if request.method != "GET":
+        raise HTTPException(status_code=404, detail="Not found")
+    
+    # Servir o index.html apenas para GET requests não-API (SPA routing)
     return FileResponse(str(frontend_dist / "index.html"))
 
 if __name__ == "__main__":
