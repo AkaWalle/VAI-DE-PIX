@@ -6,13 +6,43 @@ import os
 import sys
 from pathlib import Path
 
-# Add backend directory to path
-backend_path = Path(__file__).parent.parent / "backend"
-sys.path.insert(0, str(backend_path))
+# Determine backend path - Vercel includes files via includeFiles
+# The backend directory should be available at /var/task/backend
+current_file = Path(__file__).resolve()
 
-# Ensure backend path is in Python path
-if str(backend_path) not in sys.path:
-    sys.path.insert(0, str(backend_path))
+# Try multiple paths for backend
+backend_paths = [
+    current_file.parent.parent / "backend",  # Relative to api/index.py
+    Path("/var/task/backend"),  # Vercel serverless function path
+    Path.cwd() / "backend",  # Current working directory
+]
+
+backend_path = None
+for path in backend_paths:
+    if path.exists() and (path / "routers").exists():
+        backend_path = path
+        break
+
+if backend_path is None:
+    # If backend not found, try to find it
+    possible_backend = current_file.parent.parent / "backend"
+    if possible_backend.exists():
+        backend_path = possible_backend
+    else:
+        raise ImportError(
+            f"Backend directory not found. Tried: {backend_paths}. "
+            f"Current file: {current_file}. CWD: {Path.cwd()}"
+        )
+
+# Add backend to Python path
+backend_str = str(backend_path.resolve())
+if backend_str not in sys.path:
+    sys.path.insert(0, backend_str)
+
+# Also add parent directory for absolute imports
+parent_dir = str(backend_path.parent.resolve())
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -21,6 +51,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from mangum import Mangum
 
 # Import routers from backend
+# The backend directory is now in sys.path, so we can import directly
 from routers import auth, transactions, goals, envelopes, categories, accounts, reports, automations
 
 # Create FastAPI app
