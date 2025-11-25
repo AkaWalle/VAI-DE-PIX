@@ -116,22 +116,21 @@ class CORSOptionsMiddleware(BaseHTTPMiddleware):
         # Get origin from request
         origin = request.headers.get("origin", "")
         
-        # Check if origin is from Vercel (any .vercel.app subdomain)
-        is_vercel_origin = (
-            origin.endswith(".vercel.app") or
-            origin == "https://vai-de-pix.vercel.app" or
-            "vercel.app" in origin
-        )
-        
-        # Determine allowed origin
-        # Se for Vercel, usar a origem específica (necessário para credentials)
-        # Se não for, usar * mas sem credentials
-        if is_vercel_origin and origin:
+        # Libera TODAS as origens do Vercel (preview + produção + localhost)
+        # Segue a mesma lógica do middleware Next.js que funciona 100%
+        if (
+            origin and (
+                "vercel.app" in origin or
+                "localhost" in origin or
+                origin == "https://vai-de-pix.vercel.app"
+            )
+        ):
             allowed_origin = origin
             allow_credentials = "true"
         else:
-            allowed_origin = "*"
-            allow_credentials = "false"
+            # Fallback para produção específica
+            allowed_origin = "https://vai-de-pix.vercel.app"
+            allow_credentials = "true"
         
         # Handle OPTIONS preflight requests
         if request.method == "OPTIONS":
@@ -139,7 +138,7 @@ class CORSOptionsMiddleware(BaseHTTPMiddleware):
             response = Response()
             response.headers["Access-Control-Allow-Origin"] = allowed_origin
             response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
-            response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
+            response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With, X-CSRF-Token"
             response.headers["Access-Control-Allow-Credentials"] = allow_credentials
             response.headers["Access-Control-Max-Age"] = "3600"
             return response
@@ -149,7 +148,7 @@ class CORSOptionsMiddleware(BaseHTTPMiddleware):
         # Add CORS headers to all responses
         response.headers["Access-Control-Allow-Origin"] = allowed_origin
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
-        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With, X-CSRF-Token"
         response.headers["Access-Control-Allow-Credentials"] = allow_credentials
         response.headers["Access-Control-Expose-Headers"] = "*"
         
