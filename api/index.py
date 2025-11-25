@@ -113,24 +113,44 @@ app = FastAPI(
 # Middleware to handle OPTIONS requests and CORS headers
 class CORSOptionsMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
+        # Get origin from request
+        origin = request.headers.get("origin", "")
+        
+        # Check if origin is from Vercel (any .vercel.app subdomain)
+        is_vercel_origin = (
+            origin.endswith(".vercel.app") or
+            origin == "https://vai-de-pix.vercel.app" or
+            "vercel.app" in origin
+        )
+        
+        # Determine allowed origin
+        # Se for Vercel, usar a origem específica (necessário para credentials)
+        # Se não for, usar * mas sem credentials
+        if is_vercel_origin and origin:
+            allowed_origin = origin
+            allow_credentials = "true"
+        else:
+            allowed_origin = "*"
+            allow_credentials = "false"
+        
         # Handle OPTIONS preflight requests
         if request.method == "OPTIONS":
             from fastapi.responses import Response
             response = Response()
-            response.headers["Access-Control-Allow-Origin"] = "*"
+            response.headers["Access-Control-Allow-Origin"] = allowed_origin
             response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
             response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
-            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Credentials"] = allow_credentials
             response.headers["Access-Control-Max-Age"] = "3600"
             return response
         
         response = await call_next(request)
         
         # Add CORS headers to all responses
-        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Origin"] = allowed_origin
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
         response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
-        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Allow-Credentials"] = allow_credentials
         response.headers["Access-Control-Expose-Headers"] = "*"
         
         return response
@@ -164,18 +184,20 @@ frontend_url_prod = os.getenv("FRONTEND_URL_PRODUCTION")
 is_production = os.getenv("ENVIRONMENT", "").lower() == "production" or os.getenv("VERCEL") == "1"
 
 if is_production:
-    # Em produção, permitir todas as origens do Vercel
-    # Isso resolve o problema de diferentes subdomínios (.vercel.app)
-    allowed_origins = ["*"]  # Permitir todas as origens em produção
+    # Em produção, permitir todas as origens do Vercel dinamicamente
+    # O middleware CORSOptionsMiddleware vai tratar isso corretamente
+    # Aqui apenas configuramos uma lista base para o CORSMiddleware do FastAPI
+    allowed_origins = []
     
-    # Se FRONTEND_URL estiver configurada, adicionar também
+    # Adicionar URLs específicas se configuradas
     if frontend_url:
         allowed_origins.append(frontend_url)
     if frontend_url_prod:
         allowed_origins.append(frontend_url_prod)
     
-    # Remover duplicatas e None
-    allowed_origins = list(set([o for o in allowed_origins if o]))
+    # Se não houver URLs específicas, permitir todas (o middleware customizado vai filtrar)
+    if not allowed_origins:
+        allowed_origins = ["*"]
 else:
     # Em desenvolvimento, permitir localhost
     allowed_origins = ["*"]
