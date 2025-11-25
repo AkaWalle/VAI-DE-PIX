@@ -110,6 +110,31 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
+# Middleware to handle OPTIONS requests and CORS headers
+class CORSOptionsMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        # Handle OPTIONS preflight requests
+        if request.method == "OPTIONS":
+            from fastapi.responses import Response
+            response = Response()
+            response.headers["Access-Control-Allow-Origin"] = "*"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+            response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Max-Age"] = "3600"
+            return response
+        
+        response = await call_next(request)
+        
+        # Add CORS headers to all responses
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Expose-Headers"] = "*"
+        
+        return response
+
 # Middleware to strip /api prefix from path
 class StripAPIPrefixMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
@@ -128,7 +153,8 @@ class StripAPIPrefixMiddleware(BaseHTTPMiddleware):
         
         return await call_next(request)
 
-# Add middleware to strip /api prefix
+# Add middlewares in correct order (CORS first, then strip prefix)
+app.add_middleware(CORSOptionsMiddleware)
 app.add_middleware(StripAPIPrefixMiddleware)
 
 # CORS configuration
@@ -154,13 +180,15 @@ else:
     # Em desenvolvimento, permitir localhost
     allowed_origins = ["*"]
 
+# CORS Middleware adicional (redundante mas garante compatibilidade)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=["Content-Type", "Authorization", "X-Requested-With", "*"],
     expose_headers=["*"],
+    max_age=3600,  # Cache preflight por 1 hora
 )
 
 # Include routers
