@@ -48,7 +48,7 @@ export async function testApiUrl(
  * Detecta automaticamente a melhor URL da API
  */
 export async function detectApiUrl(): Promise<ApiConfig> {
-  // 1. Verificar variável de ambiente primeiro
+  // 1. Verificar variável de ambiente primeiro (OBRIGATÓRIA em produção)
   const envUrl = import.meta.env.VITE_API_URL;
   if (envUrl) {
     const isAccessible = await testApiUrl(envUrl, 3000);
@@ -62,7 +62,16 @@ export async function detectApiUrl(): Promise<ApiConfig> {
     }
   }
 
-  // 2. Tentar localhost primeiro (mais comum)
+  // 2. Em produção, usar URL relativa (Vercel serverless)
+  if (import.meta.env.PROD) {
+    return {
+      baseURL: "/api",
+      isLocal: false,
+      isNetwork: true,
+    };
+  }
+
+  // 3. Apenas em desenvolvimento: tentar localhost
   const localhostUrl = "http://localhost:8000/api";
   const localhostAccessible = await testApiUrl(localhostUrl, 3000);
   if (localhostAccessible) {
@@ -73,18 +82,15 @@ export async function detectApiUrl(): Promise<ApiConfig> {
     };
   }
 
-  // 3. Tentar 127.0.0.1
-  const localhostIPUrl = "http://127.0.0.1:8000/api";
-  const localhostIPAccessible = await testApiUrl(localhostIPUrl, 3000);
-  if (localhostIPAccessible) {
+  // 4. Se não conseguir detectar, retornar padrão baseado no ambiente
+  if (import.meta.env.PROD) {
     return {
-      baseURL: localhostIPUrl,
-      isLocal: true,
-      isNetwork: false,
+      baseURL: "/api",
+      isLocal: false,
+      isNetwork: true,
     };
   }
-
-  // 4. Se não conseguir detectar, retornar padrão
+  
   return {
     baseURL: envUrl || localhostUrl,
     isLocal: true,
@@ -94,7 +100,7 @@ export async function detectApiUrl(): Promise<ApiConfig> {
 
 /**
  * Obtém a URL da API configurada
- * Prioridade: localStorage > env > padrão
+ * Prioridade: localStorage > env > padrão baseado em ambiente
  */
 export function getApiUrl(): string {
   // Verificar localStorage (pode ter sido configurado manualmente)
@@ -103,13 +109,18 @@ export function getApiUrl(): string {
     return storedUrl;
   }
 
-  // Verificar variável de ambiente
+  // Verificar variável de ambiente (OBRIGATÓRIA em produção)
   const envUrl = import.meta.env.VITE_API_URL;
   if (envUrl) {
     return envUrl;
   }
 
-  // Padrão
+  // Em produção, usar URL relativa (Vercel serverless)
+  if (import.meta.env.PROD) {
+    return "/api";
+  }
+
+  // Padrão para desenvolvimento
   return "http://localhost:8000/api";
 }
 

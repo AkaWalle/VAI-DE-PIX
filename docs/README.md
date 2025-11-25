@@ -1,11 +1,20 @@
-# 📚 Documentação - VAI DE PIX
+# 📚 Documentação Interna - VAI DE PIX
 
-Esta pasta contém toda a documentação do projeto organizada por categoria.
+Esta pasta contém toda a documentação, scripts e arquivos auxiliares do projeto.
+
+> **Nota:** Esta é uma pasta oculta (começa com `.`). Para vê-la no VSCode, ative "Show Hidden Files" nas configurações.
 
 ## 📁 Estrutura
 
+### 🗄️ [database/](./database/)
+Documentação sobre banco de dados:
+- Configuração do DATABASE_URL
+- Migrations
+- Troubleshooting de conexão
+- Guias do Railway
+
 ### 🚀 [deploy/](./deploy/)
-Guia completo de deploy e configuração:
+Guias de deploy e configuração:
 - Deploy no Vercel
 - Deploy no Railway
 - Configuração de variáveis de ambiente
@@ -18,34 +27,22 @@ Documentação de testes e qualidade:
 - Resumo de implementação QA
 - Guias de commit
 
-### 🗄️ [database/](./database/)
-Documentação do banco de dados:
-- Configuração do DATABASE_URL
-- Migrations
-- Troubleshooting de conexão
-- Guias do Railway
+### 🔧 [scripts/](./scripts/)
+Scripts auxiliares:
+- Scripts de configuração (.sh, .ps1, .bat)
+- Scripts de setup
+- Scripts de teste
 
----
+### 📦 [old/](./old/)
+Arquivos obsoletos ou antigos:
+- Configurações não mais utilizadas
+- Documentação desatualizada
 
-## 📖 Documentação Principal
+## 📄 Arquivos na Raiz de .docs
 
-- **[README.md](../README.md)** - Documentação principal do projeto
-- **[CHANGELOG.md](../CHANGELOG.md)** - Histórico de mudanças
-
----
-
-## 🔍 Encontrar o que precisa
-
-### Quero fazer deploy
-→ Veja [deploy/](./deploy/)
-
-### Quero entender os testes
-→ Veja [qa/](./qa/)
-
-### Tenho problema com banco de dados
-→ Veja [database/](./database/)
+- `CHANGELOG.md` - Histórico de mudanças do projeto
+- `README.md` - Este arquivo
 
 ---
 
 **Última atualização:** 2025-01-27
-

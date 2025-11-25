@@ -33,7 +33,10 @@ export function ApiModeToggle() {
       }
 
       try {
-        const response = await fetch("http://localhost:8000/api/health");
+        // Usar VITE_API_URL ou URL relativa em produção
+        const apiUrl = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? "/api" : "http://localhost:8000/api");
+        const healthUrl = apiUrl.endsWith("/api") ? `${apiUrl}/health` : `${apiUrl}/api/health`;
+        const response = await fetch(healthUrl);
         if (response.ok) {
           setApiStatus("online");
         } else {

@@ -7,9 +7,25 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [1.1.1] - 2025-01-XX
+
+### Adicionado
+
+- Reorganização completa da estrutura de pastas do projeto
+- Documentação padronizada em `docs/`
+- Scripts organizados em `scripts/`
+- Arquivo CONTRIBUTING.md
+
+### Modificado
+
+- Estrutura de pastas seguindo best practices 2025
+- Todos os arquivos Markdown padronizados
+- README.md atualizado com nova estrutura
+
 ## [1.1.0] - 2025-01-XX
 
 ### Adicionado
+
 - Error Boundary completo do React para captura de erros
 - Lazy loading de rotas para melhor performance
 - Scripts de validação e setup de ambiente (validate_env.py, setup_env.py)
@@ -22,12 +38,14 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 - Componente PageLoader para lazy loaded routes
 
 ### Corrigido
+
 - Typo no nome do arquivo `theme-providerr.tsx` → `theme-provider.tsx`
 - CORS muito permissivo em desenvolvimento (agora baseado em ambiente)
 - Validação de inputs inconsistente (agora usando Pydantic validators)
 - Arquivo de exemplo de ambiente padronizado (env.example → .env.example)
 
 ### Modificado
+
 - Otimização do Vite config (removido force: true desnecessário)
 - CORS configurado baseado em ambiente (dev/prod)
 - Validação de email usando EmailStr do Pydantic
@@ -35,12 +53,14 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 - Documentação do README expandida com instruções completas
 
 ### Segurança
+
 - CORS restrito em produção
 - Validação rigorosa de inputs
 - Sanitização de caracteres perigosos
 - Estrutura de rate limiting preparada
 
 ### Performance
+
 - Lazy loading de todas as rotas
 - Code splitting otimizado
 - Bundle inicial reduzido
@@ -48,48 +68,17 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 ## [1.0.1] - 2025-01-XX
 
 ### Adicionado
-- Documentação de melhorias e pontos de atenção
-- Tratamento básico de erros no frontend
-- Configuração de reotimização forçada do Vite
 
-### Corrigido
-- Importação do módulo `automations` inexistente no backend
-- Cache desatualizado do Vite causando erros 504
-- Tela branca causada por falta de tratamento de erros
-
-### Alterado
-- Porta do frontend alterada para 5000 (configurável)
-- Configuração do Vite para forçar reotimização de dependências
-
-## [1.0.0] - 2025-11-17
-
-### Adicionado
-- Sistema completo de controle financeiro pessoal
-- Autenticação de usuários
-- Gestão de transações (receitas e despesas)
-- Sistema de metas financeiras
+- Sistema completo de autenticação
+- Gestão de transações financeiras
+- Sistema de metas e objetivos
 - Sistema de caixinhas (envelopes)
-- Relatórios e análises financeiras
 - Dashboard interativo com gráficos
-- Configurações de perfil e categorias
-- Sistema de automações (estrutura básica)
-- API REST completa com FastAPI
-- Frontend React com TypeScript
-- Interface responsiva com Tailwind CSS
-
-### Segurança
-- Autenticação JWT
-- Proteção de rotas
-- Validação de dados
+- Relatórios e análises detalhadas
+- Sistema de automações
+- Configurações personalizáveis
 
 ---
 
-## Tipos de Mudanças
-
-- **Adicionado** para novas funcionalidades
-- **Modificado** para mudanças em funcionalidades existentes
-- **Descontinuado** para funcionalidades que serão removidas
-- **Removido** para funcionalidades removidas
-- **Corrigido** para correção de bugs
-- **Segurança** para vulnerabilidades
-
+**Nota:** Datas específicas serão atualizadas conforme as releases são
+publicadas.
