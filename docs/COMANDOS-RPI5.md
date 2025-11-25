@@ -21,8 +21,11 @@ git checkout -b raspberry-pi-5 origin/raspberry-pi-5
 chmod +x scripts/setup-raspberry-pi.sh
 
 # Executar o setup
+# O script detecta automaticamente a versão do Python disponível (3.9+)
 ./scripts/setup-raspberry-pi.sh
 ```
+
+**Nota**: Se o Python 3.11 não estiver disponível, o script usará a versão disponível (3.9+). Veja `docs/INSTALAR-PYTHON3.11-RPI.md` se precisar instalar Python 3.11 especificamente.
 
 ## 🚀 Iniciar Aplicação
 
