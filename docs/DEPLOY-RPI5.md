@@ -40,9 +40,13 @@ ssh pi@192.168.10.130
 
 ```bash
 cd ~
-git clone https://github.com/AkaWalle/VAI-DE-PIX.git vai-de-pix
+# Método 1: Clonar direto na branch raspberry-pi-5 (recomendado)
+git clone -b raspberry-pi-5 https://github.com/AkaWalle/VAI-DE-PIX.git vai-de-pix
 cd vai-de-pix
-git checkout raspberry-pi-5
+
+# Método 2: Se já clonou na branch main, fazer checkout:
+# git fetch origin
+# git checkout -b raspberry-pi-5 origin/raspberry-pi-5
 ```
 
 #### 3. Executar setup
