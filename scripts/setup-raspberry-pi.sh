@@ -191,10 +191,11 @@ if [[ ! $build_frontend =~ ^[Nn]$ ]]; then
 fi
 
 # Criar script de inicialização otimizado para RPi 5
-cat > start-vai-de-pix.sh << 'EOF'
+cat > start-vai-de-pix.sh << 'SCRIPT_EOF'
 #!/bin/bash
 
 # Script para iniciar VAI DE PIX no Raspberry Pi 5
+# Permite acesso pela rede local
 
 cd "$(dirname "$0")"
 
@@ -207,6 +208,37 @@ if [ ! -d "backend" ]; then
     exit 1
 fi
 
+# Obter IP da rede local
+get_local_ip() {
+    # Tentar obter IP via hostname -I (Raspberry Pi)
+    local ip=$(hostname -I | awk '{print $1}' 2>/dev/null)
+    
+    # Se não funcionar, tentar via ip route
+    if [ -z "$ip" ]; then
+        ip=$(ip route get 8.8.8.8 2>/dev/null | grep -oP 'src \K\S+' | head -1)
+    fi
+    
+    # Fallback: usar ip addr
+    if [ -z "$ip" ]; then
+        ip=$(ip addr show | grep -oP 'inet \K[\d.]+' | grep -v '127.0.0.1' | head -1)
+    fi
+    
+    echo "$ip"
+}
+
+LOCAL_IP=$(get_local_ip)
+PORT=8000
+
+# Verificar se o frontend foi buildado
+if [ ! -d "dist" ]; then
+    echo "⚠️  Frontend não buildado. Fazendo build..."
+    npm run build
+    if [ $? -ne 0 ]; then
+        echo "❌ Erro ao fazer build do frontend"
+        exit 1
+    fi
+fi
+
 # Iniciar backend com Gunicorn (otimizado para RPi 5)
 cd backend
 source venv/bin/activate
@@ -217,7 +249,7 @@ if [ -f "gunicorn_config.rpi5.py" ]; then
     export GUNICORN_WORKERS=2
     python -m gunicorn production_server:app \
         -c gunicorn_config.rpi5.py \
-        --bind 0.0.0.0:8000 \
+        --bind 0.0.0.0:$PORT \
         --workers 2 \
         --worker-class uvicorn.workers.UvicornWorker &
 else
@@ -225,7 +257,7 @@ else
     export GUNICORN_WORKERS=2
     python -m gunicorn production_server:app \
         -c gunicorn_config.py \
-        --bind 0.0.0.0:8000 \
+        --bind 0.0.0.0:$PORT \
         --workers 2 \
         --worker-class uvicorn.workers.UvicornWorker &
 fi
@@ -233,35 +265,43 @@ fi
 BACKEND_PID=$!
 cd ..
 
-echo "✅ Backend iniciado (PID: $BACKEND_PID)"
-echo "📝 Para parar: kill $BACKEND_PID"
-echo "🌐 Backend: http://localhost:8000"
-echo "📚 Docs: http://localhost:8000/docs"
-echo "🏥 Health: http://localhost:8000/api/health"
+# Aguardar servidor iniciar
+sleep 3
 
-# O backend já serve o frontend buildado em produção
-# Não precisamos de servidor separado para o frontend
-if [ -d "dist" ]; then
-    echo "✅ Frontend será servido pelo backend em: http://localhost:8000"
-else
-    echo "⚠️  Frontend não buildado. Execute: npm run build"
+# Verificar se está rodando
+if ! kill -0 $BACKEND_PID 2>/dev/null; then
+    echo "❌ Erro: Backend não iniciou corretamente"
+    exit 1
 fi
 
 echo ""
 echo "================================================"
-echo "✅ VAI DE PIX está rodando no Raspberry Pi 5!"
+echo "✅ VAI DE PIX está rodando!"
 echo "================================================"
 echo ""
-echo "Para parar o servidor:"
-echo "  kill $BACKEND_PID"
+echo "🌐 ACESSO LOCAL:"
+echo "   http://localhost:$PORT"
 echo ""
-echo "Para ver logs:"
-echo "  tail -f backend/logs/*.log"
+if [ -n "$LOCAL_IP" ]; then
+    echo "📱 ACESSO PELA REDE (use no celular/outros dispositivos):"
+    echo "   http://$LOCAL_IP:$PORT"
+    echo ""
+fi
+echo "📚 API Docs: http://localhost:$PORT/docs"
+echo "🏥 Health: http://localhost:$PORT/api/health"
 echo ""
+echo "🔑 Login padrão:"
+echo "   Email: admin@vaidepix.com"
+echo "   Senha: 123456"
+echo ""
+echo "📝 Para parar o servidor:"
+echo "   kill $BACKEND_PID"
+echo ""
+echo "================================================"
 
-# Aguardar processos
-wait
-EOF
+# Manter script rodando
+wait $BACKEND_PID
+SCRIPT_EOF
 
 chmod +x start-vai-de-pix.sh
 
@@ -271,9 +311,9 @@ echo "✅ Instalação concluída!"
 echo "================================================${NC}"
 echo ""
 echo "📝 Próximos passos:"
-echo "1. Edite backend/.env com suas configurações"
+echo "1. Edite backend/.env com suas configurações (se necessário)"
 echo "2. Execute: ./start-vai-de-pix.sh"
-echo "3. Acesse: http://localhost:8080"
+echo "3. Acesse: http://localhost:8000 ou http://[IP-DO-RPI]:8000"
 echo ""
 echo "📚 Para mais informações, consulte: RASPBERRY-PI-5-SETUP.md"
 echo ""
