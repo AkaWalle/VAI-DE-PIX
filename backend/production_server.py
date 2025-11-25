@@ -4,7 +4,7 @@ Serve tanto a API quanto os arquivos estáticos do frontend
 Execute: python production_server.py
 """
 
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
@@ -117,11 +117,14 @@ async def protected_route(
     return {"message": f"Hello {user.name}!", "user_id": user.id}
 
 # Servir o frontend para todas as outras rotas (SPA routing)
+# IMPORTANTE: Esta rota deve ser a ÚLTIMA e NÃO deve capturar rotas /api/*
+# O FastAPI processa rotas mais específicas primeiro, então rotas /api/* já foram processadas
 @app.get("/{full_path:path}")
-async def serve_spa(full_path: str):
+async def serve_spa(full_path: str, request: Request):
     """Serve o frontend React para todas as rotas não-API"""
     # Se a rota começa com /api, não servir o frontend
-    if full_path.startswith("api/"):
+    # Isso não deveria acontecer se as rotas da API estiverem registradas corretamente
+    if full_path.startswith("api/") or request.url.path.startswith("/api/"):
         raise HTTPException(status_code=404, detail="API endpoint not found")
     
     # Servir o index.html para todas as outras rotas (SPA routing)
