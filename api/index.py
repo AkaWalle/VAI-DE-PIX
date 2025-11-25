@@ -86,6 +86,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from mangum import Mangum
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 # Import routers from backend
 # The backend directory is now in sys.path, so we can import directly
@@ -109,6 +112,14 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc"
 )
+
+# Initialize rate limiter
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Inject limiter into auth router
+auth.limiter = limiter
 
 # Middleware to handle OPTIONS requests and CORS headers
 class CORSOptionsMiddleware(BaseHTTPMiddleware):
