@@ -177,27 +177,18 @@ class StripAPIPrefixMiddleware(BaseHTTPMiddleware):
 # Último adicionado = primeiro executado
 # 
 # Ordem de execução (do primeiro ao último):
-# 1. CORSMiddleware do FastAPI (adicionado por último = primeiro executado)
-# 2. CORSOptionsMiddleware (adicionado no meio)  
-# 3. StripAPIPrefixMiddleware (adicionado primeiro = último executado)
+# 1. CORSOptionsMiddleware (adicionado por último = primeiro executado)
+# 2. StripAPIPrefixMiddleware (adicionado primeiro = último executado)
+#
+# REMOVIDO: CORSMiddleware do FastAPI (estava causando conflito)
+# O middleware customizado CORSOptionsMiddleware trata TUDO sozinho
 
 # Primeiro: Strip prefix (executado por último - remove /api antes de processar)
 app.add_middleware(StripAPIPrefixMiddleware)
 
-# Segundo: CORS customizado (executado no meio - adiciona headers dinamicamente)
+# Segundo: CORS customizado (executado primeiro - adiciona headers em TODAS as respostas)
+# Este middleware trata OPTIONS e adiciona headers CORS em todas as respostas
 app.add_middleware(CORSOptionsMiddleware)
-
-# Terceiro: CORS do FastAPI (executado primeiro - primeira camada de CORS)
-# Permite TODAS as origens - o middleware customizado ajusta dinamicamente depois
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Permitir TODAS as origens (sem restrição)
-    allow_credentials=True,  # Permitir credentials
-    allow_methods=["*"],  # Permitir TODOS os métodos
-    allow_headers=["*"],  # Permitir TODOS os headers
-    expose_headers=["*"],  # Expor TODOS os headers
-    max_age=3600,  # Cache preflight por 1 hora
-)
 
 # Include routers
 app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
