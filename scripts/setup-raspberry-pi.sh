@@ -52,11 +52,50 @@ if [ "$NODE_VERSION" -lt 18 ]; then
     exit 1
 fi
 
-# Instalar Python 3.11+ se necessário
-if ! command_exists python3.11; then
-    echo -e "${YELLOW}📦 Instalando Python 3.11...${NC}"
-    sudo apt install -y python3.11 python3.11-venv python3.11-dev
+# Verificar e instalar Python (3.9+ necessário)
+echo -e "${YELLOW}🐍 Verificando Python...${NC}"
+
+# Verificar versão do Python disponível
+PYTHON_VERSION=$(python3 --version 2>/dev/null | cut -d' ' -f2 | cut -d'.' -f1,2)
+PYTHON_MAJOR=$(echo $PYTHON_VERSION | cut -d'.' -f1)
+PYTHON_MINOR=$(echo $PYTHON_VERSION | cut -d'.' -f2)
+
+if [ -z "$PYTHON_VERSION" ] || [ "$PYTHON_MAJOR" -lt 3 ] || ([ "$PYTHON_MAJOR" -eq 3 ] && [ "$PYTHON_MINOR" -lt 9 ]); then
+    echo -e "${YELLOW}📦 Instalando Python 3...${NC}"
+    sudo apt install -y python3 python3-venv python3-dev python3-pip
+    
+    # Tentar instalar Python 3.11 se disponível (opcional)
+    if apt-cache show python3.11 >/dev/null 2>&1; then
+        echo -e "${YELLOW}📦 Python 3.11 disponível, instalando...${NC}"
+        sudo apt install -y python3.11 python3.11-venv python3.11-dev || echo -e "${YELLOW}⚠️  Python 3.11 não disponível, usando versão padrão${NC}"
+    else
+        echo -e "${YELLOW}⚠️  Python 3.11 não disponível nos repositórios.${NC}"
+        echo -e "${YELLOW}   Usando Python $(python3 --version | cut -d' ' -f2) (deve ser 3.9+)${NC}"
+    fi
+else
+    echo -e "${GREEN}✅ Python $PYTHON_VERSION encontrado${NC}"
+    
+    # Tentar instalar Python 3.11 se disponível e não for 3.11+
+    if [ "$PYTHON_MAJOR" -lt 3 ] || ([ "$PYTHON_MAJOR" -eq 3 ] && [ "$PYTHON_MINOR" -lt 11 ]); then
+        if apt-cache show python3.11 >/dev/null 2>&1; then
+            echo -e "${YELLOW}📦 Python 3.11 disponível, instalando (opcional)...${NC}"
+            sudo apt install -y python3.11 python3.11-venv python3.11-dev || echo -e "${YELLOW}⚠️  Python 3.11 não disponível, continuando com Python $PYTHON_VERSION${NC}"
+        fi
+    fi
 fi
+
+# Determinar qual versão do Python usar
+if command_exists python3.11; then
+    PYTHON_CMD="python3.11"
+elif command_exists python3.10; then
+    PYTHON_CMD="python3.10"
+elif command_exists python3.9; then
+    PYTHON_CMD="python3.9"
+else
+    PYTHON_CMD="python3"
+fi
+
+echo -e "${GREEN}✅ Usando: $PYTHON_CMD ($($PYTHON_CMD --version 2>&1))${NC}"
 
 # Instalar PostgreSQL
 if ! command_exists psql; then
@@ -101,7 +140,7 @@ cd backend
 
 # Criar venv se não existir
 if [ ! -d "venv" ]; then
-    python3.11 -m venv venv
+    $PYTHON_CMD -m venv venv
 fi
 
 # Ativar venv e instalar dependências
