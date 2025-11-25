@@ -5,14 +5,13 @@
 No terminal do Raspberry Pi, execute:
 
 ```bash
-# Clonar o repositório
-git clone https://github.com/AkaWalle/VAI-DE-PIX.git vai-de-pix
+# Clonar o repositório (com a branch raspberry-pi-5)
+git clone -b raspberry-pi-5 https://github.com/AkaWalle/VAI-DE-PIX.git vai-de-pix
 
-# Entrar no diretório
+# OU se já clonou, fazer checkout:
 cd vai-de-pix
-
-# Fazer checkout da branch raspberry-pi-5
-git checkout raspberry-pi-5
+git fetch origin
+git checkout -b raspberry-pi-5 origin/raspberry-pi-5
 ```
 
 ## ⚙️ Executar Setup
@@ -50,10 +49,13 @@ tail -f backend/logs/*.log
 ## 📝 Comandos Completos (Copiar e Colar)
 
 ```bash
-# 1. Clonar e configurar
-git clone https://github.com/AkaWalle/VAI-DE-PIX.git vai-de-pix
+# 1. Clonar e configurar (método recomendado - clona direto na branch)
+git clone -b raspberry-pi-5 https://github.com/AkaWalle/VAI-DE-PIX.git vai-de-pix
 cd vai-de-pix
-git checkout raspberry-pi-5
+
+# OU se já clonou na branch main:
+# git fetch origin
+# git checkout -b raspberry-pi-5 origin/raspberry-pi-5
 
 # 2. Executar setup
 chmod +x scripts/setup-raspberry-pi.sh
