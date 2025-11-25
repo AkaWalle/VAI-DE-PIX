@@ -210,12 +210,18 @@ app.include_router(automations.router, prefix="/automations", tags=["Automations
 
 # Root endpoint
 @app.get("/")
-async def api_root():
+async def api_root(request: Request):
     return {
         "message": "VAI DE PIX API",
         "version": "1.0.0",
         "status": "running",
-        "docs": "/api/docs"
+        "docs": "/api/docs",
+        "debug": {
+            "path": request.url.path,
+            "raw_path": request.scope.get("raw_path", b"").decode() if "raw_path" in request.scope else None,
+            "method": request.method,
+            "headers": dict(request.headers)
+        }
     }
 
 # Health check
