@@ -1,14 +1,29 @@
 // API configuration for VAI DE PIX
 // Em produção, VITE_API_URL deve estar configurada no Vercel
 // Em desenvolvimento, usa localhost como fallback
+// Para Raspberry Pi, detecta automaticamente o hostname/IP
 const getApiBaseURL = () => {
   // Prioridade 1: Variável de ambiente (obrigatória em produção)
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
   }
   
-  // Prioridade 2: Em produção, usar URL relativa (Vercel serverless)
+  // Prioridade 2: Em produção, detectar hostname/IP automaticamente
   if (import.meta.env.PROD) {
+    // Se estiver acessando por IP ou hostname, usar o mesmo para a API
+    const hostname = window.location.hostname;
+    const port = window.location.port || (window.location.protocol === 'https:' ? '443' : '80');
+    
+    // Se não for localhost/127.0.0.1, usar o hostname/IP atual
+    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+      // Se porta 80 ou 443, não incluir porta na URL
+      if (port === '80' || port === '443' || !port) {
+        return `${window.location.protocol}//${hostname}/api`;
+      }
+      return `${window.location.protocol}//${hostname}:${port}/api`;
+    }
+    
+    // Se for localhost, usar URL relativa (Vercel serverless)
     return "/api";
   }
   

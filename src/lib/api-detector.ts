@@ -62,8 +62,29 @@ export async function detectApiUrl(): Promise<ApiConfig> {
     }
   }
 
-  // 2. Em produção, usar URL relativa (Vercel serverless)
+  // 2. Em produção, detectar hostname/IP automaticamente
   if (import.meta.env.PROD) {
+    const hostname = window.location.hostname;
+    const port = window.location.port || (window.location.protocol === 'https:' ? '443' : '80');
+    
+    // Se não for localhost/127.0.0.1, usar o hostname/IP atual
+    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+      let baseURL: string;
+      if (port === '80' || port === '443' || !port) {
+        baseURL = `${window.location.protocol}//${hostname}/api`;
+      } else {
+        baseURL = `${window.location.protocol}//${hostname}:${port}/api`;
+      }
+      
+      return {
+        baseURL,
+        isLocal: false,
+        isNetwork: true,
+        detectedIP: hostname,
+      };
+    }
+    
+    // Se for localhost, usar URL relativa (Vercel serverless)
     return {
       baseURL: "/api",
       isLocal: false,
@@ -115,8 +136,20 @@ export function getApiUrl(): string {
     return envUrl;
   }
 
-  // Em produção, usar URL relativa (Vercel serverless)
+  // Em produção, detectar hostname/IP automaticamente
   if (import.meta.env.PROD) {
+    const hostname = window.location.hostname;
+    const port = window.location.port || (window.location.protocol === 'https:' ? '443' : '80');
+    
+    // Se não for localhost/127.0.0.1, usar o hostname/IP atual
+    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+      if (port === '80' || port === '443' || !port) {
+        return `${window.location.protocol}//${hostname}/api`;
+      }
+      return `${window.location.protocol}//${hostname}:${port}/api`;
+    }
+    
+    // Se for localhost, usar URL relativa (Vercel serverless)
     return "/api";
   }
 
