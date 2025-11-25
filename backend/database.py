@@ -123,7 +123,8 @@ def get_db():
     try:
         print("→ [DATABASE] Testando conexão...")
         # Test connection
-        db.execute("SELECT 1")
+        from sqlalchemy import text
+        db.execute(text("SELECT 1"))
         print("→ [DATABASE] Conexão OK - yield db")
         yield db
     except Exception as e:
