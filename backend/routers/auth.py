@@ -98,7 +98,8 @@ async def register(
     try:
         print("→ [API] Verificando conexão com banco de dados...")
         # Test database connection
-        db.execute("SELECT 1")
+        from sqlalchemy import text
+        db.execute(text("SELECT 1"))
         print("→ [API] Conexão com banco OK")
         
         print("→ [API] Verificando se usuário já existe...")
