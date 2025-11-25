@@ -4,35 +4,45 @@ import type { NextRequest } from 'next/server'
 
 
 
-export function middleware(request: NextRequest) {
+export function middleware(req: NextRequest) {
 
-  // Captura a origin do request
+  // Só aplica em rotas /api/*
 
-  const origin = request.headers.get('origin') ?? ''
+  if (!req.nextUrl.pathname.startsWith('/api/')) {
 
+    return NextResponse.next()
 
-
-  // Cria a resposta
-
-  const response = request.method === 'OPTIONS' 
-
-    ? new NextResponse(null, { status: 200 })
-
-    : NextResponse.next()
+  }
 
 
 
-  // Libera TODAS as origens do Vercel (preview + produção + localhost)
+  const requestHeaders = new Headers(req.headers)
 
-  if (
+  const response = NextResponse.next({
 
-    origin.includes('vercel.app') || 
+    request: {
 
-    origin.includes('localhost') || 
+      headers: requestHeaders,
 
-    origin === 'https://vai-de-pix.vercel.app'
+    },
 
-  ) {
+  })
+
+
+
+  // Headers CORS (libera preview + produção + localhost)
+
+  response.headers.set('Access-Control-Allow-Credentials', 'true')
+
+  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+
+  response.headers.set('Access-Control-Allow-Headers', 'Authorization, Content-Type, X-Requested-With')
+
+
+
+  const origin = req.headers.get('origin')
+
+  if (origin && (origin.includes('vercel.app') || origin.includes('localhost'))) {
 
     response.headers.set('Access-Control-Allow-Origin', origin)
 
@@ -44,19 +54,17 @@ export function middleware(request: NextRequest) {
 
 
 
-  response.headers.set('Access-Control-Allow-Credentials', 'true')
+  // OPTIONS → responde 204 sem corpo (nunca mais dá crash)
 
-  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+  if (req.method === 'OPTIONS') {
 
-  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-CSRF-Token')
+    return new Response(null, {
 
+      status: 204,
 
+      headers: response.headers,
 
-  // ESSA LINHA É A CHAVE: responde 200 direto no OPTIONS sem passar pro handler
-
-  if (request.method === 'OPTIONS') {
-
-    return response
+    })
 
   }
 
@@ -73,4 +81,3 @@ export const config = {
   matcher: '/api/:path*',
 
 }
-
