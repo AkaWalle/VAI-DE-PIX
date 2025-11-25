@@ -90,12 +90,42 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
+# LOGS DETALHADOS NO INÍCIO DO MÓDULO
+print("=" * 80)
+print("→ [API/INDEX] Iniciando carregamento do módulo api/index.py")
+print(f"→ [API/INDEX] Backend path: {backend_path}")
+print(f"→ [API/INDEX] Routers path exists: {routers_path.exists()}")
+print(f"→ [API/INDEX] sys.path (primeiros 5): {sys.path[:5]}")
+print(f"→ [API/INDEX] Python version: {sys.version}")
+print(f"→ [API/INDEX] Working directory: {os.getcwd()}")
+
+# Verificar variáveis de ambiente críticas
+print("→ [API/INDEX] Verificando variáveis de ambiente...")
+db_url = os.getenv("DATABASE_URL", "NÃO CONFIGURADO")
+secret_key = os.getenv("SECRET_KEY", "NÃO CONFIGURADO")
+print(f"→ [API/INDEX] DATABASE_URL presente: {bool(db_url and db_url != 'NÃO CONFIGURADO')}")
+print(f"→ [API/INDEX] SECRET_KEY presente: {bool(secret_key and secret_key != 'NÃO CONFIGURADO')}")
+print(f"→ [API/INDEX] ENVIRONMENT: {os.getenv('ENVIRONMENT', 'NÃO CONFIGURADO')}")
+print(f"→ [API/INDEX] VERCEL: {os.getenv('VERCEL', 'NÃO CONFIGURADO')}")
+
 # Import routers from backend
 # The backend directory is now in sys.path, so we can import directly
+print("→ [API/INDEX] Tentando importar routers...")
 try:
     from routers import auth, transactions, goals, envelopes, categories, accounts, reports, automations
+    print("→ [API/INDEX] Routers importados com sucesso!")
+    print(f"→ [API/INDEX] Routers disponíveis: auth, transactions, goals, envelopes, categories, accounts, reports, automations")
 except ImportError as e:
     # More detailed error message
+    print("=" * 80)
+    print("→ [API/INDEX] ERRO FATAL ao importar routers!")
+    print(f"→ [API/INDEX] Backend path: {backend_path}")
+    print(f"→ [API/INDEX] Routers path exists: {routers_path.exists()}")
+    print(f"→ [API/INDEX] sys.path: {sys.path[:5]}")
+    print(f"→ [API/INDEX] Erro completo: {str(e)}")
+    import traceback
+    traceback.print_exc()
+    print("=" * 80)
     raise ImportError(
         f"Failed to import routers. "
         f"Backend path: {backend_path}, "
@@ -124,6 +154,10 @@ auth.limiter = limiter
 # Middleware to handle OPTIONS requests and CORS headers
 class CORSOptionsMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
+        # LOGS DETALHADOS
+        print(f"→ [CORS] Request recebido: {request.method} {request.url.path}")
+        print(f"→ [CORS] Origin: {request.headers.get('origin', 'NÃO PRESENTE')}")
+        
         # Get origin from request
         origin = request.headers.get("origin", "")
         
@@ -143,8 +177,11 @@ class CORSOptionsMiddleware(BaseHTTPMiddleware):
             allowed_origin = origin if origin else "*"
             allow_credentials = "true"
         
+        print(f"→ [CORS] Allowed origin: {allowed_origin}, Credentials: {allow_credentials}")
+        
         # Handle OPTIONS preflight requests
         if request.method == "OPTIONS":
+            print("→ [CORS] Respondendo OPTIONS preflight")
             from fastapi.responses import Response
             response = Response()
             response.headers["Access-Control-Allow-Origin"] = allowed_origin
@@ -154,7 +191,15 @@ class CORSOptionsMiddleware(BaseHTTPMiddleware):
             response.headers["Access-Control-Max-Age"] = "3600"
             return response
         
-        response = await call_next(request)
+        try:
+            print(f"→ [CORS] Chamando próximo middleware/handler para {request.method} {request.url.path}")
+            response = await call_next(request)
+            print(f"→ [CORS] Resposta recebida: {response.status_code}")
+        except Exception as e:
+            print(f"→ [CORS] ERRO no call_next: {type(e).__name__}: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            raise
         
         # Add CORS headers to all responses
         response.headers["Access-Control-Allow-Origin"] = allowed_origin

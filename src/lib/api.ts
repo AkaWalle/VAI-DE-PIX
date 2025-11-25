@@ -1,6 +1,23 @@
 // API configuration for VAI DE PIX
+// Em produção, VITE_API_URL deve estar configurada no Vercel
+// Em desenvolvimento, usa localhost como fallback
+const getApiBaseURL = () => {
+  // Prioridade 1: Variável de ambiente (obrigatória em produção)
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  // Prioridade 2: Em produção, usar URL relativa (Vercel serverless)
+  if (import.meta.env.PROD) {
+    return "/api";
+  }
+  
+  // Prioridade 3: Desenvolvimento local
+  return "http://localhost:8000/api";
+};
+
 export const API_CONFIG = {
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000/api",
+  baseURL: getApiBaseURL(),
   timeout: 10000,
 };
 
