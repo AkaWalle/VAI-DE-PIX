@@ -38,22 +38,29 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS configuration - Configuração baseada em ambiente
-is_production = os.getenv("ENVIRONMENT", "development").lower() == "production"
-frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5000")
+is_production = os.getenv("ENVIRONMENT", "development").lower() == "production" or os.getenv("VERCEL") == "1"
+frontend_url = os.getenv("FRONTEND_URL")
 
 # Origens permitidas baseadas no ambiente
 if is_production:
-    # Em produção, apenas origens específicas
-    allowed_origins = [
-        frontend_url,
-        os.getenv("FRONTEND_URL_PRODUCTION", ""),
-    ]
-    # Remove strings vazias
-    allowed_origins = [origin for origin in allowed_origins if origin]
+    # Em produção, permitir TODAS as origens do Vercel
+    # Isso resolve problemas de CORS com diferentes subdomínios
+    allowed_origins = ["*"]  # Permitir todas as origens
+    
+    # Adicionar URLs específicas se configuradas
+    if frontend_url:
+        allowed_origins.append(frontend_url)
+    
+    frontend_url_prod = os.getenv("FRONTEND_URL_PRODUCTION")
+    if frontend_url_prod:
+        allowed_origins.append(frontend_url_prod)
+    
+    # Remover duplicatas
+    allowed_origins = list(set([o for o in allowed_origins if o]))
 else:
     # Em desenvolvimento, permitir localhost e rede local
     allowed_origins = [
-        frontend_url,
+        frontend_url or "http://localhost:5000",
         "http://localhost:3000",
         "http://localhost:5000",
         "http://localhost:8080",
@@ -66,6 +73,7 @@ else:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
+    expose_headers=["*"],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
