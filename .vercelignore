@@ -1,5 +1,5 @@
 # Ignorar arquivos desnecessários no deploy Vercel
-backend/
+# backend/ - REMOVIDO: necessário para serverless functions
 .docs/
 tests/
 *.db
