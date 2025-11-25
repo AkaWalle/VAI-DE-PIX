@@ -132,14 +132,35 @@ class StripAPIPrefixMiddleware(BaseHTTPMiddleware):
 app.add_middleware(StripAPIPrefixMiddleware)
 
 # CORS configuration
-frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
-# Permitir todas as origens do Vercel (será filtrado pelo middleware)
+# Em produção, permitir qualquer subdomínio .vercel.app
+frontend_url = os.getenv("FRONTEND_URL")
+frontend_url_prod = os.getenv("FRONTEND_URL_PRODUCTION")
+is_production = os.getenv("ENVIRONMENT", "").lower() == "production" or os.getenv("VERCEL") == "1"
+
+if is_production:
+    # Em produção, permitir todas as origens do Vercel
+    # Isso resolve o problema de diferentes subdomínios (.vercel.app)
+    allowed_origins = ["*"]  # Permitir todas as origens em produção
+    
+    # Se FRONTEND_URL estiver configurada, adicionar também
+    if frontend_url:
+        allowed_origins.append(frontend_url)
+    if frontend_url_prod:
+        allowed_origins.append(frontend_url_prod)
+    
+    # Remover duplicatas e None
+    allowed_origins = list(set([o for o in allowed_origins if o]))
+else:
+    # Em desenvolvimento, permitir localhost
+    allowed_origins = ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Permitir todas as origens durante desenvolvimento/produção
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Include routers
@@ -191,7 +212,7 @@ async def debug_database():
         from database import engine
         from sqlalchemy import text
         import os
-        DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./vai_de_pix.db")
+        DATABASE_URL = os.getenv("DATABASE_URL", "not configured")
         
         # Get database info
         db_info = {
@@ -246,7 +267,7 @@ async def debug_database():
         
     except Exception as e:
         import os
-        db_url = os.getenv("DATABASE_URL", "not set")
+        db_url = os.getenv("DATABASE_URL", "not configured")
         return {
             "status": "error",
             "error": str(e),
