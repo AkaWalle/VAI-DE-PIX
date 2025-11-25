@@ -2,9 +2,15 @@
 Vercel Serverless Function for FastAPI
 This file wraps the FastAPI app to work with Vercel's serverless functions
 """
+print("=" * 80)
+print("1 — Arquivo api/index.py começou a carregar")
+print("=" * 80)
+
 import os
 import sys
 from pathlib import Path
+
+print("2 — Imports básicos (os, sys, Path) carregados")
 
 # Determine backend path - Vercel includes files via includeFiles
 current_file = Path(__file__).resolve()
@@ -91,57 +97,77 @@ print(f"→ [API/INDEX] Python version: {sys.version}")
 print(f"→ [API/INDEX] Working directory: {os.getcwd()}")
 
 # Verificar variáveis de ambiente críticas
-print("→ [API/INDEX] Verificando variáveis de ambiente...")
-db_url = os.getenv("DATABASE_URL", "NÃO CONFIGURADO")
-secret_key = os.getenv("SECRET_KEY", "NÃO CONFIGURADO")
-print(f"→ [API/INDEX] DATABASE_URL presente: {bool(db_url and db_url != 'NÃO CONFIGURADO')}")
-print(f"→ [API/INDEX] SECRET_KEY presente: {bool(secret_key and secret_key != 'NÃO CONFIGURADO')}")
-print(f"→ [API/INDEX] ENVIRONMENT: {os.getenv('ENVIRONMENT', 'NÃO CONFIGURADO')}")
-print(f"→ [API/INDEX] VERCEL: {os.getenv('VERCEL', 'NÃO CONFIGURADO')}")
+print("4 — Verificando variáveis de ambiente")
+try:
+    db_url = os.getenv("DATABASE_URL", "NÃO CONFIGURADO")
+    secret_key = os.getenv("SECRET_KEY", "NÃO CONFIGURADO")
+    print(f"4.1 — DATABASE_URL existe? {bool(db_url and db_url != 'NÃO CONFIGURADO')}")
+    print(f"4.2 — SECRET_KEY existe? {bool(secret_key and secret_key != 'NÃO CONFIGURADO')}")
+    print(f"4.3 — ENVIRONMENT: {os.getenv('ENVIRONMENT', 'NÃO CONFIGURADO')}")
+    print(f"4.4 — VERCEL: {os.getenv('VERCEL', 'NÃO CONFIGURADO')}")
+except Exception as e:
+    print(f"ERRO AO ACESSAR ENV: {type(e).__name__}: {str(e)}")
+    import traceback
+    traceback.print_exc()
 
 # Importar dependências com tratamento de erro
-print("→ [API/INDEX] Importando dependências do FastAPI...")
+print("3 — Tentando importar FastAPI...")
 try:
     from fastapi import FastAPI, Request
+    print("3.1 — FastAPI importado")
     from fastapi.middleware.cors import CORSMiddleware
+    print("3.2 — CORSMiddleware importado")
     from fastapi.responses import Response
+    print("3.3 — Response importado")
     from starlette.middleware.base import BaseHTTPMiddleware
+    print("3.4 — BaseHTTPMiddleware importado")
     from mangum import Mangum
+    print("3.5 — Mangum importado")
     from slowapi import Limiter, _rate_limit_exceeded_handler
+    print("3.6 — slowapi Limiter importado")
     from slowapi.util import get_remote_address
+    print("3.7 — get_remote_address importado")
     from slowapi.errors import RateLimitExceeded
-    print("→ [API/INDEX] Dependências importadas com sucesso!")
+    print("3.8 — RateLimitExceeded importado")
+    print("3 — TODAS as dependências importadas com sucesso!")
 except ImportError as e:
-    print(f"→ [API/INDEX] ERRO ao importar dependências: {type(e).__name__}: {str(e)}")
+    print(f"FALHA NO IMPORT DAS DEPENDÊNCIAS: {type(e).__name__}: {str(e)}")
+    import traceback
+    traceback.print_exc()
+    raise
+except Exception as e:
+    print(f"ERRO INESPERADO ao importar: {type(e).__name__}: {str(e)}")
     import traceback
     traceback.print_exc()
     raise
 
 # Import routers from backend
 # The backend directory is now in sys.path, so we can import directly
-print("→ [API/INDEX] Tentando importar routers...")
+print("5 — Tentando importar routers do backend...")
 try:
-    from routers import auth, transactions, goals, envelopes, categories, accounts, reports, automations
-    print("→ [API/INDEX] Routers importados com sucesso!")
-    print(f"→ [API/INDEX] Routers disponíveis: auth, transactions, goals, envelopes, categories, accounts, reports, automations")
+    print("5.1 — Tentando importar auth...")
+    from routers import auth
+    print("5.2 — auth importado")
+    print("5.3 — Tentando importar outros routers...")
+    from routers import transactions, goals, envelopes, categories, accounts, reports, automations
+    print("5.4 — Todos os routers importados")
+    print("5 — Routers importados com sucesso!")
 except ImportError as e:
-    # More detailed error message
     print("=" * 80)
-    print("→ [API/INDEX] ERRO FATAL ao importar routers!")
-    print(f"→ [API/INDEX] Backend path: {backend_path}")
-    print(f"→ [API/INDEX] Routers path exists: {routers_path.exists()}")
-    print(f"→ [API/INDEX] sys.path: {sys.path[:5]}")
-    print(f"→ [API/INDEX] Erro completo: {str(e)}")
+    print("FALHA NO IMPORT DOS ROUTERS!")
+    print(f"Backend path: {backend_path}")
+    print(f"Routers path exists: {routers_path.exists()}")
+    print(f"sys.path: {sys.path[:5]}")
+    print(f"Erro completo: {str(e)}")
     import traceback
     traceback.print_exc()
     print("=" * 80)
-    raise ImportError(
-        f"Failed to import routers. "
-        f"Backend path: {backend_path}, "
-        f"Routers path exists: {routers_path.exists()}, "
-        f"sys.path: {sys.path[:5]}, "
-        f"Error: {str(e)}"
-    )
+    raise
+except Exception as e:
+    print(f"ERRO INESPERADO ao importar routers: {type(e).__name__}: {str(e)}")
+    import traceback
+    traceback.print_exc()
+    raise
 
 # Create FastAPI app
 app = FastAPI(
@@ -153,12 +179,22 @@ app = FastAPI(
 )
 
 # Initialize rate limiter
-limiter = Limiter(key_func=get_remote_address)
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-
-# Inject limiter into auth router
-auth.limiter = limiter
+print("6 — Inicializando rate limiter...")
+try:
+    limiter = Limiter(key_func=get_remote_address)
+    print("6.1 — Limiter criado")
+    app.state.limiter = limiter
+    print("6.2 — Limiter adicionado ao app.state")
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+    print("6.3 — Exception handler adicionado")
+    auth.limiter = limiter
+    print("6.4 — Limiter injetado no auth router")
+    print("6 — Rate limiter inicializado com sucesso!")
+except Exception as e:
+    print(f"ERRO ao inicializar rate limiter: {type(e).__name__}: {str(e)}")
+    import traceback
+    traceback.print_exc()
+    raise
 
 # Middleware to handle OPTIONS requests and CORS headers
 class CORSOptionsMiddleware(BaseHTTPMiddleware):
