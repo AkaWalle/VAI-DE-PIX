@@ -158,16 +158,24 @@ class CORSOptionsMiddleware(BaseHTTPMiddleware):
 class StripAPIPrefixMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         # Remove /api prefix from path if present
-        if request.url.path.startswith("/api/"):
-            # Create new path without /api prefix
-            new_path = request.url.path[4:]  # Remove "/api"
+        # O Vercel já remove o /api do path quando faz rewrite, mas vamos garantir
+        original_path = request.url.path
+        
+        # Se o path começa com /api/, remove
+        if original_path.startswith("/api/"):
+            new_path = original_path[4:]  # Remove "/api"
             # Create new request with modified path
             scope = request.scope.copy()
             scope["path"] = new_path
+            # Also update the raw_path for proper routing
+            if "raw_path" in scope:
+                scope["raw_path"] = new_path.encode()
             request = Request(scope, request.receive)
-        elif request.url.path == "/api":
+        elif original_path == "/api":
             scope = request.scope.copy()
             scope["path"] = "/"
+            if "raw_path" in scope:
+                scope["raw_path"] = b"/"
             request = Request(scope, request.receive)
         
         return await call_next(request)
@@ -335,8 +343,10 @@ async def debug_test_query():
 
 # Vercel serverless function handler
 # Mangum automatically handles the path from Vercel
-# The root_path="/api" in FastAPI app handles the prefix
-handler = Mangum(app, lifespan="off")
+# IMPORTANTE: O Vercel faz rewrite de /api/(.*) para /api/index
+# O Mangum recebe o path completo incluindo /api
+# O middleware StripAPIPrefixMiddleware remove o /api antes de processar
+handler = Mangum(app, lifespan="off", api_gateway_base_path="/api")
 
 # Export for Vercel - must be named 'handler' for Vercel to detect it
 # This is the entry point for Vercel serverless functions
