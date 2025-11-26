@@ -91,13 +91,6 @@ export function IconPicker({ value, onChange, label }: IconPickerProps) {
             </div>
           </PopoverContent>
         </Popover>
-        
-        {/* Mostrar ícone selecionado de forma mais clara */}
-        {value && (
-          <div className="flex items-center justify-center h-10 px-3 border rounded-md bg-muted/50">
-            <span className="text-lg">{value}</span>
-          </div>
-        )}
       </div>
     </div>
   );
