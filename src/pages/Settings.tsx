@@ -22,6 +22,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { ActionButton } from "@/components/ui/action-button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { IconPicker } from "@/components/ui/icon-picker";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/components/theme-provider";
 import { formatCurrency } from "@/utils/format";
@@ -491,16 +492,15 @@ export default function Settings() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Ícone</Label>
-                    <Input
+                    <IconPicker
+                      label="Ícone"
                       value={newCategory.icon}
-                      onChange={(e) =>
+                      onChange={(icon) =>
                         setNewCategory((prev) => ({
                           ...prev,
-                          icon: e.target.value,
+                          icon,
                         }))
                       }
-                      placeholder="🍕"
                     />
                   </div>
                   <div className="space-y-2">

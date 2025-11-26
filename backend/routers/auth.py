@@ -10,7 +10,7 @@ from slowapi.errors import RateLimitExceeded
 import re
 
 from database import get_db
-from models import User, Category
+from models import User, Category, Account
 from auth_utils import create_access_token, verify_password, get_password_hash, get_current_user
 
 router = APIRouter()
@@ -136,6 +136,11 @@ async def register(
         print("→ [API] Criando categorias padrão...")
         # Create default categories for the new user
         default_categories = [
+            # Receitas
+            {"name": "Salário", "type": "income", "color": "#22c55e", "icon": "💰"},
+            {"name": "Freelance", "type": "income", "color": "#3b82f6", "icon": "💼"},
+            {"name": "Investimentos", "type": "income", "color": "#8b5cf6", "icon": "📈"},
+            {"name": "Outros", "type": "income", "color": "#6b7280", "icon": "💵"},
             # Despesas
             {"name": "Moradia", "type": "expense", "color": "#eab308", "icon": "🏠"},
             {"name": "Alimentação", "type": "expense", "color": "#ef4444", "icon": "🍕"},
@@ -156,6 +161,26 @@ async def register(
         print("→ [API] Fazendo commit das categorias...")
         db.commit()
         print(f"→ [API] {len(default_categories)} categorias criadas")
+        
+        print("→ [API] Criando contas padrão...")
+        # Create default accounts for the new user
+        default_accounts = [
+            {"name": "Conta Corrente", "type": "checking", "balance": 0.0},
+            {"name": "Poupança", "type": "savings", "balance": 0.0},
+            {"name": "Cartão de Crédito", "type": "credit", "balance": 0.0},
+            {"name": "Dinheiro", "type": "cash", "balance": 0.0},
+        ]
+        
+        for acc_data in default_accounts:
+            account = Account(
+                **acc_data,
+                user_id=db_user.id
+            )
+            db.add(account)
+        
+        print("→ [API] Fazendo commit das contas...")
+        db.commit()
+        print(f"→ [API] {len(default_accounts)} contas criadas")
         
         print("→ [API] Criando access token...")
         # Create access token
