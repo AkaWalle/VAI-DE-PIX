@@ -22,7 +22,6 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { ActionButton } from "@/components/ui/action-button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { IconPicker } from "@/components/ui/icon-picker";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/components/theme-provider";
 import { formatCurrency } from "@/utils/format";
@@ -59,7 +58,6 @@ export default function Settings() {
     name: "",
     type: "expense" as const,
     color: "#3b82f6",
-    icon: "💰",
   });
 
   const [showNewAccount, setShowNewAccount] = useState(false);
@@ -150,7 +148,7 @@ export default function Settings() {
       name: newCategory.name,
       type: newCategory.type,
       color: newCategory.color,
-      icon: newCategory.icon,
+      icon: "💰", // Ícone padrão
     });
 
     toast({
@@ -158,7 +156,7 @@ export default function Settings() {
       description: `A categoria "${newCategory.name}" foi criada com sucesso.`,
     });
 
-    setNewCategory({ name: "", type: "expense", color: "#3b82f6", icon: "💰" });
+    setNewCategory({ name: "", type: "expense", color: "#3b82f6" });
     setShowNewCategory(false);
   };
 
@@ -460,7 +458,7 @@ export default function Settings() {
           {showNewCategory && (
             <Card className="border-dashed">
               <CardContent className="pt-4">
-                <div className="grid gap-4 md:grid-cols-4">
+                <div className="grid gap-4 md:grid-cols-3">
                   <div className="space-y-2">
                     <Label>Nome</Label>
                     <Input
@@ -490,18 +488,6 @@ export default function Settings() {
                         <SelectItem value="expense">💸 Despesa</SelectItem>
                       </SelectContent>
                     </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <IconPicker
-                      label="Ícone"
-                      value={newCategory.icon}
-                      onChange={(icon) =>
-                        setNewCategory((prev) => ({
-                          ...prev,
-                          icon,
-                        }))
-                      }
-                    />
                   </div>
                   <div className="space-y-2">
                     <Label>Cor</Label>
