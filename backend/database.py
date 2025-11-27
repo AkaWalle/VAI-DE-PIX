@@ -1,6 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from fastapi import HTTPException
 import os
 from dotenv import load_dotenv
 import sys
@@ -127,6 +128,9 @@ def get_db():
         db.execute(text("SELECT 1"))
         print("→ [DATABASE] Conexão OK - yield db")
         yield db
+    except HTTPException:
+        # Re-raise HTTPException (não é erro de banco, é erro de autenticação/autorização)
+        raise
     except Exception as e:
         print(f"→ [DATABASE] ERRO na sessão: {type(e).__name__}: {str(e)}")
         import traceback

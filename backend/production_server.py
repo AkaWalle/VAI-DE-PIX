@@ -5,6 +5,7 @@ Execute: python production_server.py
 """
 
 from fastapi import FastAPI, Depends, HTTPException, status, Request
+from fastapi.requests import Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
@@ -46,6 +47,7 @@ app.add_middleware(
 security = HTTPBearer()
 
 # Include routers
+# IMPORTANTE: Registrar rotas da API ANTES da rota catch-all do SPA
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(transactions.router, prefix="/api/transactions", tags=["Transactions"])
 app.include_router(goals.router, prefix="/api/goals", tags=["Goals"])
@@ -53,6 +55,13 @@ app.include_router(envelopes.router, prefix="/api/envelopes", tags=["Envelopes"]
 app.include_router(categories.router, prefix="/api/categories", tags=["Categories"])
 app.include_router(accounts.router, prefix="/api/accounts", tags=["Accounts"])
 app.include_router(reports.router, prefix="/api/reports", tags=["Reports"])
+
+# Debug: Verificar rotas registradas
+if __name__ == "__main__":
+    print("📋 Rotas da API registradas:")
+    for route in app.routes:
+        if hasattr(route, 'path') and route.path.startswith('/api'):
+            print(f"   {route.methods if hasattr(route, 'methods') else 'N/A'} {route.path}")
 
 # Configurar caminho para arquivos estáticos
 frontend_dist = Path(__file__).parent.parent / "dist"
@@ -145,13 +154,22 @@ async def serve_spa(full_path: str, request: Request):
     # NUNCA servir frontend para rotas de API - verificar em múltiplos lugares
     path = request.url.path
     
-    # Se for rota de API, retornar 404 (as rotas da API devem ter sido processadas antes)
+    # Se for rota de API, não servir frontend (deixar FastAPI retornar 404 naturalmente)
+    # Isso garante que rotas de API sejam processadas primeiro
     if path.startswith("/api/"):
-        raise HTTPException(status_code=404, detail="API endpoint not found")
+        # Se chegou aqui, a rota da API não foi encontrada
+        # Retornar 404 apropriado para API
+        raise HTTPException(
+            status_code=404, 
+            detail=f"API endpoint not found: {path}"
+        )
     
     # Também verificar o full_path (sem barra inicial)
     if full_path.startswith("api/"):
-        raise HTTPException(status_code=404, detail="API endpoint not found")
+        raise HTTPException(
+            status_code=404, 
+            detail=f"API endpoint not found: /{full_path}"
+        )
     
     # Servir o index.html apenas para GET requests não-API (SPA routing)
     index_file = frontend_dist / "index.html"
