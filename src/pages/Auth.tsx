@@ -107,7 +107,8 @@ export default function Auth() {
         <div
           className="absolute inset-0 bg-center bg-cover bg-no-repeat"
           style={{
-            backgroundImage: "url('/piggy-bank-background.jpg.png')",
+            // Otimizado: WebP primeiro (menor tamanho), fallback para PNG
+            backgroundImage: "url('/piggy-bank-background.webp'), url('/piggy-bank-background.jpg.png')",
             backgroundSize: "cover",
             backgroundPosition: "center",
             opacity: 0.9,

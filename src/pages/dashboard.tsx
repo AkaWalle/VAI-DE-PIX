@@ -59,9 +59,11 @@ export default function Dashboard() {
   } = useFinancialStore();
 
   // Atualizar dateRange para o mês atual quando o componente for montado
+  // Executar apenas uma vez na montagem para evitar re-renders desnecessários
   useEffect(() => {
     updateDateRangeToCurrentMonth();
-  }, [updateDateRangeToCurrentMonth]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Executar apenas na montagem inicial
 
   const totalBalance = getTotalBalance();
   const monthlyIncome = getIncomeThisMonth();

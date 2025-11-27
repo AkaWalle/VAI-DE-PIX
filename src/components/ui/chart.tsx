@@ -76,6 +76,9 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
 
   return (
     <style
+      // ✅ SEGURANÇA: dangerouslySetInnerHTML usado apenas para CSS gerado internamente
+      // THEMES e colorConfig são constantes definidas no código, não dados do usuário
+      // Não há risco de XSS neste caso específico - o conteúdo é 100% controlado pelo código
       dangerouslySetInnerHTML={{
         __html: Object.entries(THEMES)
           .map(
