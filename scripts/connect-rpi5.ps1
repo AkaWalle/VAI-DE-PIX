@@ -2,7 +2,7 @@
 # Uso: .\scripts\connect-rpi5.ps1 [comando]
 
 param(
-    [string]$RpiIp = "192.168.10.130",
+    [string]$RpiIp = "192.168.6.40",
     [string]$RpiUser = "pi",
     [Parameter(ValueFromRemainingArguments=$true)]
     [string[]]$Command

@@ -63,12 +63,12 @@ fi
 # 2. Configurar pg_hba.conf
 echo ""
 echo "2️⃣  Configurando pg_hba.conf..."
-if grep -q "vai_de_pix_user.*192.168.10" "$PG_HBA"; then
+if grep -q "vai_de_pix_user.*192.168.6" "$PG_HBA"; then
     echo "   ✅ Regra já existe"
 else
     echo "" | sudo tee -a "$PG_HBA" > /dev/null
     echo "# Permitir conexões remotas para vai_de_pix" | sudo tee -a "$PG_HBA" > /dev/null
-    echo "host    vai_de_pix    vai_de_pix_user    192.168.10.0/24    md5" | sudo tee -a "$PG_HBA" > /dev/null
+    echo "host    vai_de_pix    vai_de_pix_user    192.168.6.0/24    md5" | sudo tee -a "$PG_HBA" > /dev/null
     echo "   ✅ Regra adicionada"
 fi
 
@@ -143,10 +143,10 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "✅ Configuração concluída!"
 echo ""
 echo "🧪 Teste a conexão do seu PC:"
-echo "   psql -h 192.168.10.130 -U vai_de_pix_user -d vai_de_pix"
+echo "   psql -h 192.168.6.40 -U vai_de_pix_user -d vai_de_pix"
 echo ""
 echo "📋 Ou configure no DBeaver:"
-echo "   Host:     192.168.10.130"
+echo "   Host:     192.168.6.40"
 echo "   Port:     5432"
 echo "   Database: vai_de_pix"
 echo "   Username: vai_de_pix_user"

@@ -3,7 +3,7 @@
 ## 🐛 Erro
 
 ```
-Connection to 192.168.10.130:5432 refused. Check that the hostname and port are correct and that the postmaster is accepting TCP/IP connections.
+Connection to 192.168.6.40:5432 refused. Check that the hostname and port are correct and that the postmaster is accepting TCP/IP connections.
 Connection refused: getsockopt
 ```
 
@@ -63,7 +63,7 @@ sudo nano /etc/postgresql/14/main/pg_hba.conf
 
 ```
 # Permitir conexões remotas para vai_de_pix
-host    vai_de_pix    vai_de_pix_user    192.168.10.0/24    md5
+host    vai_de_pix    vai_de_pix_user    192.168.6.0/24    md5
 ```
 
 Ou para permitir de qualquer IP na rede local (menos seguro, mas mais fácil):
@@ -116,13 +116,13 @@ psql -h localhost -U vai_de_pix_user -d vai_de_pix
 ### Do seu PC (se tiver psql instalado):
 
 ```bash
-psql -h 192.168.10.130 -U vai_de_pix_user -d vai_de_pix
+psql -h 192.168.6.40 -U vai_de_pix_user -d vai_de_pix
 ```
 
 ### Via DBeaver:
 
 Agora deve funcionar com:
-- Host: `192.168.10.130`
+- Host: `192.168.6.40`
 - Port: `5432`
 - Database: `vai_de_pix`
 - Username: `vai_de_pix_user`
@@ -177,12 +177,12 @@ fi
 # 2. Verificar se regra já existe no pg_hba.conf
 echo ""
 echo "2️⃣  Configurando pg_hba.conf..."
-if grep -q "vai_de_pix_user.*192.168.10" "$PG_HBA"; then
+if grep -q "vai_de_pix_user.*192.168.6" "$PG_HBA"; then
     echo "   ✅ Regra já existe"
 else
     echo "" | sudo tee -a "$PG_HBA" > /dev/null
     echo "# Permitir conexões remotas para vai_de_pix" | sudo tee -a "$PG_HBA" > /dev/null
-    echo "host    vai_de_pix    vai_de_pix_user    192.168.10.0/24    md5" | sudo tee -a "$PG_HBA" > /dev/null
+    echo "host    vai_de_pix    vai_de_pix_user    192.168.6.0/24    md5" | sudo tee -a "$PG_HBA" > /dev/null
     echo "   ✅ Regra adicionada"
 fi
 
@@ -238,10 +238,10 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "✅ Configuração concluída!"
 echo ""
 echo "🧪 Teste a conexão:"
-echo "   psql -h 192.168.10.130 -U vai_de_pix_user -d vai_de_pix"
+echo "   psql -h 192.168.6.40 -U vai_de_pix_user -d vai_de_pix"
 echo ""
 echo "📋 Ou use no DBeaver:"
-echo "   Host:     192.168.10.130"
+echo "   Host:     192.168.6.40"
 echo "   Port:     5432"
 echo "   Database: vai_de_pix"
 echo "   Username: vai_de_pix_user"
@@ -304,7 +304,7 @@ sudo journalctl -u postgresql -n 50
 
 - **pg_hba.conf**: Configura quais IPs/usuários podem conectar
   - `host database user IP mask auth_method`
-  - Exemplo: `host vai_de_pix vai_de_pix_user 192.168.10.0/24 md5`
+  - Exemplo: `host vai_de_pix vai_de_pix_user 192.168.6.0/24 md5`
 
 ---
 

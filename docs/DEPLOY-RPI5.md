@@ -1,6 +1,6 @@
 # 🍓 Guia de Deploy para Raspberry Pi 5
 
-Este guia mostra como fazer deploy do projeto para o Raspberry Pi 5 no IP **192.168.10.130**.
+Este guia mostra como fazer deploy do projeto para o Raspberry Pi 5 no IP **192.168.6.40**.
 
 ## 🚀 Opções de Deploy
 
@@ -9,11 +9,11 @@ Este guia mostra como fazer deploy do projeto para o Raspberry Pi 5 no IP **192.
 #### Windows (PowerShell)
 
 ```powershell
-# Deploy rápido (usa IP configurado: 192.168.10.130)
+# Deploy rápido (usa IP configurado: 192.168.6.40)
 .\scripts\quick-deploy-rpi5.ps1
 
 # Ou deploy customizado
-.\scripts\deploy-to-rpi5.ps1 -RpiIp 192.168.10.130 -RpiUser pi
+.\scripts\deploy-to-rpi5.ps1 -RpiIp 192.168.6.40 -RpiUser pi
 ```
 
 #### Linux/Mac (Bash)
@@ -21,7 +21,7 @@ Este guia mostra como fazer deploy do projeto para o Raspberry Pi 5 no IP **192.
 ```bash
 # Deploy com IP configurado
 chmod +x scripts/deploy-to-rpi5.sh
-./scripts/deploy-to-rpi5.sh 192.168.10.130
+./scripts/deploy-to-rpi5.sh 192.168.6.40
 ```
 
 ### Opção 2: Deploy Manual
@@ -30,10 +30,10 @@ chmod +x scripts/deploy-to-rpi5.sh
 
 ```bash
 # Windows PowerShell
-ssh pi@192.168.10.130
+ssh pi@192.168.6.40
 
 # Linux/Mac
-ssh pi@192.168.10.130
+ssh pi@192.168.6.40
 ```
 
 #### 2. No Raspberry Pi, clonar o repositório
@@ -115,10 +115,10 @@ chmod +x scripts/connect-rpi5.sh
 
 ### Após o Deploy
 
-- [ ] Backend está rodando (`http://192.168.10.130:8000`)
-- [ ] Frontend está acessível (`http://192.168.10.130:8000`)
-- [ ] API Docs funcionando (`http://192.168.10.130:8000/docs`)
-- [ ] Health check OK (`http://192.168.10.130:8000/api/health`)
+- [ ] Backend está rodando (`http://192.168.6.40:8000`)
+- [ ] Frontend está acessível (`http://192.168.6.40:8000`)
+- [ ] API Docs funcionando (`http://192.168.6.40:8000/docs`)
+- [ ] Health check OK (`http://192.168.6.40:8000/api/health`)
 
 ## 🔧 Comandos Úteis
 
@@ -161,10 +161,10 @@ sudo systemctl restart vai-de-pix-backend
 
 ```powershell
 # Verificar se o Raspberry Pi está acessível
-ping 192.168.10.130
+ping 192.168.6.40
 
 # Tentar conexão manual
-ssh pi@192.168.10.130
+ssh pi@192.168.6.40
 ```
 
 **Soluções:**
@@ -183,13 +183,13 @@ ssh pi@192.168.10.130
 
 ```bash
 # Verificar logs
-ssh pi@192.168.10.130 "cd ~/vai-de-pix/backend && tail -f logs/*.log"
+ssh pi@192.168.6.40 "cd ~/vai-de-pix/backend && tail -f logs/*.log"
 
 # Verificar se PostgreSQL está rodando
-ssh pi@192.168.10.130 "sudo systemctl status postgresql"
+ssh pi@192.168.6.40 "sudo systemctl status postgresql"
 
 # Verificar variáveis de ambiente
-ssh pi@192.168.10.130 "cd ~/vai-de-pix/backend && cat .env"
+ssh pi@192.168.6.40 "cd ~/vai-de-pix/backend && cat .env"
 ```
 
 ## 📊 Monitoramento
@@ -198,7 +198,7 @@ ssh pi@192.168.10.130 "cd ~/vai-de-pix/backend && cat .env"
 
 ```powershell
 # Health check
-curl http://192.168.10.130:8000/api/health
+curl http://192.168.6.40:8000/api/health
 
 # Ver processos
 .\scripts\connect-rpi5.ps1 "ps aux | grep python"
@@ -216,14 +216,14 @@ curl http://192.168.10.130:8000/api/health
 ssh-keygen -t ed25519 -C "seu-email@exemplo.com"
 
 # Copiar chave para Raspberry Pi
-ssh-copy-id pi@192.168.10.130
+ssh-copy-id pi@192.168.6.40
 ```
 
 Agora você pode conectar sem senha!
 
 ## 📝 Notas
 
-- O IP **192.168.10.130** está configurado nos scripts
+- O IP **192.168.6.40** está configurado nos scripts
 - Para mudar o IP, edite `.rpi5-config` ou passe como parâmetro
 - O usuário padrão é `pi` (pode ser alterado)
 - O diretório padrão é `~/vai-de-pix`
@@ -231,5 +231,5 @@ Agora você pode conectar sem senha!
 ---
 
 **Última atualização**: Janeiro 2025  
-**IP do Raspberry Pi**: 192.168.10.130
+**IP do Raspberry Pi**: 192.168.6.40
 
