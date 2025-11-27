@@ -145,6 +145,22 @@ npm run build
 
 ## 🎯 Executando o Projeto
 
+### ⚠️ IMPORTANTE: Build do Frontend
+
+**Antes de iniciar o servidor, certifique-se de que o frontend foi buildado:**
+
+```bash
+# Opção 1: Usando o script automatizado
+chmod +x scripts/build-frontend-rpi.sh
+./scripts/build-frontend-rpi.sh
+
+# Opção 2: Manualmente
+npm install
+npm run build
+```
+
+O servidor de produção serve tanto a API quanto o frontend, então você **não precisa** de um servidor separado para o frontend.
+
 ### Opção 1: Usando o Script de Inicialização
 
 ```bash
@@ -153,20 +169,16 @@ npm run build
 
 ### Opção 2: Manualmente
 
-#### Terminal 1 - Backend
-
 ```bash
 cd backend
 source venv/bin/activate
 python production_server.py
 ```
 
-#### Terminal 2 - Frontend (servidor estático)
-
-```bash
-cd dist
-python3 -m http.server 8080
-```
+O servidor irá:
+- Servir a API em `http://0.0.0.0:8000/api`
+- Servir o frontend em `http://0.0.0.0:8000/`
+- Documentação da API em `http://0.0.0.0:8000/docs`
 
 ### Opção 3: Usando systemd (Serviço Automático)
 
@@ -325,6 +337,20 @@ sudo netstat -tulpn | grep -E ':(8000|8080|5432)'
 
 # Parar processos se necessário
 sudo kill -9 <PID>
+```
+
+### Problema: Frontend não aparece / Erro 503
+
+**Causa**: O diretório `dist` não existe ou está vazio (frontend não foi buildado).
+
+**Solução**:
+```bash
+# Fazer build do frontend
+npm run build
+
+# Ou usar o script automatizado
+chmod +x scripts/build-frontend-rpi.sh
+./scripts/build-frontend-rpi.sh
 ```
 
 ### Problema: Build do frontend falha por falta de memória
