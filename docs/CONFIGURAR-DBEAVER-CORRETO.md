@@ -3,7 +3,7 @@
 ## ❌ Erro Comum
 
 ```
-Invalid JDBC URL: postgresql://vai_de_pix_user:vai_de_pix_pass@192.168.10.130:5432/vai_de_pix
+Invalid JDBC URL: postgresql://vai_de_pix_user:vai_de_pix_pass@192.168.6.40:5432/vai_de_pix
 ```
 
 **Causa**: Tentar colocar a URL completa no campo "JDBC URL" do DBeaver.
@@ -28,7 +28,7 @@ No DBeaver, **NÃO** use o campo "JDBC URL" diretamente. Preencha os campos indi
    Preencha apenas estes campos:
    
    ```
-   Host:     192.168.10.130
+   Host:     192.168.6.40
    Port:     5432
    Database: vai_de_pix
    Username: vai_de_pix_user
@@ -51,7 +51,7 @@ No DBeaver, **NÃO** use o campo "JDBC URL" diretamente. Preencha os campos indi
 
 | Campo | Valor | Onde Preencher |
 |-------|-------|----------------|
-| **Host** | `192.168.10.130` | Aba "Principal" → Campo "Host" |
+| **Host** | `192.168.6.40` | Aba "Principal" → Campo "Host" |
 | **Port** | `5432` | Aba "Principal" → Campo "Port" |
 | **Database** | `vai_de_pix` | Aba "Principal" → Campo "Database" |
 | **Username** | `vai_de_pix_user` | Aba "Principal" → Campo "Username" |
@@ -61,7 +61,7 @@ No DBeaver, **NÃO** use o campo "JDBC URL" diretamente. Preencha os campos indi
 
 ❌ **NÃO** preencha o campo "JDBC URL" com:
 ```
-postgresql://vai_de_pix_user:vai_de_pix_pass@192.168.10.130:5432/vai_de_pix
+postgresql://vai_de_pix_user:vai_de_pix_pass@192.168.6.40:5432/vai_de_pix
 ```
 
 ✅ **DEIXE** o campo "JDBC URL" vazio ou deixe o DBeaver gerar automaticamente
@@ -70,7 +70,7 @@ postgresql://vai_de_pix_user:vai_de_pix_pass@192.168.10.130:5432/vai_de_pix
 
 Após preencher os campos individuais, o DBeaver automaticamente gerará uma URL como:
 ```
-jdbc:postgresql://192.168.10.130:5432/vai_de_pix
+jdbc:postgresql://192.168.6.40:5432/vai_de_pix
 ```
 
 **Note a diferença:**
@@ -86,7 +86,7 @@ jdbc:postgresql://192.168.10.130:5432/vai_de_pix
 │                                         │
 │  Aba: Principal                        │
 │                                         │
-│  Host:     [192.168.10.130      ]     │
+│  Host:     [192.168.6.40      ]     │
 │  Port:     [5432                ]     │
 │  Database: [vai_de_pix          ]     │
 │  Username: [vai_de_pix_user     ]     │
@@ -136,7 +136,7 @@ sudo grep vai_de_pix /etc/postgresql/*/main/pg_hba.conf
 
 Do seu PC (se tiver psql instalado):
 ```bash
-psql -h 192.168.10.130 -U vai_de_pix_user -d vai_de_pix
+psql -h 192.168.6.40 -U vai_de_pix_user -d vai_de_pix
 ```
 
 ## 📝 Resumo Rápido

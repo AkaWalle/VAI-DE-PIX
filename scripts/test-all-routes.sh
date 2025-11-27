@@ -3,7 +3,7 @@
 # Script para testar todas as rotas da API
 # Uso: ./scripts/test-all-routes.sh [IP_DO_SERVIDOR]
 
-API_URL="${1:-http://192.168.10.130:8000}"
+API_URL="${1:-http://192.168.6.40:8000}"
 
 echo "🧪 Testando todas as rotas da API em $API_URL"
 echo "================================================"

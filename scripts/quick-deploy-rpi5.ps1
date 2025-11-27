@@ -1,7 +1,7 @@
 # Script rápido para deploy no Raspberry Pi 5
 # Configura o IP e executa o deploy
 
-$RPI_IP = "192.168.10.130"
+$RPI_IP = "192.168.6.40"
 $RPI_USER = "pi"
 
 Write-Host "🚀 Deploy Rápido para Raspberry Pi 5" -ForegroundColor Cyan

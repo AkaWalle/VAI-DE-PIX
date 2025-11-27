@@ -13,7 +13,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # IP do Raspberry Pi (pode ser passado como argumento)
-RPI_IP="${1:-192.168.10.130}"
+RPI_IP="${1:-192.168.6.40}"
 RPI_USER="${RPI_USER:-pi}"
 RPI_DIR="${RPI_DIR:-~/vai-de-pix}"
 

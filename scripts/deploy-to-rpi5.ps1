@@ -2,7 +2,7 @@
 # Uso: .\scripts\deploy-to-rpi5.ps1 [IP_DO_RASPBERRY_PI]
 
 param(
-    [string]$RpiIp = "192.168.10.130",
+    [string]$RpiIp = "192.168.6.40",
     [string]$RpiUser = "pi",
     [string]$RpiDir = "~/vai-de-pix"
 )

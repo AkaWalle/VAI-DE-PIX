@@ -8,7 +8,7 @@ Baseado na configuração do projeto no Raspberry Pi:
 
 | Campo | Valor |
 |-------|-------|
-| **Host** | `192.168.10.130` (IP do Raspberry Pi) ou `localhost` (se estiver no próprio Pi) |
+| **Host** | `192.168.6.40` (IP do Raspberry Pi) ou `localhost` (se estiver no próprio Pi) |
 | **Port** | `5432` |
 | **Database** | `vai_de_pix` |
 | **Username** | `vai_de_pix_user` |
@@ -18,7 +18,7 @@ Baseado na configuração do projeto no Raspberry Pi:
 ### URL de Conexão Completa
 
 ```
-postgresql://vai_de_pix_user:vai_de_pix_pass@192.168.10.130:5432/vai_de_pix
+postgresql://vai_de_pix_user:vai_de_pix_pass@192.168.6.40:5432/vai_de_pix
 ```
 
 ## 🔍 Como Obter as Informações do Seu Ambiente
@@ -51,7 +51,7 @@ postgresql://vai_de_pix_user:vai_de_pix_pass@localhost:5432/vai_de_pix
 
 - **Usuário**: `vai_de_pix_user`
 - **Senha**: `vai_de_pix_pass`
-- **Host**: `localhost` (ou `192.168.10.130` para acesso remoto)
+- **Host**: `localhost` (ou `192.168.6.40` para acesso remoto)
 - **Porta**: `5432`
 - **Database**: `vai_de_pix`
 
@@ -69,7 +69,7 @@ postgresql://vai_de_pix_user:vai_de_pix_pass@localhost:5432/vai_de_pix
 3. **Configurar Conexão**
 
    **Aba "Principal":**
-   - **Host**: `192.168.10.130` (IP do Raspberry Pi) ou `localhost`
+   - **Host**: `192.168.6.40` (IP do Raspberry Pi) ou `localhost`
    - **Port**: `5432`
    - **Database**: `vai_de_pix`
    - **Username**: `vai_de_pix_user`
@@ -112,7 +112,7 @@ postgresql://vai_de_pix_user:vai_de_pix_pass@localhost:5432/vai_de_pix
    
    Adicione (ou verifique se existe):
    ```
-   host    vai_de_pix    vai_de_pix_user    192.168.10.0/24    md5
+   host    vai_de_pix    vai_de_pix_user    192.168.6.0/24    md5
    ```
    
    Ou para permitir de qualquer IP na rede local:
@@ -133,7 +133,7 @@ postgresql://vai_de_pix_user:vai_de_pix_pass@localhost:5432/vai_de_pix
 ### Configuração no DBeaver (Acesso Remoto)
 
 Use as mesmas informações, mas com:
-- **Host**: `192.168.10.130` (IP do Raspberry Pi na rede)
+- **Host**: `192.168.6.40` (IP do Raspberry Pi na rede)
 
 ## 🧪 Testar Conexão via Linha de Comando
 
@@ -144,7 +144,7 @@ psql -h localhost -U vai_de_pix_user -d vai_de_pix
 
 Do seu PC (se PostgreSQL client estiver instalado):
 ```bash
-psql -h 192.168.10.130 -U vai_de_pix_user -d vai_de_pix
+psql -h 192.168.6.40 -U vai_de_pix_user -d vai_de_pix
 ```
 
 ## 📝 Script para Obter Informações Automaticamente

@@ -8,7 +8,7 @@ usuário "vai_de_pix_user", banco de dados "postgres", encriptação SSL
 ```
 
 **Causas:**
-1. O IP `10.250.250.2` não está na faixa `192.168.10.0/24` configurada
+1. O IP `10.250.250.2` não está na faixa `192.168.6.0/24` configurada
 2. Está tentando conectar ao banco `postgres` em vez de `vai_de_pix`
 
 ## ✅ Solução
@@ -90,9 +90,9 @@ Adicione no final:
 
 ```
 # Permitir conexões remotas para vai_de_pix
-# Rede 192.168.10.0/24
-host    vai_de_pix    vai_de_pix_user    192.168.10.0/24    md5
-host    postgres      vai_de_pix_user    192.168.10.0/24    md5
+# Rede 192.168.6.0/24
+host    vai_de_pix    vai_de_pix_user    192.168.6.0/24    md5
+host    postgres      vai_de_pix_user    192.168.6.0/24    md5
 
 # Rede 10.250.250.0/24
 host    vai_de_pix    vai_de_pix_user    10.250.250.0/24    md5
