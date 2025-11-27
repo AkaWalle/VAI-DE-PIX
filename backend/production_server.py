@@ -57,8 +57,21 @@ app.include_router(reports.router, prefix="/api/reports", tags=["Reports"])
 # Configurar caminho para arquivos estáticos
 frontend_dist = Path(__file__).parent.parent / "dist"
 
+# Verificar se o diretório dist existe
+if not frontend_dist.exists():
+    print(f"⚠️  AVISO: Diretório frontend não encontrado: {frontend_dist}")
+    print("   Execute 'npm run build' na raiz do projeto para gerar o frontend")
+elif not (frontend_dist / "index.html").exists():
+    print(f"⚠️  AVISO: index.html não encontrado em: {frontend_dist}")
+    print("   Execute 'npm run build' na raiz do projeto para gerar o frontend")
+else:
+    print(f"✅ Frontend encontrado em: {frontend_dist}")
+
 # Servir arquivos estáticos
-app.mount("/assets", StaticFiles(directory=str(frontend_dist / "assets")), name="assets")
+if (frontend_dist / "assets").exists():
+    app.mount("/assets", StaticFiles(directory=str(frontend_dist / "assets")), name="assets")
+else:
+    print(f"⚠️  AVISO: Diretório assets não encontrado em: {frontend_dist / 'assets'}")
 # Montar /examples apenas se o diretório existir
 if (frontend_dist / "examples").exists():
     app.mount("/examples", StaticFiles(directory=str(frontend_dist / "examples")), name="examples")
@@ -87,7 +100,13 @@ async def manifest():
 # Rota raiz serve o frontend (DEVE VIR ANTES DAS ROTAS DA API)
 @app.get("/")
 async def root():
-    return FileResponse(str(frontend_dist / "index.html"))
+    index_file = frontend_dist / "index.html"
+    if not index_file.exists():
+        raise HTTPException(
+            status_code=503,
+            detail=f"Frontend não encontrado. Execute 'npm run build' na raiz do projeto. Procurando em: {frontend_dist}"
+        )
+    return FileResponse(str(index_file))
 
 # API Routes
 @app.get("/api")
@@ -135,7 +154,13 @@ async def serve_spa(full_path: str, request: Request):
         raise HTTPException(status_code=404, detail="API endpoint not found")
     
     # Servir o index.html apenas para GET requests não-API (SPA routing)
-    return FileResponse(str(frontend_dist / "index.html"))
+    index_file = frontend_dist / "index.html"
+    if not index_file.exists():
+        raise HTTPException(
+            status_code=503,
+            detail=f"Frontend não encontrado. Execute 'npm run build' na raiz do projeto. Procurando em: {frontend_dist}"
+        )
+    return FileResponse(str(index_file))
 
 if __name__ == "__main__":
     print("🚀 Iniciando servidor de produção VAI DE PIX...")
