@@ -3,14 +3,21 @@
 // Em desenvolvimento, usa localhost como fallback
 // Para Raspberry Pi, detecta automaticamente o hostname/IP
 const getApiBaseURL = () => {
-  // Prioridade 1: Variável de ambiente (obrigatória em produção)
+  // Prioridade 1: localStorage (permite override manual)
+  if (typeof window !== 'undefined') {
+    const storedUrl = localStorage.getItem("vai-de-pix-api-url");
+    if (storedUrl) {
+      return storedUrl;
+    }
+  }
+  
+  // Prioridade 2: Variável de ambiente (obrigatória em produção)
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
   }
   
-  // Prioridade 2: Em produção, detectar hostname/IP automaticamente
-  if (import.meta.env.PROD) {
-    // Se estiver acessando por IP ou hostname, usar o mesmo para a API
+  // Prioridade 3: Detectar hostname/IP automaticamente (funciona em dev e prod)
+  if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
     const port = window.location.port || (window.location.protocol === 'https:' ? '443' : '80');
     
@@ -23,16 +30,26 @@ const getApiBaseURL = () => {
       return `${window.location.protocol}//${hostname}:${port}/api`;
     }
     
-    // Se for localhost, usar URL relativa (Vercel serverless)
-    return "/api";
+    // Se for localhost em produção, usar URL relativa (Vercel serverless)
+    if (import.meta.env.PROD) {
+      return "/api";
+    }
   }
   
-  // Prioridade 3: Desenvolvimento local
+  // Prioridade 4: Desenvolvimento local
   return "http://localhost:8000/api";
 };
 
+// Função para obter baseURL dinamicamente (chamada em runtime)
+export const getApiBaseURLDynamic = () => {
+  return getApiBaseURL();
+};
+
 export const API_CONFIG = {
-  baseURL: getApiBaseURL(),
+  get baseURL() {
+    // Usar getter para calcular dinamicamente em runtime
+    return getApiBaseURL();
+  },
   timeout: 10000,
 };
 

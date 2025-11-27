@@ -30,23 +30,32 @@ export interface AuthActions {
 
 export type AuthStore = AuthState & AuthActions;
 
-// Simulação de usuários para desenvolvimento
-const mockUsers = [
+// ⚠️ SEGURANÇA: Autenticação mock APENAS em desenvolvimento
+// Em produção, este código NÃO deve ser usado - use a API real
+const isDevelopment = import.meta.env.DEV || import.meta.env.MODE === 'development';
+
+if (isDevelopment) {
+  console.warn('⚠️ MODO DE DESENVOLVIMENTO: Usando autenticação mock. NUNCA use em produção!');
+}
+
+// Simulação de usuários para desenvolvimento APENAS
+// Em produção, estas credenciais não existem e a autenticação deve usar a API
+const mockUsers = isDevelopment ? [
   {
     id: "1",
     name: "João da Silva",
     email: "joao@exemplo.com",
-    password: "123456",
+    password: "dev123", // Senha de desenvolvimento apenas
     createdAt: new Date().toISOString(),
   },
   {
     id: "2",
     name: "Maria Santos",
     email: "maria@exemplo.com",
-    password: "123456",
+    password: "dev123", // Senha de desenvolvimento apenas
     createdAt: new Date().toISOString(),
   },
-];
+] : [];
 
 export const useAuthStore = create<AuthStore>()(
   persist(
@@ -61,10 +70,15 @@ export const useAuthStore = create<AuthStore>()(
         set({ isLoading: true });
 
         try {
+          // ⚠️ SEGURANÇA: Em produção, usar API real, não mock
+          if (!isDevelopment) {
+            throw new Error("Autenticação mock desabilitada em produção. Use a API real.");
+          }
+
           // Simular delay da API
           await new Promise((resolve) => setTimeout(resolve, 1000));
 
-          // Verificar credenciais
+          // Verificar credenciais (apenas em desenvolvimento)
           const mockUser = mockUsers.find(
             (u) => u.email === email && u.password === password,
           );
@@ -101,6 +115,11 @@ export const useAuthStore = create<AuthStore>()(
         set({ isLoading: true });
 
         try {
+          // ⚠️ SEGURANÇA: Em produção, usar API real, não mock
+          if (!isDevelopment) {
+            throw new Error("Registro mock desabilitado em produção. Use a API real.");
+          }
+
           // Simular delay da API
           await new Promise((resolve) => setTimeout(resolve, 1000));
 
@@ -110,12 +129,12 @@ export const useAuthStore = create<AuthStore>()(
             throw new Error("Este email já está em uso");
           }
 
-          // Criar novo usuário
+          // Criar novo usuário (apenas em desenvolvimento)
           const newUser = {
             id: generateUniqueId(),
             name,
             email,
-            password,
+            password, // ⚠️ Apenas em desenvolvimento - nunca em produção
             createdAt: new Date().toISOString(),
           };
 

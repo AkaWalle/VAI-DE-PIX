@@ -1,14 +1,27 @@
 import axios, { AxiosResponse, AxiosError } from "axios";
-import { API_CONFIG } from "./api";
+import { API_CONFIG, getApiBaseURLDynamic } from "./api";
 
-// Create axios instance
+// Create axios instance with dynamic baseURL
 export const httpClient = axios.create({
-  baseURL: API_CONFIG.baseURL,
+  baseURL: getApiBaseURLDynamic(),
   timeout: API_CONFIG.timeout,
   headers: {
     "Content-Type": "application/json",
   },
 });
+
+// Atualizar baseURL dinamicamente se necessário
+if (typeof window !== 'undefined') {
+  // Interceptor para garantir que baseURL está sempre atualizado
+  httpClient.interceptors.request.use((config) => {
+    // Recalcular baseURL em cada requisição para garantir que está correto
+    const currentBaseURL = getApiBaseURLDynamic();
+    if (config.baseURL !== currentBaseURL) {
+      config.baseURL = currentBaseURL;
+    }
+    return config;
+  });
+}
 
 // Token management
 const TOKEN_KEY = "vai-de-pix-token";
