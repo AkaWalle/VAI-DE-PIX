@@ -7,6 +7,7 @@ Execute: python production_server.py
 from fastapi import FastAPI, Depends, HTTPException, status, Request
 from fastapi.requests import Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.base import BaseHTTPMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
