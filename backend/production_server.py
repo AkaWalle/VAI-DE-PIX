@@ -49,8 +49,13 @@ class APIRouteProtectionMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         # Se for uma requisição para a API, garantir que não seja interceptada
         if request.url.path.startswith("/api/"):
+            # Log para debug
+            print(f"🔒 [Middleware] Protegendo rota da API: {request.method} {request.url.path}")
             # Deixar o FastAPI processar normalmente
             response = await call_next(request)
+            # Se retornar 404, pode ser que a rota não esteja registrada
+            if response.status_code == 404:
+                print(f"⚠️  [Middleware] Rota da API retornou 404: {request.method} {request.url.path}")
             return response
         
         # Para outras rotas, processar normalmente
@@ -186,19 +191,21 @@ async def serve_spa(full_path: str, request: Request):
     # NUNCA servir frontend para rotas de API
     path = request.url.path
     
-    # Se for rota de API, retornar 404 (as rotas da API devem ter sido processadas antes)
+    # Se for rota de API, isso não deveria acontecer - as rotas da API devem ter sido processadas antes
     if path.startswith("/api/"):
         # Se chegou aqui, significa que a rota da API não foi encontrada
-        # Isso não deveria acontecer se as rotas estiverem registradas corretamente
-        print(f"⚠️  [SPA Route] Tentativa de acessar rota de API não encontrada: {path}")
+        # Isso pode acontecer se a rota não estiver registrada ou se houver um problema
+        print(f"⚠️  [SPA Route] ERRO: Rota de API não encontrada: {path}")
+        print(f"    Método: {request.method}")
+        print(f"    Verifique se a rota está registrada corretamente")
         raise HTTPException(
             status_code=404, 
-            detail=f"API endpoint not found: {path}. Verifique se a rota está registrada corretamente."
+            detail=f"API endpoint not found: {path}"
         )
     
     # Também verificar o full_path (sem barra inicial)
     if full_path.startswith("api/"):
-        print(f"⚠️  [SPA Route] Tentativa de acessar rota de API não encontrada: /{full_path}")
+        print(f"⚠️  [SPA Route] ERRO: Rota de API não encontrada: /{full_path}")
         raise HTTPException(
             status_code=404, 
             detail=f"API endpoint not found: /{full_path}"
