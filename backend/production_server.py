@@ -43,6 +43,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Middleware para garantir que rotas da API não sejam interceptadas pela rota catch-all
+class APIRouteProtectionMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        # Se for uma requisição para a API, garantir que não seja interceptada
+        if request.url.path.startswith("/api/"):
+            # Deixar o FastAPI processar normalmente
+            response = await call_next(request)
+            return response
+        
+        # Para outras rotas, processar normalmente
+        response = await call_next(request)
+        return response
+
+app.add_middleware(APIRouteProtectionMiddleware)
+
 # Security
 security = HTTPBearer()
 
