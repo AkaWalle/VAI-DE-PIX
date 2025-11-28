@@ -14,6 +14,10 @@ if [ ! -f "package.json" ]; then
     exit 1
 fi
 
+# Atualizar código antes de fazer build
+echo "📥 Atualizando código do repositório..."
+git pull origin raspberry-pi-5 || echo "⚠️  Não foi possível atualizar (pode não ser um repositório git)"
+
 # Verificar se node_modules existe
 if [ ! -d "node_modules" ]; then
     echo "📦 Instalando dependências do frontend..."
