@@ -2,23 +2,33 @@ import axios, { AxiosResponse, AxiosError } from "axios";
 import { API_CONFIG, getApiBaseURLDynamic } from "./api";
 
 // Create axios instance with dynamic baseURL
+const initialBaseURL = typeof window !== 'undefined' ? getApiBaseURLDynamic() : 'http://localhost:8000/api';
+console.log('🚀 [HTTP Client] Inicializando com baseURL:', initialBaseURL);
+
 export const httpClient = axios.create({
-  baseURL: getApiBaseURLDynamic(),
+  baseURL: initialBaseURL,
   timeout: API_CONFIG.timeout,
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-// Atualizar baseURL dinamicamente se necessário
+// Atualizar baseURL dinamicamente em cada requisição
 if (typeof window !== 'undefined') {
   // Interceptor para garantir que baseURL está sempre atualizado
   httpClient.interceptors.request.use((config) => {
-    // Recalcular baseURL em cada requisição para garantir que está correto
+    // SEMPRE recalcular baseURL em cada requisição
     const currentBaseURL = getApiBaseURLDynamic();
-    if (config.baseURL !== currentBaseURL) {
-      config.baseURL = currentBaseURL;
+    
+    // Forçar atualização da baseURL
+    config.baseURL = currentBaseURL;
+    
+    // Log para debug
+    if (config.url) {
+      const fullUrl = config.baseURL + config.url;
+      console.log('🌐 [HTTP Client] Requisição:', config.method?.toUpperCase(), fullUrl);
     }
+    
     return config;
   });
 }
