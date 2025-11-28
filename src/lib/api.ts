@@ -7,37 +7,45 @@ const getApiBaseURL = () => {
   if (typeof window !== 'undefined') {
     const storedUrl = localStorage.getItem("vai-de-pix-api-url");
     if (storedUrl) {
+      console.log('🔧 [API] Usando URL do localStorage:', storedUrl);
       return storedUrl;
     }
   }
   
   // Prioridade 2: Variável de ambiente (obrigatória em produção)
   if (import.meta.env.VITE_API_URL) {
+    console.log('🔧 [API] Usando URL da variável de ambiente:', import.meta.env.VITE_API_URL);
     return import.meta.env.VITE_API_URL;
   }
   
   // Prioridade 3: Detectar hostname/IP automaticamente (funciona em dev e prod)
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
-    const port = window.location.port || (window.location.protocol === 'https:' ? '443' : '80');
+    const currentPort = window.location.port;
+    const protocol = window.location.protocol;
+    
+    console.log('🔧 [API] Detecção automática:', { hostname, currentPort, protocol });
     
     // Se não for localhost/127.0.0.1, usar o hostname/IP atual
     if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
-      // Se porta 80 ou 443, não incluir porta na URL
-      if (port === '80' || port === '443' || !port) {
-        return `${window.location.protocol}//${hostname}/api`;
-      }
-      return `${window.location.protocol}//${hostname}:${port}/api`;
+      // Sempre usar a mesma porta que o frontend está usando
+      const apiPort = currentPort || '8000';
+      const apiUrl = `${protocol}//${hostname}:${apiPort}/api`;
+      console.log('🔧 [API] URL detectada (rede):', apiUrl);
+      return apiUrl;
     }
     
     // Se for localhost em produção, usar URL relativa (Vercel serverless)
     if (import.meta.env.PROD) {
+      console.log('🔧 [API] Usando URL relativa (produção):', '/api');
       return "/api";
     }
   }
   
   // Prioridade 4: Desenvolvimento local
-  return "http://localhost:8000/api";
+  const localUrl = "http://localhost:8000/api";
+  console.log('🔧 [API] Usando URL padrão (desenvolvimento):', localUrl);
+  return localUrl;
 };
 
 // Função para obter baseURL dinamicamente (chamada em runtime)
