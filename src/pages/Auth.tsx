@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/stores/auth-store-index";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,8 +24,16 @@ import {
 import { useToast } from "@/hooks/use-toast";
 
 export default function Auth() {
-  const { login, register, isLoading } = useAuthStore();
+  const { login, register, isLoading, isAuthenticated } = useAuthStore();
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  // Redirecionar se já estiver autenticado
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/", { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   const [loginForm, setLoginForm] = useState({
     email: "",
@@ -55,6 +64,8 @@ export default function Auth() {
         title: "Login realizado com sucesso!",
         description: "Bem-vindo de volta ao VAI DE PIX.",
       });
+      // Redirecionar para o dashboard após login bem-sucedido
+      navigate("/", { replace: true });
     } catch (error) {
       setError(error instanceof Error ? error.message : "Erro ao fazer login");
     }
@@ -94,6 +105,8 @@ export default function Auth() {
         title: "Conta criada com sucesso!",
         description: "Bem-vindo ao VAI DE PIX.",
       });
+      // Redirecionar para o dashboard após registro bem-sucedido
+      navigate("/", { replace: true });
     } catch (error) {
       setError(error instanceof Error ? error.message : "Erro ao criar conta");
     }
