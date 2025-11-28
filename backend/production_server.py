@@ -48,6 +48,7 @@ security = HTTPBearer()
 
 # Include routers
 # IMPORTANTE: Registrar rotas da API ANTES da rota catch-all do SPA
+# O FastAPI processa rotas na ordem de registro, mas rotas mais específicas têm prioridade
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(transactions.router, prefix="/api/transactions", tags=["Transactions"])
 app.include_router(goals.router, prefix="/api/goals", tags=["Goals"])
@@ -56,12 +57,27 @@ app.include_router(categories.router, prefix="/api/categories", tags=["Categorie
 app.include_router(accounts.router, prefix="/api/accounts", tags=["Accounts"])
 app.include_router(reports.router, prefix="/api/reports", tags=["Reports"])
 
-# Debug: Verificar rotas registradas
-if __name__ == "__main__":
-    print("📋 Rotas da API registradas:")
+# Debug: Verificar rotas registradas ao iniciar
+def print_registered_routes():
+    """Imprime todas as rotas registradas para debug"""
+    print("\n📋 Rotas da API registradas:")
+    api_routes = []
     for route in app.routes:
         if hasattr(route, 'path') and route.path.startswith('/api'):
-            print(f"   {route.methods if hasattr(route, 'methods') else 'N/A'} {route.path}")
+            methods = getattr(route, 'methods', set())
+            methods_str = ', '.join(sorted(methods)) if methods else 'N/A'
+            api_routes.append(f"   {methods_str:15} {route.path}")
+    
+    if api_routes:
+        for route in api_routes:
+            print(route)
+    else:
+        print("   ⚠️  Nenhuma rota da API encontrada!")
+    print()
+
+# Chamar ao iniciar
+if __name__ == "__main__":
+    print_registered_routes()
 
 # Configurar caminho para arquivos estáticos
 frontend_dist = Path(__file__).parent.parent / "dist"
@@ -151,21 +167,22 @@ async def protected_route(
 @app.get("/{full_path:path}")
 async def serve_spa(full_path: str, request: Request):
     """Serve o frontend React para todas as rotas não-API (apenas GET)"""
-    # NUNCA servir frontend para rotas de API - verificar em múltiplos lugares
+    # NUNCA servir frontend para rotas de API
     path = request.url.path
     
-    # Se for rota de API, não servir frontend (deixar FastAPI retornar 404 naturalmente)
-    # Isso garante que rotas de API sejam processadas primeiro
+    # Se for rota de API, retornar 404 (as rotas da API devem ter sido processadas antes)
     if path.startswith("/api/"):
-        # Se chegou aqui, a rota da API não foi encontrada
-        # Retornar 404 apropriado para API
+        # Se chegou aqui, significa que a rota da API não foi encontrada
+        # Isso não deveria acontecer se as rotas estiverem registradas corretamente
+        print(f"⚠️  [SPA Route] Tentativa de acessar rota de API não encontrada: {path}")
         raise HTTPException(
             status_code=404, 
-            detail=f"API endpoint not found: {path}"
+            detail=f"API endpoint not found: {path}. Verifique se a rota está registrada corretamente."
         )
     
     # Também verificar o full_path (sem barra inicial)
     if full_path.startswith("api/"):
+        print(f"⚠️  [SPA Route] Tentativa de acessar rota de API não encontrada: /{full_path}")
         raise HTTPException(
             status_code=404, 
             detail=f"API endpoint not found: /{full_path}"
