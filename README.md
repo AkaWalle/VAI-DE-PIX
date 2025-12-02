@@ -1,234 +1,263 @@
-# 💰 Vai de Pix
+# 💰 VAI DE PIX
 
-**Sistema Completo de Controle Financeiro Pessoal**
+<div align="center">
 
-Um sistema moderno e intuitivo para gerenciar suas finanças pessoais com
-análises inteligentes, automações e interface responsiva.
+![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
+![Build](https://img.shields.io/badge/build-passing-brightgreen.svg)
+![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)
+![Node](https://img.shields.io/badge/Node-20.x-green.svg)
 
-![Version](https://img.shields.io/badge/version-1.1.1-blue.svg)
-![React](https://img.shields.io/badge/React-18.3.1-blue.svg)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.8.3-blue.svg)
-![Tailwind](https://img.shields.io/badge/Tailwind-3.4.17-blue.svg)
-![Vite](https://img.shields.io/badge/Vite-5.4.19-purple.svg)
+**Sistema Completo de Controle Financeiro Pessoal com Interface Kiosk para Raspberry Pi**
 
-## 🚀 Começando
+[🚀 Começar](#-instalação-rápida) • [📖 Documentação](#-documentação) • [🤝 Contribuir](CONTRIBUTING.md) • [🍓 Raspberry Pi](SETUP-RASPBERRY-PI.md)
 
-### Pré-requisitos
+</div>
 
-- **Node.js** >= 18.0.0
-- **Python** >= 3.9
-- **npm**, **yarn** ou **pnpm**
-- **pip** (gerenciador de pacotes Python)
+---
 
-## 📦 Instalação
+## 📸 Preview
+
+> **💡 Em breve:** Screenshot ou GIF da aplicação rodando no totem Raspberry Pi 5
+
+## 🎯 O que é?
+
+**VAI DE PIX** é um sistema completo de gestão financeira pessoal desenvolvido para funcionar como **totem kiosk** em Raspberry Pi 5, mas também pode ser usado em qualquer dispositivo via navegador.
+
+### ✨ Features Principais
+
+- 💳 **Gestão Completa de Transações** - Receitas, despesas, categorização inteligente
+- 🎯 **Metas Financeiras** - Defina objetivos e acompanhe progresso em tempo real
+- 📦 **Sistema de Caixinhas (Envelopes)** - Organize seu dinheiro por categoria/objetivo
+- 📊 **Dashboard Interativo** - Gráficos, relatórios e análises detalhadas
+- 🤖 **Automações Inteligentes** - Transações recorrentes, alertas e lembretes
+- 🔐 **Autenticação Segura** - JWT, criptografia de senhas, proteção de rotas
+- 📱 **Interface Responsiva** - Funciona perfeitamente em desktop, tablet e mobile
+- 🍓 **Modo Kiosk Raspberry Pi** - Transforme seu Pi 5 em totem 24/7
+
+## 🛠 Stack Tecnológica
 
 ### Frontend
-
-```bash
-# Verificar versão do Node.js
-node -v
-
-# Instalar dependências
-npm install
-# ou
-yarn install
-# ou
-pnpm install
-```
+- **React 18.3** + **TypeScript 5.8** - Interface moderna e type-safe
+- **Vite 7.2** - Build tool ultra-rápido
+- **Tailwind CSS 3.4** - Estilização utility-first
+- **Zustand** - Gerenciamento de estado leve
+- **React Router 6** - Roteamento SPA
+- **Recharts** - Gráficos e visualizações
+- **Radix UI** - Componentes acessíveis
 
 ### Backend
+- **FastAPI 0.104** - API REST moderna e rápida
+- **PostgreSQL** - Banco de dados relacional robusto
+- **SQLAlchemy 1.4** - ORM Python
+- **Alembic** - Migrações de banco de dados
+- **JWT** - Autenticação stateless
+- **Pydantic** - Validação de dados
+- **Uvicorn/Gunicorn** - Servidor ASGI de produção
+
+### Infraestrutura
+- **Docker** - Containerização
+- **Docker Compose** - Orquestração local
+- **Raspberry Pi 5** - Hardware kiosk
+- **PostgreSQL** - Banco de dados
+
+## 🚀 Instalação Rápida
+
+### Opção 1: Desenvolvimento Local (5 minutos)
 
 ```bash
-# Navegar para o diretório backend
+# 1. Clonar repositório
+git clone https://github.com/AkaWalle/VAI-DE-PIX.git
+cd VAI-DE-PIX
+git checkout raspberry-pi-5
+
+# 2. Backend
 cd backend
-
-# Criar ambiente virtual (recomendado)
 python -m venv venv
-
-# Ativar ambiente virtual
-# Windows:
-venv\Scripts\activate
-# Linux/Mac:
-source venv/bin/activate
-
-# Instalar dependências
+source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
+cp .env.example .env  # Edite com suas configurações
+python init_db.py
+python main.py  # http://localhost:8000
 
-# Configurar variáveis de ambiente
-# Opção 1: Usar script automático (recomendado)
-python scripts/setup_env.py
-
-# Opção 2: Copiar manualmente
-cp .env.example .env
-# Edite o arquivo .env com suas configurações
-
-# Validar configuração
-python scripts/validate_env.py
+# 3. Frontend (novo terminal)
+cd ..
+npm install
+npm run dev  # http://localhost:5000
 ```
 
-## 🛠 Uso
+### Opção 2: Docker (1 comando)
 
-### Configuração de Ambiente
+```bash
+docker-compose up -d
+```
 
-#### Variáveis de Ambiente do Backend (.env)
+Acesse:
+- **Frontend:** http://localhost:8080
+- **Backend API:** http://localhost:8000
+- **API Docs:** http://localhost:8000/docs
+
+### Opção 3: Raspberry Pi 5 Kiosk (Comando Único)
+
+```bash
+# No Raspberry Pi 5
+git clone https://github.com/AkaWalle/VAI-DE-PIX.git
+cd VAI-DE-PIX
+git checkout raspberry-pi-5
+chmod +x scripts/setup-raspberry-pi.sh
+./scripts/setup-raspberry-pi.sh
+```
+
+**Pronto!** O sistema estará rodando em modo kiosk 24/7. Veja [SETUP-RASPBERRY-PI.md](SETUP-RASPBERRY-PI.md) para detalhes completos.
+
+## ⚙️ Variáveis de Ambiente
+
+### Backend (`backend/.env`)
 
 ```env
-# Database Configuration
-DATABASE_URL=sqlite:///./vai_de_pix.db  # SQLite para desenvolvimento
-# ou
-# DATABASE_URL=postgresql://user:password@localhost:5432/vai_de_pix  # PostgreSQL
+# Database
+DATABASE_URL=postgresql://user:pass@localhost:5432/vai_de_pix
 
 # Security
-SECRET_KEY=your-super-secret-key-here-change-in-production
+SECRET_KEY=your-super-secret-key-minimum-32-characters
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 
-# Server Configuration
+# Server
 PORT=8000
-HOST=0.0.0.0
-DEBUG=True
+ENVIRONMENT=production
 
-# Frontend URL (for CORS)
+# Frontend (CORS)
 FRONTEND_URL=http://localhost:5000
 ```
 
-#### Variáveis de Ambiente do Frontend (.env.local)
+### Frontend (`.env.local`)
 
 ```env
-# API Configuration
 VITE_API_URL=http://localhost:8000/api
-
-# App Configuration
 VITE_APP_NAME=VAI DE PIX
 VITE_APP_VERSION=1.0.0
 ```
 
-### Desenvolvimento
+## 📚 Documentação
 
-#### Iniciar Backend
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Arquitetura do sistema e estrutura de pastas
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** - Como contribuir com o projeto
+- **[SETUP-RASPBERRY-PI.md](SETUP-RASPBERRY-PI.md)** - Guia completo para Raspberry Pi 5
+- **[CHANGELOG.md](CHANGELOG.md)** - Histórico de versões e mudanças
 
-```bash
-cd backend
-# Com ambiente virtual ativado
-python main.py
-```
-
-**Backend disponível em:**
-
-- **API:** http://localhost:8000
-- **Documentação:** http://localhost:8000/docs
-- **Health Check:** http://localhost:8000/api/health
-
-#### Iniciar Frontend
-
-```bash
-# Na raiz do projeto
-npm run dev
-# ou
-yarn dev
-# ou
-pnpm dev
-```
-
-**Frontend disponível em:**
-
-- **Local:** http://localhost:5000/
-- **Rede:** http://192.168.x.x:5000/
-
-### Build para Produção
-
-```bash
-# Gerar build otimizada
-npm run build
-
-# Visualizar build localmente
-npm run preview
-```
-
-### Verificação de Código
-
-```bash
-# Executar linter
-npm run lint
-```
-
-## 🔧 Configuração
+## 🎮 Como Usar
 
 ### Credenciais de Teste
 
-**Usuários Pré-configurados:**
+- **Email:** `admin@vaidepix.com`
+- **Senha:** `123456`
 
-- **Email:** `joao@exemplo.com` | **Senha:** `123456`
-- **Email:** `maria@exemplo.com` | **Senha:** `123456`
+Ou crie uma nova conta diretamente na interface.
 
-**Ou crie uma nova conta:**
+### Funcionalidades
 
-- Qualquer email válido
-- Senha mínima de 6 caracteres
+1. **Dashboard** - Visão geral das finanças com gráficos interativos
+2. **Transações** - Adicione receitas e despesas com categorização
+3. **Metas** - Defina objetivos financeiros e acompanhe progresso
+4. **Caixinhas** - Organize dinheiro por categoria/objetivo
+5. **Relatórios** - Análises detalhadas por período, categoria, etc.
+6. **Configurações** - Gerencie contas, categorias e perfil
 
-### Funcionalidades Principais
+## 🧪 Testes
 
-#### 🔐 Sistema de Autenticação
+```bash
+# Frontend
+npm run test
 
-- ✅ **Login/Cadastro** - Sistema completo com validação
-- ✅ **Proteção de Rotas** - Acesso seguro às funcionalidades
-- ✅ **Persistência de Sessão** - Mantém login após refresh
-- ✅ **Logout Seguro** - Botão de sair no sidebar
+# Backend
+cd backend
+pytest
 
-#### 💳 Gestão de Transações
+# E2E
+npm run test:e2e
+```
 
-- ✅ **Criar Transações** - Receitas e despesas com categorização
-- ✅ **Filtros Avançados** - Por tipo, categoria, período
-- ✅ **Importação/Exportação** - CSV com dados filtrados
-- ✅ **Validações** - Formulários com verificação completa
+## 📦 Estrutura do Projeto
 
-#### 🎯 Metas Financeiras
+```
+VAI-DE-PIX/
+├── backend/              # API FastAPI + PostgreSQL
+│   ├── routers/         # Endpoints da API
+│   ├── models/          # Modelos SQLAlchemy
+│   ├── repositories/    # Camada de acesso a dados
+│   ├── services/        # Lógica de negócio
+│   └── alembic/         # Migrações de banco
+├── src/                  # Frontend React + TypeScript
+│   ├── components/      # Componentes React
+│   ├── pages/           # Páginas da aplicação
+│   ├── services/        # Serviços de API
+│   └── stores/          # Estado global (Zustand)
+├── scripts/             # Scripts de automação
+├── docs/                 # Documentação adicional
+└── docker-compose.yml   # Orquestração Docker
+```
 
-- ✅ **Criar Metas** - Objetivos com prazo e categoria
-- ✅ **Acompanhar Progresso** - Barra de progresso visual
-- ✅ **Adicionar Valores** - Contribuições para metas
-- ✅ **Remover Metas** - Com confirmação destrutiva
+Veja [ARCHITECTURE.md](ARCHITECTURE.md) para detalhes completos.
 
-#### 📦 Sistema de Caixinhas (Envelopes)
+## 🐛 Troubleshooting
 
-- ✅ **Criar Caixinhas** - Organização por categoria/objetivo
-- ✅ **Gerenciar Saldos** - Adicionar e retirar valores
-- ✅ **Cores Personalizadas** - Visual organizado
-- ✅ **Remover Caixinhas** - Com confirmação destrutiva
+### Problema: Porta 8000 já em uso
 
-#### 📊 Análises e Relatórios
+```bash
+# Linux/Mac
+sudo lsof -ti:8000 | xargs kill -9
 
-- ✅ **Dashboard Interativo** - Visão geral com gráficos
-- ✅ **Relatórios Detalhados** - Análises por período
-- ✅ **Tendências** - Padrões e previsões inteligentes
-- ✅ **Exportação** - Relatórios em JSON/CSV
+# Windows
+netstat -ano | findstr :8000
+taskkill /PID <PID> /F
+```
 
-#### ⚙️ Configurações do Sistema
+### Problema: Frontend não conecta à API
 
-- ✅ **Perfil do Usuário** - Editar informações pessoais
-- ✅ **Gerenciar Contas** - Bancos, cartões, investimentos
-- ✅ **Gerenciar Categorias** - Personalizar com cores e ícones
-- ✅ **Temas** - Claro, escuro ou automático
-- ✅ **Backup de Dados** - Exportar configurações
+1. Verifique se o backend está rodando: `curl http://localhost:8000/api/health`
+2. Verifique `VITE_API_URL` no `.env.local`
+3. Limpe cache: `npm run clean && npm install`
 
-#### 🤖 Automações Inteligentes
+### Problema: Erro de migração do banco
 
-- ✅ **Transações Recorrentes** - Salários, contas mensais
-- ✅ **Alertas de Orçamento** - Notificações por categoria
-- ✅ **Lembretes de Metas** - Contribuições periódicas
-- ✅ **Webhooks** - Integrações externas
-- ✅ **Ativar/Desativar** - Controle individual de regras
+```bash
+cd backend
+alembic upgrade head
+```
 
 ## 🤝 Contribuindo
 
-Consulte o arquivo [CONTRIBUTING.md](CONTRIBUTING.md) para detalhes sobre nosso
-código de conduta e processo de submissão de pull requests.
+Contribuições são bem-vindas! Veja [CONTRIBUTING.md](CONTRIBUTING.md) para:
+
+- Como fazer fork e criar branches
+- Padrões de código e commits
+- Processo de Pull Request
+- Como reportar bugs
 
 ## 📄 Licença
 
-Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais
-detalhes.
+Este projeto está sob a licença **MIT**. Veja [LICENSE](LICENSE) para detalhes.
+
+## 👨‍💻 Autor
+
+**Wallace Ventura**
+
+- GitHub: [@AkaWalle](https://github.com/AkaWalle)
+- Projeto: [VAI-DE-PIX](https://github.com/AkaWalle/VAI-DE-PIX)
+
+## 🙏 Agradecimentos
+
+- Comunidade React e FastAPI
+- Mantenedores das bibliotecas open-source utilizadas
+- Contribuidores do projeto
 
 ---
 
+<div align="center">
+
 **💰 VAI DE PIX - Sua vida financeira na palma da mão!**
+
+[⭐ Dê uma estrela](https://github.com/AkaWalle/VAI-DE-PIX) se este projeto te ajudou!
+
+</div>
