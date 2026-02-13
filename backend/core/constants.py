@@ -1,0 +1,55 @@
+"""
+Constantes do sistema VAI DE PIX
+Centraliza valores mágicos e configurações
+"""
+
+# Limites de transações
+MAX_TRANSACTION_AMOUNT = 100_000_000  # R$ 100 milhões
+MIN_TRANSACTION_AMOUNT = 0.01  # R$ 0,01
+
+# Paginação
+DEFAULT_PAGE_SIZE = 100
+MAX_PAGE_SIZE = 1000
+MIN_PAGE_SIZE = 1
+
+# Validação de senha
+MIN_PASSWORD_LENGTH = 6
+MAX_PASSWORD_LENGTH = 128
+
+# Validação de nome
+MIN_NAME_LENGTH = 2
+MAX_NAME_LENGTH = 100
+
+# Tipos de conta
+ACCOUNT_TYPE_CHECKING = "checking"
+ACCOUNT_TYPE_SAVINGS = "savings"
+ACCOUNT_TYPE_INVESTMENT = "investment"
+ACCOUNT_TYPE_CREDIT = "credit"
+ACCOUNT_TYPE_CASH = "cash"
+
+ACCOUNT_TYPES = [
+    ACCOUNT_TYPE_CHECKING,
+    ACCOUNT_TYPE_SAVINGS,
+    ACCOUNT_TYPE_INVESTMENT,
+    ACCOUNT_TYPE_CREDIT,
+    ACCOUNT_TYPE_CASH,
+]
+
+# Tipos de transação
+TRANSACTION_TYPE_INCOME = "income"
+TRANSACTION_TYPE_EXPENSE = "expense"
+
+TRANSACTION_TYPES = [
+    TRANSACTION_TYPE_INCOME,
+    TRANSACTION_TYPE_EXPENSE,
+]
+
+# Tipos de categoria
+CATEGORY_TYPE_INCOME = "income"
+CATEGORY_TYPE_EXPENSE = "expense"
+
+CATEGORY_TYPES = [
+    CATEGORY_TYPE_INCOME,
+    CATEGORY_TYPE_EXPENSE,
+]
+

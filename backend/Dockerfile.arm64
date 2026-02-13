@@ -1,0 +1,49 @@
+# Dockerfile otimizado para Raspberry Pi 5 (ARM64)
+# Use Python 3.11 slim image com suporte ARM64
+FROM python:3.11-slim
+
+# Metadados
+LABEL maintainer="Vai de Pix Team"
+LABEL description="Backend Vai de Pix para Raspberry Pi 5"
+LABEL architecture="arm64"
+
+# Set working directory
+WORKDIR /app
+
+# Instalar dependências do sistema (otimizado para ARM)
+RUN apt-get update && apt-get install -y \
+    gcc \
+    postgresql-client \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copiar requirements e instalar dependências Python
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Copiar código da aplicação
+COPY . .
+
+# Criar usuário não-root
+RUN useradd --create-home --shell /bin/bash app \
+    && chown -R app:app /app
+
+USER app
+
+# Expor porta
+EXPOSE 8000
+
+# Health check (usando curl que foi instalado)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8000/api/health || exit 1
+
+# Variáveis de ambiente padrão para RPi 5
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV WORKERS=2
+ENV PORT=8000
+
+# Comando para produção no RPi 5 (usando Gunicorn com menos workers)
+CMD ["sh", "-c", "python -m gunicorn production_server:app -c gunicorn_config.py --bind 0.0.0.0:${PORT} --workers ${WORKERS} --worker-class uvicorn.workers.UvicornWorker --timeout 120"]
+

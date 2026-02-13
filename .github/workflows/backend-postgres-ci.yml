@@ -1,0 +1,93 @@
+# Backend CI com PostgreSQL (Linux only)
+# Banco limpo por execução; migrations + testes completos; nenhuma falha ignorada.
+
+name: Backend CI (PostgreSQL)
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  PYTHON_VERSION: "3.11"
+  DATABASE_URL: postgresql://vai_de_pix_user:vai_de_pix_pass@localhost:5432/vai_de_pix
+
+jobs:
+  backend-postgres:
+    name: Backend + Postgres (alembic + pytest)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: vai_de_pix
+          POSTGRES_USER: vai_de_pix_user
+          POSTGRES_PASSWORD: vai_de_pix_pass
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U vai_de_pix_user -d vai_de_pix"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Instalação de dependências
+        working-directory: ./backend
+        run: |
+          echo "Instalando backend/requirements.txt..."
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          if [ -f requirements-test.txt ]; then
+            echo "Instalando backend/requirements-test.txt..."
+            pip install -r requirements-test.txt
+          else
+            echo "backend/requirements-test.txt não encontrado; pulando."
+          fi
+
+      - name: Instalar postgresql-client
+        run: |
+          echo "Instalando postgresql-client para pg_isready..."
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+          echo "postgresql-client instalado."
+
+      - name: Aguardar Postgres ficar pronto
+        run: |
+          echo "Aguardando Postgres aceitar conexões..."
+          until pg_isready -h localhost -p 5432 -U vai_de_pix_user -d vai_de_pix; do
+            echo "Postgres ainda não está pronto; aguardando..."
+            sleep 2
+          done
+          echo "Postgres está pronto."
+
+      - name: Alembic upgrade head
+        working-directory: ./backend
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+        run: |
+          echo "Executando alembic upgrade head..."
+          python -m alembic upgrade head
+          echo "Migrations aplicadas com sucesso."
+
+      - name: Executar testes (pytest)
+        working-directory: ./backend
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+          SECRET_KEY: ci-secret-key-minimum-32-characters-long
+        run: |
+          echo "Executando pytest (tests/ --ignore=tests/e2e -x)..."
+          python -m pytest tests/ --ignore=tests/e2e -v --tb=short -x
+          echo "Todos os testes passaram."
