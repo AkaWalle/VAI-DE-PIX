@@ -99,11 +99,23 @@ try:
     else:
         print("→ [DATABASE] Usando PostgreSQL")
         # Para PostgreSQL, garantir codificação UTF-8 e usar client_encoding
-        engine = create_engine(
-            DATABASE_URL,
-            connect_args={"client_encoding": "utf8"} if "postgresql" in DATABASE_URL else {},
-            encoding='utf-8'
-        )
+        connect_args = {"client_encoding": "utf8"} if "postgresql" in DATABASE_URL else {}
+        # Em produção (Vercel/Neon serverless): pool mínimo para não esgotar conexões
+        if is_production:
+            engine = create_engine(
+                DATABASE_URL,
+                connect_args=connect_args,
+                encoding='utf-8',
+                pool_pre_ping=True,
+                pool_size=1,
+                max_overflow=0,
+            )
+        else:
+            engine = create_engine(
+                DATABASE_URL,
+                connect_args=connect_args,
+                encoding='utf-8'
+            )
     print("→ [DATABASE] Engine criado com sucesso")
 except Exception as e:
     print(f"→ [DATABASE] ERRO ao criar engine: {type(e).__name__}: {str(e)}")
