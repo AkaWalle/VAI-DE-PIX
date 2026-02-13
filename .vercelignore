@@ -1,0 +1,21 @@
+# Ignorar arquivos desnecessários no deploy Vercel
+# backend/ - REMOVIDO: necessário para serverless functions
+.docs/
+tests/
+*.db
+*.sqlite
+*.sqlite3
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+coverage/
+htmlcov/
+.vscode/
+.idea/
+*.log
+node_modules/.vite/
+dist/
+build/
+.env.local
+.env.*.local

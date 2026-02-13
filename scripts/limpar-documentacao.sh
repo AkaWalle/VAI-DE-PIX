@@ -1,0 +1,96 @@
+#!/bin/bash
+
+# Script para limpar documentação obsoleta
+# Execute: bash scripts/limpar-documentacao.sh
+
+set -e
+
+echo "🧹 Limpando documentação obsoleta..."
+echo "=================================================="
+
+cd "$(dirname "$0")/.."
+
+# Criar backup (opcional)
+if [ ! -d "docs/backup" ]; then
+    echo "📦 Criando backup..."
+    mkdir -p docs/backup
+    cp -r docs/*.md docs/backup/ 2>/dev/null || true
+    echo "   ✅ Backup criado em docs/backup/"
+fi
+
+cd docs
+
+echo ""
+echo "🗑️  Excluindo arquivos obsoletos..."
+
+# Deploy Vercel obsoletos
+echo "   - Deploy Vercel obsoletos..."
+rm -f ACAO_IMEDIATA_DEPLOY.md ACAO_IMEDIATA_VERCEL.md ADICIONAR_DATABASE_URL.md \
+     ANTES_DEPOIS.md COMO_CORRIGIR_VERCEL_DASHBOARD.md CONECTAR_RAILWAY_VERCEL.md \
+     CONFIGURAR_RAILWAY_FRONTEND.md CORRIGIR_DATABASE_URL_RAILWAY.md \
+     DATABASE_URL_RAILWAY.md DEPLOY_CONCLUIDO.md DEPLOY_FINAL_CONCLUIDO.md \
+     DEPLOY_MANUAL_SUCESSO.md DEPLOY_REALIZADO.md DEPLOY_VERCEL_AGORA_FINAL.md \
+     DEPLOY_VERCEL_AGORA.md DEPLOY_VERCEL_FIX_NUCLEAR.md DEPLOY_VERCEL_FIX.md \
+     DEPLOY_VERCEL_RAILWAY_2025.md ENTENDENDO_URLS_RAILWAY.md \
+     ESTRUTURA_FINAL_VERIFICADA.md ESTRUTURA_RAIZ_CONFIRMADA.md EXECUTAR_AGORA.md \
+     FIX_BRANCH_MAIN.md FIX_INDEX_HTML.md FIX_VERCEL_BRANCH.md \
+     FIX_VERCEL_DEPLOY_ERROR.md INSTRUCOES_DEPLOY_LIMPO.md \
+     INSTRUCOES_FINAIS_DEPLOY.md INSTRUCOES_VERCEL_DASHBOARD.md \
+     INSTRUCOES_VERCEL_DO_ZERO.md MIGRATIONS_EXECUTADAS.md \
+     ONDE_ESTA_DATABASE_URL.md OPERACAO_NUCLEAR_CONCLUIDA.md \
+     QUAIS-ENVS-VERCEL.md RAILWAY_FIX_COMPLETO.md RESUMO_DEPLOY_FINAL.md \
+     RESUMO_DEPLOY_VERCEL.md RESUMO-EXECUTIVO.md SOLUCAO_DEFINITIVA_VERCEL.md \
+     SOLUCAO-ERRO-500-VERCEL.md TESTE_AGORA.md UPLOAD-GITHUB.md \
+     VARIAVEIS-VERCEL-LISTA.md VERCEL_BRANCH_CONFIG.md VERCEL_DEPLOY_COMPLETO.md \
+     VERCEL_DEPLOY_FIX.md VERCEL_FIX_DEPLOY.md VERCEL_ROOT_DIRECTORY_FIX.md \
+     VERIFICACAO_DEPLOY.md VERIFICACAO-VARIAVEIS-VERCEL.md
+
+# RPi temporários (problemas já resolvidos)
+echo "   - RPi temporários..."
+rm -f APLICAR-CORRECOES-RPI.md APLICAR-MIGRACAO-UPDATED_AT-RPI.md \
+     ATUALIZAR-SCRIPT-START-RPI.md CORRIGIR-ENV-RPI.md \
+     CORRIGIR-FRONTEND-API-RPI.md CORRIGIR-IMPORTS-PRODUCTION-SERVER.md \
+     CORRIGIR-MULTIPLAS-HEADS-RPI.md CORRIGIR-PERMISSOES-POSTGRES-RPI.md \
+     CORRIGIR-ROTAS-API-RPI.md CORRIGIR-UPDATED_AT-CATEGORIES-RPI.md \
+     INSTALAR-GUNICORN-RPI.md INSTALAR-PSYCOPG2-RPI.md \
+     INSTALAR-PYTHON3.11-RPI.md REBUILD-FRONTEND-CRITICO.md \
+     REBUILD-FRONTEND-RPI.md REBUILD-FRONTEND-URGENTE-RPI.md \
+     REINICIAR-SERVIDOR-RPI.md RESOLVER-CONFLITOS-GIT-RPI.md \
+     RODAR-RPI5-SUCESSO.md TESTAR-API-RPI.md TESTAR-TODAS-ROTAS-RPI.md \
+     VERIFICAR-API-FUNCIONANDO-RPI.md VERIFICAR-PG-HBA-RPI.md \
+     VERIFICAR-POSTGRESQL-RPI.md VERIFICAR-ROTAS-REGISTRADAS-RPI.md
+
+# Limpar pasta deploy
+echo "   - Pasta deploy..."
+cd deploy
+rm -f VERIFICACAO_DEPLOY.md VERCEL_FIX_DEPLOY.md VERCEL_DEPLOY_COMPLETO.md \
+     RESUMO_DEPLOY_VERCEL.md RAILWAY_FIX_COMPLETO.md ONDE_ESTA_DATABASE_URL.md \
+     ENTENDENDO_URLS_RAILWAY.md DEPLOY_VERCEL_AGORA.md DEPLOY_VERCEL_FIX.md \
+     DEPLOY_FINAL_CONCLUIDO.md DEPLOY_CONCLUIDO.md DATABASE_URL_RAILWAY.md \
+     CONFIGURAR_RAILWAY_FRONTEND.md CORRIGIR_DATABASE_URL_RAILWAY.md \
+     CONECTAR_RAILWAY_VERCEL.md ADICIONAR_DATABASE_URL.md \
+     VERIFICACAO-PROJETO-VERCEL.md SOLUCAO-404-API-VERCEL.md \
+     RESOLVER-PROJETOS-DUPLICADOS-VERCEL.md CORRIGIR-PROJETOS-DUPLICADOS.md \
+     ENTENDER-LOGS-VERCEL.md
+cd ..
+
+# Limpar outros
+echo "   - Outros arquivos..."
+rm -f CHANGELOG.md VERIFICAR-BANCO-DADOS.md deploy.md
+
+echo ""
+echo "✅ Limpeza concluída!"
+echo ""
+echo "📋 Arquivos mantidos (importantes):"
+echo "   - README.md"
+echo "   - RASPBERRY-PI-5-SETUP.md"
+echo "   - docs/DEPLOY-RPI5.md"
+echo "   - docs/COMANDOS-RPI5.md"
+echo "   - docs/CONECTAR-DBEAVER-RPI.md"
+echo "   - docs/HABILITAR-CONEXAO-REMOTA-POSTGRES-RPI.md"
+echo "   - docs/deploy/DEPLOY-VERCEL.md"
+echo "   - docs/deploy/RAILWAY_DEPLOY_GUIDE.md"
+echo "   - E outros essenciais..."
+echo ""
+echo "💾 Backup disponível em: docs/backup/"
+
