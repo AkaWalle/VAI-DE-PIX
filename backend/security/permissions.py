@@ -1,4 +1,4 @@
-x"""
+"""
 Camada de permissões desacoplada para despesas compartilhadas.
 Nunca confiar no frontend; todas as decisões aqui.
 """

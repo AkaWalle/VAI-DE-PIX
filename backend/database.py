@@ -137,7 +137,7 @@ try:
                 pool_pre_ping=True,
                 pool_size=1,
                 max_overflow=0,
-                pool_recycle=600,  # 300-1800: evita conexão stale no serverless
+                pool_recycle=300,  # <=300 serverless: evita conexão stale
             )
         else:
             engine = create_engine(

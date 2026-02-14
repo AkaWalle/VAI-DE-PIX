@@ -140,7 +140,8 @@ def verify_token(token: str, db: Session) -> User:
     )
     
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        # Algoritmo fixo: nunca aceitar "none" (segurança JWT)
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
         email: str = payload.get("sub")
         if email is None:
             raise credentials_exception
