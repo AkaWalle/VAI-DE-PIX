@@ -145,3 +145,6 @@ export const API_ENDPOINTS = {
     markAllRead: "/activity-feed/read-all",
   },
 } as const;
+
+// Cliente HTTP central (com interceptor JWT) — usar para todas as requisições autenticadas
+export { httpClient as api } from "./http-client";

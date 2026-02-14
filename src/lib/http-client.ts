@@ -17,18 +17,7 @@ export const httpClient = axios.create({
 if (typeof window !== 'undefined') {
   // Interceptor para garantir que baseURL está sempre atualizado
   httpClient.interceptors.request.use((config) => {
-    // SEMPRE recalcular baseURL em cada requisição
-    const currentBaseURL = getApiBaseURLDynamic();
-    
-    // Forçar atualização da baseURL
-    config.baseURL = currentBaseURL;
-    
-    // Log para debug
-    if (config.url) {
-      const fullUrl = config.baseURL + config.url;
-      console.log('🌐 [HTTP Client] Requisição:', config.method?.toUpperCase(), fullUrl);
-    }
-    
+    config.baseURL = getApiBaseURLDynamic();
     return config;
   });
 }
@@ -36,25 +25,56 @@ if (typeof window !== 'undefined') {
 // Token management
 const TOKEN_KEY = "vai-de-pix-token";
 
+/**
+ * Ordem de busca obrigatória (todas as requisições autenticadas):
+ * 1. localStorage.getItem(TOKEN_KEY)
+ * 2. localStorage.getItem("token")
+ * 3. sessionStorage.getItem("token")
+ * Se existir token em qualquer storage → usar.
+ */
+function getTokenForRequest(): string | null {
+  if (typeof window === "undefined") return null;
+  return (
+    localStorage.getItem(TOKEN_KEY) ||
+    localStorage.getItem("token") ||
+    sessionStorage.getItem("token") ||
+    null
+  );
+}
+
+/**
+ * Remove token de todos os storages (401/403).
+ * localStorage: vai-de-pix-token, token
+ * sessionStorage: token
+ */
+function clearAllTokens(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem("token");
+  sessionStorage.removeItem("token");
+}
+
 export const tokenManager = {
   get: (): string | null => {
-    return localStorage.getItem(TOKEN_KEY);
+    return typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null;
   },
 
   set: (token: string): void => {
-    localStorage.setItem(TOKEN_KEY, token);
+    if (typeof window !== "undefined") {
+      localStorage.setItem(TOKEN_KEY, token);
+    }
   },
 
   remove: (): void => {
-    localStorage.removeItem(TOKEN_KEY);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(TOKEN_KEY);
+    }
   },
 
   isValid: (): boolean => {
     const token = tokenManager.get();
     if (!token) return false;
-
     try {
-      // Check if token is expired (basic check)
       const payload = JSON.parse(atob(token.split(".")[1]));
       const currentTime = Date.now() / 1000;
       return payload.exp > currentTime;
@@ -64,42 +84,34 @@ export const tokenManager = {
   },
 };
 
-// Request interceptor - Add auth token
+// Request interceptor — JWT sempre que existir (backend valida expiração; não usar tokenManager.isValid() aqui)
 httpClient.interceptors.request.use(
   (config) => {
-    const token = tokenManager.get();
-    if (token && tokenManager.isValid()) {
+    const token = getTokenForRequest();
+    if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    // DEBUG TEMPORÁRIO — quando não for mais necessário, remover a linha abaixo
+    console.log("[API AUTH CHECK]", { hasToken: !!token });
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  },
+  (error) => Promise.reject(error),
 );
 
-// Response interceptor - Handle auth errors
+// Response interceptor — 401/403: clearAllTokens() depois, se rota atual != /auth → redirecionar para /auth
 httpClient.interceptors.response.use(
-  (response: AxiosResponse) => {
-    return response;
-  },
+  (response: AxiosResponse) => response,
   (error: AxiosError) => {
-    // Handle 401 Unauthorized
-    if (error.response?.status === 401) {
-      tokenManager.remove();
-
-      // Only redirect if not already on auth page
-      if (!window.location.pathname.includes("/auth")) {
+    const status = error.response?.status;
+    if (status === 401 || status === 403) {
+      clearAllTokens();
+      if (typeof window !== "undefined" && !window.location.pathname.includes("/auth")) {
         window.location.href = "/auth";
       }
     }
-
-    // Handle network errors
     if (!error.response) {
       console.error("Network error:", error.message);
-      // Could show toast notification here
     }
-
     return Promise.reject(error);
   },
 );
