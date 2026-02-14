@@ -299,15 +299,19 @@ app.add_middleware(StripAPIPrefixMiddleware)
 # Este middleware trata OPTIONS e adiciona headers CORS em todas as respostas
 app.add_middleware(CORSOptionsMiddleware)
 
-# Include routers
-app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
-app.include_router(transactions.router, prefix="/transactions", tags=["Transactions"])
-app.include_router(goals.router, prefix="/goals", tags=["Goals"])
-app.include_router(envelopes.router, prefix="/envelopes", tags=["Envelopes"])
-app.include_router(categories.router, prefix="/categories", tags=["Categories"])
-app.include_router(accounts.router, prefix="/accounts", tags=["Accounts"])
-app.include_router(reports.router, prefix="/reports", tags=["Reports"])
-app.include_router(automations.router, prefix="/automations", tags=["Automations"])
+# Include routers (sem e com /api para compatibilidade com path que a Vercel envia)
+def _include_routers(prefix: str):
+    app.include_router(auth.router, prefix=f"{prefix}/auth", tags=["Authentication"])
+    app.include_router(transactions.router, prefix=f"{prefix}/transactions", tags=["Transactions"])
+    app.include_router(goals.router, prefix=f"{prefix}/goals", tags=["Goals"])
+    app.include_router(envelopes.router, prefix=f"{prefix}/envelopes", tags=["Envelopes"])
+    app.include_router(categories.router, prefix=f"{prefix}/categories", tags=["Categories"])
+    app.include_router(accounts.router, prefix=f"{prefix}/accounts", tags=["Accounts"])
+    app.include_router(reports.router, prefix=f"{prefix}/reports", tags=["Reports"])
+    app.include_router(automations.router, prefix=f"{prefix}/automations", tags=["Automations"])
+
+_include_routers("")       # /auth, /transactions, ...
+_include_routers("/api")   # /api/auth, /api/transactions, ... (path que a Vercel envia)
 
 # Root endpoint (com e sem prefixo /api para compatibilidade Vercel)
 async def _api_root_impl(request: Request):
