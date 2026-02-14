@@ -241,7 +241,7 @@ async def register(
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao criar usuário: {str(e)}"
+            detail="Erro ao criar usuário. Tente novamente.",
         )
 
 @router.post("/login", response_model=Token)

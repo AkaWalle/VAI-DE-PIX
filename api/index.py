@@ -354,8 +354,8 @@ async def _health_check_impl():
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
         return {"status": "healthy", "database": "connected"}
-    except Exception as e:
-        return {"status": "unhealthy", "database": "disconnected", "error": str(e)}
+    except Exception:
+        return {"status": "unhealthy", "database": "disconnected"}
 
 @app.get("/health")
 async def health_check():
@@ -377,7 +377,6 @@ async def debug_database():
         
         # Get database info
         db_info = {
-            "database_url": DATABASE_URL[:50] + "..." if len(DATABASE_URL) > 50 else DATABASE_URL,
             "database_type": "PostgreSQL" if "postgresql" in DATABASE_URL else "SQLite",
             "connection": "ok",
             "tables": []
@@ -419,20 +418,17 @@ async def debug_database():
                         count_result = conn.execute(text(f'SELECT COUNT(*) FROM {table}'))
                     count = count_result.scalar()
                     table_counts[table] = count
-                except Exception as e:
-                    table_counts[table] = f"error: {str(e)}"
+                except Exception:
+                    table_counts[table] = "error"
             
             db_info["table_counts"] = table_counts
         
         return db_info
         
-    except Exception as e:
-        import os
-        db_url = os.getenv("DATABASE_URL", "not configured")
+    except Exception:
         return {
             "status": "error",
-            "error": str(e),
-            "database_url": db_url[:50] + "..." if len(db_url) > 50 else db_url
+            "error": "Erro ao conectar ao banco.",
         }
 
 # Debug endpoint - Test query
@@ -460,11 +456,11 @@ async def debug_test_query():
                 "db_version": str(row[1]) if row and len(row) > 1 else None
             }
         }
-    except Exception as e:
+    except Exception:
         return {
             "status": "error",
             "query_executed": False,
-            "error": str(e)
+            "error": "Erro ao executar consulta.",
         }
 
 # Vercel serverless: exportar apenas 'app' (ASGI). O runtime detecta FastAPI/ASGI
