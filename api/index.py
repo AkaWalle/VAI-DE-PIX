@@ -309,9 +309,8 @@ app.include_router(accounts.router, prefix="/accounts", tags=["Accounts"])
 app.include_router(reports.router, prefix="/reports", tags=["Reports"])
 app.include_router(automations.router, prefix="/automations", tags=["Automations"])
 
-# Root endpoint
-@app.get("/")
-async def api_root(request: Request):
+# Root endpoint (com e sem prefixo /api para compatibilidade Vercel)
+async def _api_root_impl(request: Request):
     return {
         "message": "VAI DE PIX API",
         "version": "1.0.0",
@@ -321,30 +320,37 @@ async def api_root(request: Request):
             "path": request.url.path,
             "raw_path": request.scope.get("raw_path", b"").decode() if "raw_path" in request.scope else None,
             "method": request.method,
-            "headers": dict(request.headers)
         }
     }
 
-# Health check
-@app.get("/health")
-async def health_check():
+@app.get("/")
+async def api_root(request: Request):
+    return await _api_root_impl(request)
+
+@app.get("/api")
+@app.get("/api/")
+async def api_root_prefixed(request: Request):
+    return await _api_root_impl(request)
+
+# Health check (com e sem prefixo /api para compatibilidade Vercel)
+async def _health_check_impl():
     """Health check endpoint that verifies database connection"""
     try:
         from database import engine
         from sqlalchemy import text
-        # Try to connect to database
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
-        return {
-            "status": "healthy",
-            "database": "connected"
-        }
+        return {"status": "healthy", "database": "connected"}
     except Exception as e:
-        return {
-            "status": "unhealthy",
-            "database": "disconnected",
-            "error": str(e)
-        }
+        return {"status": "unhealthy", "database": "disconnected", "error": str(e)}
+
+@app.get("/health")
+async def health_check():
+    return await _health_check_impl()
+
+@app.get("/api/health")
+async def health_check_api():
+    return await _health_check_impl()
 
 # Debug endpoint - Database info
 @app.get("/debug/db")
