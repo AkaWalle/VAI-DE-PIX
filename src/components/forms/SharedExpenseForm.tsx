@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useFinancialStore } from "@/stores/financial-store";
 import { useAuthStore } from "@/stores/auth-store-index";
+import { useSharedExpensesStore } from "@/stores/shared-expenses-store";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +23,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/utils/format";
+import { parseCurrencyInput, calculateSplit, getInvitedEmail } from "@/utils/currency";
 import {
   X,
   Plus,
@@ -53,6 +56,11 @@ export function SharedExpenseForm({
   const { sharedExpenses, categories, addSharedExpense, updateSharedExpense } =
     useFinancialStore();
   const { user } = useAuthStore();
+  const { createExpense } = useSharedExpensesStore();
+  const { toast } = useToast();
+
+  const [isFocused, setIsFocused] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -112,20 +120,20 @@ export function SharedExpenseForm({
   const handleInputChange = (field: string, value: string | number) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
 
-    // Recalcular divisão quando o valor total ou tipo de divisão mudar
     if (field === "totalAmount" || field === "splitType") {
-      recalculateSplit();
+      const total = field === "totalAmount" ? (value as number) : formData.totalAmount;
+      const splitType = field === "splitType" ? (value as string) : formData.splitType;
+      recalculateSplit(total, splitType);
     }
   };
 
-  const recalculateSplit = () => {
+  const recalculateSplit = (total?: number, splitType?: string) => {
+    const t = total ?? formData.totalAmount;
+    const st = splitType ?? formData.splitType;
     if (participants.length === 0) return;
-
-    const total = formData.totalAmount;
-    const participantCount = participants.length;
-
-    if (formData.splitType === "equal") {
-      const amountPerPerson = total / participantCount;
+    if (st === "equal") {
+      const amountPerPersonCents = Math.round((t * 100) / participants.length);
+      const amountPerPerson = amountPerPersonCents / 100;
       setParticipants((prev) =>
         prev.map((p) => ({ ...p, amount: amountPerPerson })),
       );
@@ -150,7 +158,8 @@ export function SharedExpenseForm({
     setTimeout(() => {
       const total = formData.totalAmount;
       const participantCount = participants.length + 1;
-      const amountPerPerson = total / participantCount;
+      const amountPerPersonCents = Math.round((total * 100) / participantCount);
+      const amountPerPerson = amountPerPersonCents / 100;
 
       setParticipants((prev) =>
         prev.map((p) => ({ ...p, amount: amountPerPerson })),
@@ -159,15 +168,16 @@ export function SharedExpenseForm({
   };
 
   const removeParticipant = (userId: string) => {
-    if (participants.length <= 1) return; // Não permitir remover o último participante
+    if (participants.length <= 1) return;
 
     setParticipants((prev) => prev.filter((p) => p.userId !== userId));
 
-    // Recalcular divisão
     setTimeout(() => {
       const total = formData.totalAmount;
       const participantCount = participants.length - 1;
-      const amountPerPerson = total / participantCount;
+      const amountPerPersonCents =
+        participantCount > 0 ? Math.round((total * 100) / participantCount) : 0;
+      const amountPerPerson = amountPerPersonCents / 100;
 
       setParticipants((prev) =>
         prev.map((p) => ({ ...p, amount: amountPerPerson })),
@@ -181,40 +191,74 @@ export function SharedExpenseForm({
     );
   };
 
-  const getTotalSplit = () => {
-    return participants.reduce((sum, p) => sum + p.amount, 0);
-  };
+  const splitInfo = calculateSplit(formData.totalAmount, participants);
+  const isSubmitDisabled =
+    formData.totalAmount <= 0 ||
+    participants.length === 0 ||
+    !splitInfo.isValid ||
+    isSubmitting;
 
-  const getDifference = () => {
-    return formData.totalAmount - getTotalSplit();
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.title || !formData.totalAmount || participants.length === 0) {
-      return;
-    }
+    if (isSubmitDisabled) return;
 
-    const expenseData = {
-      title: formData.title,
-      description: formData.description,
+    console.log("[SharedExpense Submit]", {
       totalAmount: formData.totalAmount,
-      currency: "BRL" as const,
-      category: formData.category,
-      date: formData.date,
-      createdBy: "current-user",
-      participants,
-      status: "pending" as const,
-    };
+      participantsCount: participants.length,
+      splitValid: splitInfo.isValid,
+    });
 
-    if (isEditing) {
-      updateSharedExpense(expenseId, expenseData);
-    } else {
-      addSharedExpense(expenseData);
+    try {
+      setIsSubmitting(true);
+
+      if (isEditing) {
+        const expenseData = {
+          title: formData.title,
+          description: formData.description,
+          totalAmount: formData.totalAmount,
+          currency: "BRL" as const,
+          category: formData.category,
+          date: formData.date,
+          createdBy: "current-user",
+          participants,
+          status: "pending" as const,
+        };
+        updateSharedExpense(expenseId, expenseData);
+        onSuccess();
+        return;
+      }
+
+      const invitedEmail = getInvitedEmail(
+        participants,
+        user?.email,
+      );
+      if (!invitedEmail) {
+        toast({
+          title: "Adicione um participante",
+          description: "Informe o e-mail de quem vai dividir a despesa.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      await createExpense({
+        amount: formData.totalAmount,
+        description: formData.description || formData.title,
+        invited_email: invitedEmail,
+      });
+
+      toast({ title: "Despesa criada com sucesso" });
+      onSuccess();
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: "Erro ao criar despesa",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
-
-    onSuccess();
   };
 
   const expenseCategories = categories.filter((c) => c.type === "expense");
@@ -303,16 +347,26 @@ export function SharedExpenseForm({
                   <DollarSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     id="totalAmount"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={formData.totalAmount}
-                    onChange={(e) =>
-                      handleInputChange(
-                        "totalAmount",
-                        parseFloat(e.target.value) || 0,
-                      )
+                    type="text"
+                    inputMode="decimal"
+                    value={
+                      isFocused
+                        ? formData.totalAmount === 0
+                          ? ""
+                          : formData.totalAmount.toString()
+                        : formatCurrency(formData.totalAmount, { showSign: false })
                     }
+                    onChange={(e) => {
+                      const parsed = parseCurrencyInput(e.target.value);
+                      handleInputChange("totalAmount", parsed);
+                    }}
+                    onFocus={() => setIsFocused(true)}
+                    onBlur={(e) => {
+                      setIsFocused(false);
+                      if (!e.target.value.trim()) {
+                        handleInputChange("totalAmount", 0);
+                      }
+                    }}
                     placeholder="0,00"
                     className="pl-10"
                     required
@@ -429,14 +483,17 @@ export function SharedExpenseForm({
                       <div className="relative">
                         <DollarSign className="absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
                         <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={participant.amount}
+                          type="text"
+                          inputMode="decimal"
+                          value={
+                            participant.amount === 0
+                              ? ""
+                              : formatCurrency(participant.amount, { showSign: false })
+                          }
                           onChange={(e) =>
                             updateParticipantAmount(
                               participant.userId,
-                              parseFloat(e.target.value) || 0,
+                              parseCurrencyInput(e.target.value),
                             )
                           }
                           className="w-24 pl-6 text-sm"
@@ -477,22 +534,26 @@ export function SharedExpenseForm({
                 <div className="flex justify-between">
                   <span>Total Dividido:</span>
                   <span className="font-semibold">
-                    {formatCurrency(getTotalSplit())}
+                    {formatCurrency(splitInfo.totalSplit)}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span>Diferença:</span>
                   <span
-                    className={`font-semibold ${getDifference() === 0 ? "text-green-500" : "text-red-500"}`}
+                    className={`font-semibold ${splitInfo.isValid ? "text-green-500" : "text-red-500"}`}
                   >
-                    {formatCurrency(getDifference())}
+                    {formatCurrency(splitInfo.difference)}
                   </span>
                 </div>
               </div>
 
-              {getDifference() !== 0 && (
+              {!splitInfo.isValid ? (
                 <Badge variant="destructive" className="text-xs">
                   Os valores não coincidem
+                </Badge>
+              ) : (
+                <Badge variant="secondary" className="text-xs bg-green-500/20 text-green-700 dark:text-green-400">
+                  Divisão válida
                 </Badge>
               )}
             </div>
@@ -510,9 +571,14 @@ export function SharedExpenseForm({
               <Button
                 type="submit"
                 className="flex-1 min-h-[44px] touch-manipulation"
-                disabled={getDifference() !== 0 || participants.length === 0}
+                disabled={isSubmitDisabled}
               >
-                {isEditing ? "Atualizar" : "Criar"} Despesa
+                {isSubmitting
+                  ? "Salvando..."
+                  : isEditing
+                    ? "Atualizar"
+                    : "Criar"}{" "}
+                Despesa
               </Button>
             </div>
           </form>
