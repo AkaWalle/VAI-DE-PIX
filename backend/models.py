@@ -26,6 +26,10 @@ class User(Base):
     automation_rules = relationship("AutomationRule", back_populates="user", cascade="all, delete-orphan")
     notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
     sessions = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")
+    shared_expenses_created = relationship("SharedExpense", back_populates="creator", cascade="all, delete-orphan")
+    expense_shares = relationship("ExpenseShare", back_populates="user", cascade="all, delete-orphan")
+    expense_share_events = relationship("ExpenseShareEvent", back_populates="performer", cascade="all, delete-orphan")
+    activity_feed_items = relationship("ActivityFeedItem", back_populates="user", cascade="all, delete-orphan")
     
     # Constraints
     # Note: Regex constraints removed for SQLite compatibility
@@ -262,6 +266,84 @@ class Notification(Base):
         Index('idx_notifications_user_read', 'user_id', 'read_at'),
         Index('idx_notifications_user_created', 'user_id', 'created_at'),
     )
+
+
+class SharedExpense(Base):
+    """Despesa compartilhada criada por um usuário; pode ter shares (convites) para outros."""
+    __tablename__ = "shared_expenses"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    created_by = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    amount = Column(Float, nullable=False)
+    description = Column(Text, nullable=False)
+    status = Column(String(20), default="active", nullable=False)  # active, cancelled
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
+
+    creator = relationship("User", back_populates="shared_expenses_created")
+    shares = relationship("ExpenseShare", back_populates="expense", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        CheckConstraint("status IN ('active', 'cancelled')", name="check_shared_expense_status"),
+        CheckConstraint("amount > 0", name="check_shared_expense_amount_positive"),
+    )
+
+
+class ExpenseShare(Base):
+    """Parcela/convite de uma despesa compartilhada para um usuário; status pending/accepted/rejected."""
+    __tablename__ = "expense_shares"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    expense_id = Column(String, ForeignKey("shared_expenses.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    status = Column(String(20), default="pending", nullable=False)  # pending, accepted, rejected
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    responded_at = Column(DateTime(timezone=True), nullable=True)
+
+    expense = relationship("SharedExpense", back_populates="shares")
+    user = relationship("User", back_populates="expense_shares")
+    events = relationship("ExpenseShareEvent", back_populates="share", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        CheckConstraint("status IN ('pending', 'accepted', 'rejected')", name="check_expense_share_status"),
+        Index("idx_expense_shares_expense_user", "expense_id", "user_id"),
+    )
+
+
+class ExpenseShareEvent(Base):
+    """Auditoria de ações em expense_shares (created, accepted, rejected)."""
+    __tablename__ = "expense_share_events"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    share_id = Column(String, ForeignKey("expense_shares.id", ondelete="CASCADE"), nullable=False, index=True)
+    action = Column(String(20), nullable=False)  # created, accepted, rejected
+    performed_by = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    share = relationship("ExpenseShare", back_populates="events")
+    performer = relationship("User", back_populates="expense_share_events")
+
+    __table_args__ = (
+        CheckConstraint("action IN ('created', 'accepted', 'rejected')", name="check_expense_share_event_action"),
+    )
+
+
+class ActivityFeedItem(Base):
+    """Activity feed por usuário (eventos, convites, etc.). Fonte: expense_share_events e futuras."""
+    __tablename__ = "activity_feed"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    type = Column(String(50), nullable=False, index=True)
+    title = Column(String(200), nullable=False)
+    description = Column(String(500), nullable=True)
+    entity_type = Column(String(50), nullable=True)
+    entity_id = Column(String, nullable=True)
+    metadata_ = Column("metadata", JSON, nullable=True)
+    is_read = Column(Boolean, default=False, nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
+
+    user = relationship("User", back_populates="activity_feed_items")
 
 
 class Tag(Base):

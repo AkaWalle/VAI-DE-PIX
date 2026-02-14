@@ -296,6 +296,111 @@ class NotificationResponse(BaseModel):
 class NotificationMarkRead(BaseModel):
     read_at: Optional[datetime] = None  # None = marcar como lida agora
 
+# Shared Expense Schemas
+class SharedExpenseCreateSchema(BaseModel):
+    amount: float = Field(..., gt=0, description="Valor da despesa")
+    description: str = Field(..., min_length=1, description="Descrição")
+    invited_email: EmailStr = Field(..., description="E-mail do usuário convidado")
+
+class ExpenseShareResponseSchema(BaseModel):
+    id: str
+    expense_id: str
+    user_id: str
+    status: str
+    created_at: datetime
+    responded_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+class SharedExpenseResponseSchema(BaseModel):
+    id: str
+    created_by: str
+    amount: float
+    description: str
+    status: str
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+class ExpenseShareRespondSchema(BaseModel):
+    action: str = Field(..., description="accept ou reject")
+
+
+class PendingShareItemSchema(BaseModel):
+    """Item da lista de pendências: share + dados da despesa para exibição."""
+    id: str
+    expense_id: str
+    user_id: str
+    status: str
+    created_at: datetime
+    responded_at: Optional[datetime] = None
+    expense_amount: float = 0
+    expense_description: str = ""
+    creator_name: str = ""
+
+    class Config:
+        from_attributes = True
+
+
+class ExpenseShareEventSchema(BaseModel):
+    """Evento da timeline de auditoria de um share."""
+    id: str
+    share_id: str
+    action: str
+    performed_by: str
+    performed_by_name: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class ExpenseFullDetailsSchema(BaseModel):
+    """Despesa compartilhada com shares e eventos (full-details)."""
+    expense: SharedExpenseResponseSchema
+    shares: List[ExpenseShareResponseSchema] = []
+    events_by_share: dict = Field(default_factory=dict, description="share_id -> list[ExpenseShareEventSchema]")
+
+
+class ActivityFeedItemSchema(BaseModel):
+    """Item do activity feed."""
+    id: str
+    user_id: str
+    type: str
+    title: str
+    description: Optional[str] = None
+    entity_type: Optional[str] = None
+    entity_id: Optional[str] = None
+    metadata: Optional[dict] = None
+    is_read: bool = False
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+    @classmethod
+    def model_validate(cls, obj, **kwargs):
+        if hasattr(obj, "metadata_"):
+            return super().model_validate(
+                {
+                    "id": obj.id,
+                    "user_id": obj.user_id,
+                    "type": obj.type,
+                    "title": obj.title,
+                    "description": obj.description,
+                    "entity_type": obj.entity_type,
+                    "entity_id": obj.entity_id,
+                    "metadata": obj.metadata_,
+                    "is_read": obj.is_read,
+                    "created_at": obj.created_at,
+                },
+                **kwargs,
+            )
+        return super().model_validate(obj, **kwargs)
+
 # Report Schemas
 class MonthlySummaryResponse(BaseModel):
     year: int

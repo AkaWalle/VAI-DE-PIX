@@ -16,6 +16,8 @@ const Transactions = lazy(() => import("./pages/Transactions"));
 const Goals = lazy(() => import("./pages/Goals"));
 const Envelopes = lazy(() => import("./pages/Envelopes"));
 const SharedExpenses = lazy(() => import("./pages/SharedExpenses"));
+const SharedExpensePendingPage = lazy(() => import("./pages/SharedExpensePendingPage"));
+const ActivityFeedPage = lazy(() => import("./pages/ActivityFeedPage"));
 const Reports = lazy(() => import("./pages/Reports"));
 const Trends = lazy(() => import("./pages/Trends"));
 const Automations = lazy(() => import("./pages/Automations"));
@@ -63,6 +65,8 @@ const App = () => {
                   <Route path="goals" element={<Goals />} />
                   <Route path="envelopes" element={<Envelopes />} />
                   <Route path="shared-expenses" element={<SharedExpenses />} />
+                  <Route path="shared-expenses/pending" element={<SharedExpensePendingPage />} />
+                  <Route path="activity-feed" element={<ActivityFeedPage />} />
                   <Route path="reports" element={<Reports />} />
                   <Route path="trends" element={<Trends />} />
                   <Route path="automations" element={<Automations />} />
