@@ -9,6 +9,8 @@ import {
   TrendingUp,
   LogOut,
   Share2,
+  Clock,
+  Activity,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -59,6 +61,18 @@ const mainNavItems = [
     url: "/shared-expenses",
     icon: Share2,
     description: "Dividir gastos entre pessoas",
+  },
+  {
+    title: "Pendências",
+    url: "/shared-expenses/pending",
+    icon: Clock,
+    description: "Convites de despesa para aceitar ou recusar",
+  },
+  {
+    title: "Feed de atividade",
+    url: "/activity-feed",
+    icon: Activity,
+    description: "Timeline de convites e atualizações",
   },
 ];
 

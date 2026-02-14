@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +14,7 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 
 export function NotificationBell() {
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -105,6 +107,10 @@ export function NotificationBell() {
                   )}
                   onClick={() => {
                     if (!n.read_at) handleMarkAsRead(n.id);
+                    if (n.type === "expense_share_pending" && n.metadata?.share_id) {
+                      setOpen(false);
+                      navigate(`/shared-expenses/pending?shareId=${String(n.metadata.share_id)}`);
+                    }
                   }}
                 >
                   <div className="flex gap-2">

@@ -113,7 +113,7 @@ except Exception as e:
 # Importar dependências com tratamento de erro
 print("3 — Tentando importar FastAPI...")
 try:
-    from fastapi import FastAPI, Request
+    from fastapi import FastAPI, Request, WebSocket
     print("3.1 — FastAPI importado")
     from fastapi.middleware.cors import CORSMiddleware
     print("3.2 — CORSMiddleware importado")
@@ -149,7 +149,7 @@ try:
     from routers import auth
     print("5.2 — auth importado")
     print("5.3 — Tentando importar outros routers...")
-    from routers import transactions, goals, envelopes, categories, accounts, reports, automations, notifications
+    from routers import transactions, goals, envelopes, categories, accounts, reports, automations, notifications, shared_expenses, activity_feed, activity_feed_ws
     print("5.4 — Todos os routers importados")
     print("5 — Routers importados com sucesso!")
 except ImportError as e:
@@ -310,9 +310,16 @@ def _include_routers(prefix: str):
     app.include_router(reports.router, prefix=f"{prefix}/reports", tags=["Reports"])
     app.include_router(automations.router, prefix=f"{prefix}/automations", tags=["Automations"])
     app.include_router(notifications.router, prefix=f"{prefix}/notifications", tags=["Notifications"])
+    app.include_router(shared_expenses.router, prefix=f"{prefix}/shared-expenses", tags=["Shared Expenses"])
+    app.include_router(activity_feed.router, prefix=f"{prefix}/activity-feed", tags=["Activity Feed"])
 
 _include_routers("")       # /auth, /transactions, ...
 _include_routers("/api")   # /api/auth, /api/transactions, ... (path que a Vercel envia)
+
+# WebSocket activity feed (auth via query param token=JWT)
+@app.websocket("/ws/activity-feed")
+async def ws_activity_feed(websocket: WebSocket):
+    await activity_feed_ws.ws_activity_feed_handle(websocket)
 
 # Root endpoint (com e sem prefixo /api para compatibilidade Vercel)
 async def _api_root_impl(request: Request):

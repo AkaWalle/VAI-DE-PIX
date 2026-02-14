@@ -127,4 +127,21 @@ export const API_ENDPOINTS = {
   insights: "/insights",
   insightsFeedback: "/insights/feedback",
   insightsPreferences: "/insights/preferences",
+
+  // Shared expenses (despesas compartilhadas com confirmação)
+  sharedExpenses: {
+    list: "/shared-expenses",
+    create: "/shared-expenses",
+    pending: "/shared-expenses/pending",
+    respond: (shareId: string) => `/shared-expenses/shares/${shareId}`,
+    shareEvents: (shareId: string) => `/shared-expenses/shares/${shareId}/events`,
+    fullDetails: (expenseId: string) => `/shared-expenses/${expenseId}/full-details`,
+  },
+
+  activityFeed: {
+    list: "/activity-feed",
+    unreadCount: "/activity-feed/unread-count",
+    markRead: (id: string) => `/activity-feed/${id}/read`,
+    markAllRead: "/activity-feed/read-all",
+  },
 } as const;
