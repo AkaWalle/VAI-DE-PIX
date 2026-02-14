@@ -3,49 +3,46 @@
 // Em desenvolvimento, usa localhost como fallback
 // Para Raspberry Pi, detecta automaticamente o hostname/IP
 const getApiBaseURL = () => {
-  // Prioridade 1: localStorage (permite override manual)
-  if (typeof window !== 'undefined') {
-    const storedUrl = localStorage.getItem("vai-de-pix-api-url");
-    if (storedUrl) {
-      console.log('🔧 [API] Usando URL do localStorage:', storedUrl);
+  if (typeof window === 'undefined') {
+    return import.meta.env.VITE_API_URL || "/api";
+  }
+
+  const hostname = window.location.hostname;
+  const currentPort = window.location.port;
+
+  // Produção (ex.: Vercel): mesma origem = usar /api (evita loop no celular e :8000 errado)
+  if (import.meta.env.PROD && hostname !== 'localhost' && hostname !== '127.0.0.1') {
+    const isSameOrigin = !currentPort || currentPort === '443' || currentPort === '80';
+    if (isSameOrigin) {
+      return "/api";
+    }
+    // Rede local com porta (ex.: Raspberry Pi)
+    const protocol = window.location.protocol;
+    const apiPort = currentPort || '8000';
+    return `${protocol}//${hostname}:${apiPort}/api`;
+  }
+
+  // Prioridade 1: localStorage (em dev; em prod ignorar se for localhost para não travar no celular)
+  const storedUrl = localStorage.getItem("vai-de-pix-api-url");
+  if (storedUrl) {
+    const isProdWithLocalhost = import.meta.env.PROD && (storedUrl.includes("localhost") || storedUrl.includes("127.0.0.1"));
+    if (!isProdWithLocalhost) {
       return storedUrl;
     }
   }
-  
-  // Prioridade 2: Variável de ambiente (obrigatória em produção)
+
+  // Prioridade 2: Variável de ambiente
   if (import.meta.env.VITE_API_URL) {
-    console.log('🔧 [API] Usando URL da variável de ambiente:', import.meta.env.VITE_API_URL);
     return import.meta.env.VITE_API_URL;
   }
-  
-  // Prioridade 3: Detectar hostname/IP automaticamente (funciona em dev e prod)
-  if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname;
-    const currentPort = window.location.port;
-    const protocol = window.location.protocol;
-    
-    console.log('🔧 [API] Detecção automática:', { hostname, currentPort, protocol });
-    
-    // Se não for localhost/127.0.0.1, usar o hostname/IP atual
-    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
-      // Sempre usar a mesma porta que o frontend está usando
-      const apiPort = currentPort || '8000';
-      const apiUrl = `${protocol}//${hostname}:${apiPort}/api`;
-      console.log('🔧 [API] URL detectada (rede):', apiUrl);
-      return apiUrl;
-    }
-    
-    // Se for localhost em produção, usar URL relativa (Vercel serverless)
-    if (import.meta.env.PROD) {
-      console.log('🔧 [API] Usando URL relativa (produção):', '/api');
-      return "/api";
-    }
+
+  // Produção localhost (fallback)
+  if (import.meta.env.PROD) {
+    return "/api";
   }
-  
-  // Prioridade 4: Desenvolvimento local
-  const localUrl = "http://localhost:8000/api";
-  console.log('🔧 [API] Usando URL padrão (desenvolvimento):', localUrl);
-  return localUrl;
+
+  // Desenvolvimento local
+  return "http://localhost:8000/api";
 };
 
 // Função para obter baseURL dinamicamente (chamada em runtime)

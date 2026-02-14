@@ -124,36 +124,29 @@ export async function detectApiUrl(): Promise<ApiConfig> {
  * Prioridade: localStorage > env > padrão baseado em ambiente
  */
 export function getApiUrl(): string {
-  // Verificar localStorage (pode ter sido configurado manualmente)
-  const storedUrl = localStorage.getItem("vai-de-pix-api-url");
-  if (storedUrl) {
-    return storedUrl;
-  }
-
-  // Verificar variável de ambiente (OBRIGATÓRIA em produção)
-  const envUrl = import.meta.env.VITE_API_URL;
-  if (envUrl) {
-    return envUrl;
-  }
-
-  // Em produção, detectar hostname/IP automaticamente
-  if (import.meta.env.PROD) {
+  // Em produção (ex.: Vercel), mesma origem = /api (evita loop no celular)
+  if (import.meta.env.PROD && typeof window !== "undefined") {
     const hostname = window.location.hostname;
-    const port = window.location.port || (window.location.protocol === 'https:' ? '443' : '80');
-    
-    // Se não for localhost/127.0.0.1, usar o hostname/IP atual
-    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
-      if (port === '80' || port === '443' || !port) {
-        return `${window.location.protocol}//${hostname}/api`;
+    if (hostname !== "localhost" && hostname !== "127.0.0.1") {
+      const port = window.location.port;
+      if (!port || port === "80" || port === "443") {
+        return "/api";
       }
       return `${window.location.protocol}//${hostname}:${port}/api`;
     }
-    
-    // Se for localhost, usar URL relativa (Vercel serverless)
     return "/api";
   }
 
-  // Padrão para desenvolvimento
+  // localStorage (em dev; em prod ignorar se for localhost)
+  const storedUrl = localStorage.getItem("vai-de-pix-api-url");
+  if (storedUrl) {
+    const invalidInProd = import.meta.env.PROD && (storedUrl.includes("localhost") || storedUrl.includes("127.0.0.1"));
+    if (!invalidInProd) return storedUrl;
+  }
+
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl) return envUrl;
+
   return "http://localhost:8000/api";
 }
 
