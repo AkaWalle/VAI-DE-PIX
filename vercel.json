@@ -1,21 +1,12 @@
 {
-    "version": 2,
-    "buildCommand": "npm run build",
-    "outputDirectory": "dist",
-    "functions": {
-      "api/index.py": {
-        "runtime": "python@3.11"
-      }
-    },
-    "rewrites": [
-      {
-        "source": "/api/(.*)",
-        "destination": "/api/index.py"
-      },
-      {
-        "source": "/(.*)",
-        "destination": "/index.html"
-      }
-    ]
-  }
-  
+  "version": 2,
+  "env": {
+    "PYO3_USE_ABI3_FORWARD_COMPATIBILITY": "1"
+  },
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/index.py" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
