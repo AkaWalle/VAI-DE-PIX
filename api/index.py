@@ -448,21 +448,9 @@ async def debug_test_query():
             "error": str(e)
         }
 
-# Vercel serverless function handler
-# Mangum automatically handles the path from Vercel
-# IMPORTANTE: O Vercel faz rewrite de /api/(.*) para /api/index
-# O Mangum recebe o path completo incluindo /api
-# O middleware StripAPIPrefixMiddleware remove o /api antes de processar
-print("→ [API/INDEX] Criando handler Mangum...")
-try:
-    handler = Mangum(app, lifespan="off")
-    print("→ [API/INDEX] Handler criado com sucesso!")
-except Exception as e:
-    print(f"→ [API/INDEX] ERRO ao criar handler: {type(e).__name__}: {str(e)}")
-    import traceback
-    traceback.print_exc()
-    raise
-
-# Export for Vercel - must be named 'handler' for Vercel to detect it
-# This is the entry point for Vercel serverless functions
+# Vercel serverless: exportar apenas 'app' (ASGI). O runtime detecta FastAPI/ASGI
+# e NÃO deve haver variável 'handler' com instância Mangum, senão o runtime
+# tenta issubclass(handler, BaseHTTPRequestHandler) e falha (handler é instância, não classe).
+# Mangum é usado internamente pelo runtime quando detecta app ASGI.
+print("→ [API/INDEX] App FastAPI pronto para Vercel (ASGI).")
 

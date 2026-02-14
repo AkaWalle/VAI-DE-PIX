@@ -33,6 +33,32 @@ print(f"→ [DATABASE] RAILWAY_ENVIRONMENT: {os.getenv('RAILWAY_ENVIRONMENT', 'N
 
 # Database URL - PostgreSQL for production, SQLite for development
 DATABASE_URL = os.getenv("DATABASE_URL")
+# Limpar copy-paste do Neon (ex: "psql 'postgresql://...'" -> "postgresql://...")
+if DATABASE_URL:
+    DATABASE_URL = DATABASE_URL.strip()
+    for prefix in ("psql '", "psql \"", "psql "):
+        if DATABASE_URL.lower().startswith(prefix):
+            DATABASE_URL = DATABASE_URL[len(prefix):].strip()
+            break
+    if DATABASE_URL.startswith("'") or DATABASE_URL.startswith('"'):
+        DATABASE_URL = DATABASE_URL[1:]
+    if DATABASE_URL.endswith("'") or DATABASE_URL.endswith('"'):
+        DATABASE_URL = DATABASE_URL[:-1]
+# --- Step 1: Environment validation (safe masked logging) ---
+_db_url_exists = bool(DATABASE_URL)
+_db_url_starts_postgres = DATABASE_URL and (
+    DATABASE_URL.startswith("postgres://") or DATABASE_URL.startswith("postgresql://")
+)
+_db_url_has_sslmode = bool(DATABASE_URL and "sslmode=require" in DATABASE_URL)
+_vercel_exists = os.getenv("VERCEL") is not None
+_env_exists = os.getenv("ENVIRONMENT") is not None
+print("[DB-ENV] DATABASE_URL exists:", _db_url_exists)
+print("[DB-ENV] DATABASE_URL starts with postgres/postgresql:", _db_url_starts_postgres)
+print("[DB-ENV] DATABASE_URL contains sslmode=require:", _db_url_has_sslmode)
+print("[DB-ENV] VERCEL env exists:", _vercel_exists)
+print("[DB-ENV] ENVIRONMENT env exists:", _env_exists)
+if not _db_url_exists:
+    print("[DB-ENV] STOP: DATABASE_URL is missing.")
 print(f"→ [DATABASE] DATABASE_URL presente: {bool(DATABASE_URL)}")
 if DATABASE_URL:
     # Mostrar apenas os primeiros e últimos caracteres por segurança
@@ -87,7 +113,7 @@ if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 # Create engine
-print("→ [DATABASE] Criando engine...")
+print("[DB-RUNTIME] engine creation start")
 try:
     if DATABASE_URL.startswith("sqlite"):
         print("→ [DATABASE] Usando SQLite")
@@ -98,9 +124,11 @@ try:
         )
     else:
         print("→ [DATABASE] Usando PostgreSQL")
-        # Para PostgreSQL, garantir codificação UTF-8 e usar client_encoding
-        connect_args = {"client_encoding": "utf8"} if "postgresql" in DATABASE_URL else {}
-        # Em produção (Vercel/Neon serverless): pool mínimo para não esgotar conexões
+        # Neon/PostgreSQL: client_encoding + SSL (Neon requires SSL)
+        connect_args = {"client_encoding": "utf8"}
+        if "postgresql" in DATABASE_URL:
+            connect_args["sslmode"] = "require"
+        # Em produção (Vercel/Neon serverless): pool mínimo + recycle para evitar conexões obsoletas
         if is_production:
             engine = create_engine(
                 DATABASE_URL,
@@ -109,6 +137,7 @@ try:
                 pool_pre_ping=True,
                 pool_size=1,
                 max_overflow=0,
+                pool_recycle=600,  # 300-1800: evita conexão stale no serverless
             )
         else:
             engine = create_engine(
@@ -116,9 +145,9 @@ try:
                 connect_args=connect_args,
                 encoding='utf-8'
             )
-    print("→ [DATABASE] Engine criado com sucesso")
+    print("[DB-RUNTIME] engine creation success")
 except Exception as e:
-    print(f"→ [DATABASE] ERRO ao criar engine: {type(e).__name__}: {str(e)}")
+    print(f"[DB-RUNTIME] engine creation fail exception_type={type(e).__name__}")
     import traceback
     traceback.print_exc()
     raise
@@ -131,23 +160,20 @@ Base = declarative_base()
 
 # Dependency to get database session
 def get_db():
-    print("→ [DATABASE] get_db() chamado - criando sessão")
+    print("[DB-RUNTIME] get_db: connection start")
     db = SessionLocal()
     try:
-        print("→ [DATABASE] Testando conexão...")
-        # Test connection
         from sqlalchemy import text
         db.execute(text("SELECT 1"))
-        print("→ [DATABASE] Conexão OK - yield db")
+        print("[DB-RUNTIME] get_db: connection success")
         yield db
     except HTTPException:
-        # Re-raise HTTPException (não é erro de banco, é erro de autenticação/autorização)
         raise
     except Exception as e:
-        print(f"→ [DATABASE] ERRO na sessão: {type(e).__name__}: {str(e)}")
+        print(f"[DB-RUNTIME] get_db: query fail exception_type={type(e).__name__}")
         import traceback
         traceback.print_exc()
         raise
     finally:
-        print("→ [DATABASE] Fechando sessão")
+        print("[DB-RUNTIME] get_db: closing session")
         db.close()
