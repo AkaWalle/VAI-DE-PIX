@@ -47,13 +47,21 @@ Configurar no **Vercel → Project → Settings → Environment Variables** (Pro
    - Copiar a **connection string** (pooled, com `?sslmode=require` se aparecer)
 
 2. **Aplicar migrations no Neon (uma vez)**
-   - Localmente com o mesmo `DATABASE_URL` do Neon:
+   - Crie um arquivo **`.env`** na **raiz** do projeto com a mesma URL do Neon (pooled):
+     ```
+     DATABASE_URL=postgresql://usuario:senha@ep-xxx-pooler.regiao.aws.neon.tech/neondb?sslmode=require
+     ```
+   - Rode as migrations (na raiz do projeto):
+     ```bash
+     pip install -r requirements.txt
+     python scripts/run-migrations-neon.py
+     ```
+   - Ou manualmente:
      ```bash
      cd backend
-     pip install -r requirements.txt
      alembic upgrade head
      ```
-   - Ou usar o console SQL do Neon para rodar o SQL das migrations, se preferir.
+   - Depois confira no Neon (SQL Editor): `SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';`
 
 3. **Conectar repositório na Vercel**
    - [vercel.com](https://vercel.com) → New Project → importar o repositório do projeto

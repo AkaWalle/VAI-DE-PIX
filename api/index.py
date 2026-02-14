@@ -149,7 +149,7 @@ try:
     from routers import auth
     print("5.2 — auth importado")
     print("5.3 — Tentando importar outros routers...")
-    from routers import transactions, goals, envelopes, categories, accounts, reports, automations
+    from routers import transactions, goals, envelopes, categories, accounts, reports, automations, notifications
     print("5.4 — Todos os routers importados")
     print("5 — Routers importados com sucesso!")
 except ImportError as e:
@@ -309,6 +309,7 @@ def _include_routers(prefix: str):
     app.include_router(accounts.router, prefix=f"{prefix}/accounts", tags=["Accounts"])
     app.include_router(reports.router, prefix=f"{prefix}/reports", tags=["Reports"])
     app.include_router(automations.router, prefix=f"{prefix}/automations", tags=["Automations"])
+    app.include_router(notifications.router, prefix=f"{prefix}/notifications", tags=["Notifications"])
 
 _include_routers("")       # /auth, /transactions, ...
 _include_routers("/api")   # /api/auth, /api/transactions, ... (path que a Vercel envia)

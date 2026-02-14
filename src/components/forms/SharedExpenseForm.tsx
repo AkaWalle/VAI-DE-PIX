@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useFinancialStore } from "@/stores/financial-store";
+import { useAuthStore } from "@/stores/auth-store-index";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -51,6 +52,7 @@ export function SharedExpenseForm({
 }: SharedExpenseFormProps) {
   const { sharedExpenses, categories, addSharedExpense, updateSharedExpense } =
     useFinancialStore();
+  const { user } = useAuthStore();
 
   const [formData, setFormData] = useState({
     title: "",
@@ -64,8 +66,8 @@ export function SharedExpenseForm({
   const [participants, setParticipants] = useState<Participant[]>([
     {
       userId: "current-user",
-      userName: "Você",
-      userEmail: "seu@email.com",
+      userName: user?.name ?? "Você",
+      userEmail: user?.email ?? "seu@email.com",
       amount: 0,
       paid: false,
     },
@@ -94,6 +96,18 @@ export function SharedExpenseForm({
       setParticipants(expense.participants);
     }
   }, [expense]);
+
+  // Atualizar primeiro participante com e-mail e nome do usuário logado
+  useEffect(() => {
+    if (!user || expense) return;
+    setParticipants((prev) => {
+      if (prev.length === 0 || prev[0].userId !== "current-user") return prev;
+      return [
+        { ...prev[0], userName: user.name, userEmail: user.email },
+        ...prev.slice(1),
+      ];
+    });
+  }, [user?.id, user?.email, user?.name, expense]);
 
   const handleInputChange = (field: string, value: string | number) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -223,7 +237,7 @@ export function SharedExpenseForm({
                   : "Crie uma nova despesa para dividir entre múltiplas pessoas"}
               </CardDescription>
             </div>
-            <Button variant="ghost" size="sm" onClick={onClose}>
+            <Button variant="ghost" size="sm" onClick={onClose} className="min-h-[44px] min-w-[44px] touch-manipulation" aria-label="Fechar">
               <X className="h-4 w-4" />
             </Button>
           </div>
@@ -344,7 +358,11 @@ export function SharedExpenseForm({
                 <UserPlus className="h-4 w-4" />
                 <Label>Adicionar Participante</Label>
               </div>
-
+              {participants.length > 1 && (
+                <p className="text-xs text-muted-foreground">
+                  O e-mail identifica a pessoa. Por enquanto a despesa fica só no seu dispositivo; ela verá a dívida quando a sincronização por e-mail estiver disponível.
+                </p>
+              )}
               <div className="grid gap-2 md:grid-cols-3">
                 <Input
                   placeholder="Nome"
@@ -371,6 +389,7 @@ export function SharedExpenseForm({
                   type="button"
                   onClick={addParticipant}
                   variant="outline"
+                  className="min-h-[44px] touch-manipulation"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Adicionar
@@ -478,19 +497,19 @@ export function SharedExpenseForm({
               )}
             </div>
 
-            {/* Actions */}
+            {/* Actions - altura mínima para toque no mobile */}
             <div className="flex gap-2 pt-4">
               <Button
                 type="button"
                 variant="outline"
                 onClick={onClose}
-                className="flex-1"
+                className="flex-1 min-h-[44px] touch-manipulation"
               >
                 Cancelar
               </Button>
               <Button
                 type="submit"
-                className="flex-1"
+                className="flex-1 min-h-[44px] touch-manipulation"
                 disabled={getDifference() !== 0 || participants.length === 0}
               >
                 {isEditing ? "Atualizar" : "Criar"} Despesa
