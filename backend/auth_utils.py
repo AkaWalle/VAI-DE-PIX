@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 
 from database import get_db
 from models import User, UserSession
+from services.default_data_service import ensure_user_default_data
 
 load_dotenv()
 
@@ -158,5 +159,7 @@ def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db)
 ) -> User:
-    """Get current authenticated user."""
-    return verify_token(credentials.credentials, db)
+    """Get current authenticated user. Garante dados padrão (contas/categorias) se necessário."""
+    user = verify_token(credentials.credentials, db)
+    ensure_user_default_data(db, user.id)
+    return user
