@@ -120,7 +120,7 @@ export default function SharedExpenses() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header - botão em destaque e área de toque adequada no mobile */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">
@@ -130,11 +130,12 @@ export default function SharedExpenses() {
             Gerencie despesas divididas entre múltiplas pessoas
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 w-full sm:w-auto">
           <ActionButton
             variant="default"
             icon={Plus}
             onClick={() => setShowForm(true)}
+            className="min-h-[44px] px-6 flex-1 sm:flex-initial touch-manipulation"
           >
             Nova Despesa
           </ActionButton>
@@ -214,10 +215,14 @@ export default function SharedExpenses() {
             <p className="text-muted-foreground text-center mb-6 max-w-sm">
               Comece criando uma despesa para dividir entre múltiplas pessoas
             </p>
+            <p className="text-xs text-muted-foreground text-center mb-4 max-w-sm">
+              Por enquanto as despesas ficam salvas só no seu dispositivo. A pessoa adicionada por e-mail verá a dívida quando a sincronização estiver disponível.
+            </p>
             <ActionButton
               variant="default"
               icon={Plus}
               onClick={() => setShowForm(true)}
+              className="min-h-[44px] px-6 w-full sm:w-auto touch-manipulation"
             >
               Criar Primeira Despesa
             </ActionButton>
