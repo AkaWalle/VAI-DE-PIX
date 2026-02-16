@@ -1,11 +1,14 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { authService, User } from "@/services/auth.service";
+import { hasSessionToken } from "@/lib/auth-session";
 
 export interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  /** true até o primeiro bootstrap (verificação de sessão) terminar */
+  isAuthChecking: boolean;
 }
 
 export interface AuthActions {
@@ -14,6 +17,8 @@ export interface AuthActions {
   logout: () => void;
   updateProfile: (updates: Partial<User>) => Promise<void>;
   checkAuth: () => Promise<void>;
+  /** Roda 1x no app init: token? /me : limpa estado. Nunca confiar só no token. */
+  bootstrapAuth: () => Promise<void>;
 }
 
 export type AuthStore = AuthState & AuthActions;
@@ -21,10 +26,11 @@ export type AuthStore = AuthState & AuthActions;
 export const useAuthStore = create<AuthStore>()(
   persist(
     (set, get) => ({
-      // State
+      // State — isAuthChecking não é persistido (sempre true até bootstrap rodar)
       user: null,
       isAuthenticated: false,
       isLoading: false,
+      isAuthChecking: true,
 
       // Actions
       login: async (email: string, password: string) => {
@@ -93,7 +99,7 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       checkAuth: async () => {
-        if (!authService.isAuthenticated()) {
+        if (!hasSessionToken()) {
           set({ isAuthenticated: false, user: null });
           return;
         }
@@ -108,7 +114,7 @@ export const useAuthStore = create<AuthStore>()(
             isLoading: false,
           });
         } catch {
-          // Token invalid or expired
+          // Token inválido ou expirado
           authService.logout();
           set({
             user: null,
@@ -117,12 +123,22 @@ export const useAuthStore = create<AuthStore>()(
           });
         }
       },
+
+      bootstrapAuth: async () => {
+        if (!hasSessionToken()) {
+          set({ user: null, isAuthenticated: false, isAuthChecking: false });
+          return;
+        }
+        await get().checkAuth();
+        set({ isAuthChecking: false });
+      },
     }),
     {
       name: "vai-de-pix-auth",
       partialize: (state) => ({
         user: state.user,
         isAuthenticated: state.isAuthenticated,
+        // isAuthChecking NÃO persistido — sempre true até bootstrap
       }),
     },
   ),

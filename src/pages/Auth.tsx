@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/stores/auth-store-index";
+import { hasSessionToken } from "@/lib/auth-session";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,16 +24,17 @@ import {
 import { useToast } from "@/hooks/use-toast";
 
 export default function Auth() {
-  const { login, register, isLoading, isAuthenticated } = useAuthStore();
+  const { login, register, isLoading, user } = useAuthStore();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const hasToken = hasSessionToken();
 
-  // Redirecionar se já estiver autenticado
+  // Só redirecionar quando token E usuário carregado (evita loop /auth <-> /)
   useEffect(() => {
-    if (isAuthenticated) {
+    if (hasToken && user) {
       navigate("/", { replace: true });
     }
-  }, [isAuthenticated, navigate]);
+  }, [hasToken, user, navigate]);
 
   const [loginForm, setLoginForm] = useState({
     email: "",
