@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect, useRef } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,7 +8,22 @@ import { MainLayout } from "./layouts/main-layouts";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { PersistenceManager } from "./components/PersistenceManager";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { useAuthStore } from "./stores/auth-store-index";
 import "./App.css";
+
+/** Roda bootstrap de auth 1x no início (token + /me). */
+function AuthBootstrap() {
+  const bootstrapAuth = useAuthStore((s) => s.bootstrapAuth);
+  const isBootstrapped = useRef(false);
+
+  useEffect(() => {
+    if (isBootstrapped.current) return;
+    isBootstrapped.current = true;
+    bootstrapAuth();
+  }, [bootstrapAuth]);
+
+  return null;
+}
 
 // Lazy loading de páginas para melhor performance
 const Dashboard = lazy(() => import("./pages/dashboard"));
@@ -46,6 +61,7 @@ const App = () => {
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <AuthBootstrap />
             <Suspense fallback={<PageLoader />}>
               <Routes>
                 {/* Public route for authentication */}

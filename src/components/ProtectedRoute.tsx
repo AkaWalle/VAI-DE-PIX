@@ -1,26 +1,39 @@
 import { useAuthStore } from "@/stores/auth-store-index";
-import Auth from "@/pages/Auth";
-import { useEffect, useState } from "react";
+import { hasSessionToken } from "@/lib/auth-session";
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { isAuthenticated } = useAuthStore();
-  const [isHydrated, setIsHydrated] = useState(false);
+  const { user, isAuthChecking } = useAuthStore();
+  const navigate = useNavigate();
+  const hasToken = hasSessionToken();
+  const userLoaded = user !== null;
 
   useEffect(() => {
-    // Aguardar a hidratação dos dados do localStorage
-    const timer = setTimeout(() => {
-      setIsHydrated(true);
-    }, 100);
+    if (!hasToken) {
+      navigate("/auth", { replace: true });
+      return;
+    }
+  }, [hasToken, navigate]);
 
-    return () => clearTimeout(timer);
-  }, []);
+  // Sem token → redireciona em efeito; enquanto isso loading
+  if (!hasToken) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Redirecionando...</p>
+        </div>
+      </div>
+    );
+  }
 
-  // Mostrar loading enquanto os dados estão sendo hidratados
-  if (!isHydrated) {
+  // Tem token mas ainda validando sessão (/me)
+  if (hasToken && isAuthChecking) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
@@ -31,8 +44,17 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
-  if (!isAuthenticated) {
-    return <Auth />;
+  // Token existe mas usuário não carregou (sessão inválida)
+  if (hasToken && !userLoaded) {
+    navigate("/auth", { replace: true });
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Redirecionando...</p>
+        </div>
+      </div>
+    );
   }
 
   return <>{children}</>;

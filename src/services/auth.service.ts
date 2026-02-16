@@ -1,5 +1,5 @@
 import type { AxiosError } from "axios";
-import { httpClient, apiHelpers, tokenManager } from "@/lib/http-client";
+import { httpClient, apiHelpers, tokenManager, clearAllTokens } from "@/lib/http-client";
 import { API_ENDPOINTS } from "@/lib/api";
 
 export interface LoginCredentials {
@@ -98,13 +98,11 @@ export const authService = {
     }
   },
 
-  // Logout user
+  // Logout user — limpa todos os storages de token
   logout(): void {
-    tokenManager.remove();
+    clearAllTokens();
 
-    // Clear any cached data
     if (typeof window !== "undefined") {
-      // Clear React Query cache if needed
       window.location.reload();
     }
   },

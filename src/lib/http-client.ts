@@ -43,11 +43,11 @@ function getTokenForRequest(): string | null {
 }
 
 /**
- * Remove token de todos os storages (401/403).
+ * Remove token de todos os storages (401/403 / anti-loop).
  * localStorage: vai-de-pix-token, token
  * sessionStorage: token
  */
-function clearAllTokens(): void {
+export function clearAllTokens(): void {
   if (typeof window === "undefined") return;
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem("token");
@@ -91,22 +91,37 @@ httpClient.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    // DEBUG TEMPORÁRIO — quando não for mais necessário, remover a linha abaixo
-    console.log("[API AUTH CHECK]", { hasToken: !!token });
     return config;
   },
   (error) => Promise.reject(error),
 );
 
-// Response interceptor — 401/403: clearAllTokens() depois, se rota atual != /auth → redirecionar para /auth
+// Anti-loop: evita redirect infinito auth <-> /
+let redirectCount = 0;
+const REDIRECT_LOOP_THRESHOLD = 5;
+
+// Response interceptor — 401/403: clearAllTokens(); não redirecionar se já estiver em /auth
 httpClient.interceptors.response.use(
-  (response: AxiosResponse) => response,
+  (response: AxiosResponse) => {
+    if (response?.status >= 200 && response?.status < 300) redirectCount = 0;
+    return response;
+  },
   (error: AxiosError) => {
     const status = error.response?.status;
     if (status === 401 || status === 403) {
       clearAllTokens();
-      if (typeof window !== "undefined" && !window.location.pathname.includes("/auth")) {
-        window.location.href = "/auth";
+      if (typeof window !== "undefined") {
+        const currentPath = window.location.pathname;
+        if (!currentPath.startsWith("/auth")) {
+          redirectCount += 1;
+          if (redirectCount > REDIRECT_LOOP_THRESHOLD) {
+            console.error("Auth redirect loop detected");
+            redirectCount = 0;
+            // não redirecionar para evitar loop
+          } else {
+            window.location.href = "/auth";
+          }
+        }
       }
     }
     if (!error.response) {
