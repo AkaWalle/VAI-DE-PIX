@@ -111,7 +111,6 @@ async def create_goal(
         db_goal.progress_percentage = 0.0
         payload = GoalResponse.model_validate(db_goal).model_dump(mode="json")
         idem.save_success(200, payload)
-        db.commit()
         return db_goal
     except HTTPException:
         idem.save_failed()

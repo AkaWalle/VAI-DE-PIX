@@ -122,18 +122,21 @@ def test_retry_after_simulated_failure_no_duplicate_ledger_or_transaction(
             "tags": [],
         }
 
-        # Primeira chamada: falha após ledger.append (sync levanta)
+        # Primeira chamada: falha após ledger.append (sync levanta); service converte em HTTP 500
+        from fastapi import HTTPException
         with patch(
             "services.transaction_service.sync_account_balance_from_ledger",
             side_effect=RuntimeError("Simulando falha após ledger.append"),
         ):
-            with pytest.raises(RuntimeError, match="Simulando falha"):
+            with pytest.raises(HTTPException) as exc_info:
                 TransactionService.create_transaction(
                     transaction_data=transaction_data,
                     account=account,
                     user_id=user.id,
                     db=postgres_db,
                 )
+            assert exc_info.value.status_code == 500
+        postgres_db.rollback()
 
         count_tx_before = (
             postgres_db.query(Transaction)
@@ -211,17 +214,20 @@ def test_timeout_retry_no_duplication_commit_once(
             from core.ledger_utils import sync_account_balance_from_ledger as real_sync
             return real_sync(*args, **kwargs)
 
+        from fastapi import HTTPException
         with patch(
             "services.transaction_service.sync_account_balance_from_ledger",
             side_effect=sync_raise_once,
         ):
-            with pytest.raises(RuntimeError, match="Simulando timeout"):
+            with pytest.raises(HTTPException) as exc_info:
                 TransactionService.create_transaction(
                     transaction_data=transaction_data,
                     account=account,
                     user_id=user.id,
                     db=postgres_db,
                 )
+            assert exc_info.value.status_code == 500
+        postgres_db.rollback()
 
         # Retry: sucesso
         TransactionService.create_transaction(

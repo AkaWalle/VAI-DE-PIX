@@ -38,6 +38,7 @@ from database import get_db, engine
 from sqlalchemy import text
 from routers import auth, transactions, goals, envelopes, categories, accounts, reports, notifications
 from core.request_logging import StructuredLoggingMiddleware
+from core.request_id_middleware import RequestIDMiddleware
 from auth_utils import verify_token
 from core.recurring_job import start_scheduler
 
@@ -53,6 +54,8 @@ app = FastAPI(
 
 # Logs estruturados (opcional via ENABLE_STRUCTURED_LOGS=1)
 app.add_middleware(StructuredLoggingMiddleware)
+# X-Request-ID: gera ou propaga; contextvar para correlação em logs
+app.add_middleware(RequestIDMiddleware)
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,

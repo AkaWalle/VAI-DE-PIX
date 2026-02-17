@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime, date
@@ -10,6 +10,8 @@ from auth_utils import get_current_user
 from repositories.transaction_repository import TransactionRepository
 from services.transaction_service import TransactionService
 from middleware.idempotency import IdempotencyContext, get_idempotency_context_transactions
+from core.database_utils import atomic_transaction
+from core.request_context import set_idempotency_key
 
 router = APIRouter()
 
@@ -92,7 +94,9 @@ async def create_transaction(
     """
     Create a new transaction. Ledger append-only via TransactionService.
     Idempotency-Key opcional: mesmo key + mesmo payload → mesma resposta (retry seguro).
+    Router controla transação principal; idempotency usa sessão separada (crash safety).
     """
+    set_idempotency_key(idem.key)
     body_for_hash = transaction.model_dump(mode="json")
     idem.acquire(body_for_hash)
 
@@ -127,16 +131,15 @@ async def create_transaction(
         if transaction.to_account_id is not None:
             transaction_data["to_account_id"] = transaction.to_account_id
 
-        db_transaction = TransactionService.create_transaction(
-            transaction_data=transaction_data,
-            account=account,
-            user_id=current_user.id,
-            db=db,
-        )
-        db.commit()
+        with atomic_transaction(db):
+            db_transaction = TransactionService.create_transaction(
+                transaction_data=transaction_data,
+                account=account,
+                user_id=current_user.id,
+                db=db,
+            )
         payload = TransactionResponse.model_validate(db_transaction).model_dump(mode="json")
         idem.save_success(200, payload)
-        db.commit()
         return db_transaction
     except HTTPException:
         idem.save_failed()
@@ -204,14 +207,15 @@ async def update_transaction(
             detail="Conta não encontrada"
         )
 
-    return TransactionService.update_transaction(
-        db_transaction=db_transaction,
-        update_data=update_data,
-        old_account=old_account,
-        new_account=new_account,
-        user_id=current_user.id,
-        db=db,
-    )
+    with atomic_transaction(db):
+        return TransactionService.update_transaction(
+            db_transaction=db_transaction,
+            update_data=update_data,
+            old_account=old_account,
+            new_account=new_account,
+            user_id=current_user.id,
+            db=db,
+        )
 
 @router.delete("/{transaction_id}")
 async def delete_transaction(
@@ -239,13 +243,14 @@ async def delete_transaction(
             detail="Conta da transação não encontrada"
         )
 
-    TransactionService.delete_transaction(
-        db_transaction=db_transaction,
-        account=account,
-        user_id=current_user.id,
-        db=db,
-        hard=True,
-    )
+    with atomic_transaction(db):
+        TransactionService.delete_transaction(
+            db_transaction=db_transaction,
+            account=account,
+            user_id=current_user.id,
+            db=db,
+            hard=True,
+        )
     return {"message": "Transação removida com sucesso"}
 
 @router.get("/summary/monthly")

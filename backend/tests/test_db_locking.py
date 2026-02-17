@@ -18,6 +18,7 @@ from database import get_db
 from models import Transaction, LedgerEntry, Account
 from services.transaction_service import TransactionService
 from core.ledger_utils import get_balance_from_ledger
+from core.database_utils import atomic_transaction
 
 from tests.helpers_postgres import (
     create_test_user_account_category,
@@ -91,12 +92,13 @@ def test_double_spend_concurrent_only_one_transfer_succeeds(
                     Account.id == account_a.id,
                     Account.user_id == user.id,
                 ).first()
-                tx = TransactionService.create_transaction(
-                    transaction_data=transaction_data,
-                    account=account,
-                    user_id=user.id,
-                    db=db,
-                )
+                with atomic_transaction(db):
+                    tx = TransactionService.create_transaction(
+                        transaction_data=transaction_data,
+                        account=account,
+                        user_id=user.id,
+                        db=db,
+                    )
                 result_list.append(tx.id)
             except Exception as e:
                 exc_list.append(e)

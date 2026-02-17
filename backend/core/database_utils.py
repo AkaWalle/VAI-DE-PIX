@@ -10,6 +10,8 @@ from sqlalchemy.exc import IntegrityError
 from contextlib import contextmanager
 import logging
 
+from fastapi import HTTPException
+
 logger = logging.getLogger("vai_de_pix.database")
 
 T = TypeVar("T")
@@ -22,20 +24,42 @@ def atomic_transaction(db: Session):
     Commit ao sair com sucesso; rollback automático em qualquer exceção.
     Se a sessão já tiver transação ativa (autobegin), usa commit/rollback nela;
     senão inicia uma com begin().
+    Rollback: log do motivo (validação/negócio vs erro inesperado) antes de re-levantar.
     """
     if db.in_transaction():
         try:
             yield db
             db.commit()
             logger.debug("Transação commitada com sucesso")
+        except HTTPException as e:
+            db.rollback()
+            detail = e.detail if isinstance(e.detail, str) else (e.detail.get("message", str(e.detail)) if isinstance(e.detail, dict) else str(e.detail))
+            logger.warning(
+                "Rollback por validação/regra de negócio (status=%s): %s",
+                e.status_code,
+                detail,
+            )
+            raise
         except Exception as e:
             db.rollback()
-            logger.error("Erro na transação, rollback executado: %s", str(e), exc_info=True)
+            logger.exception("Erro inesperado na transação; rollback executado: %s", str(e))
             raise
     else:
-        with db.begin():
-            yield db
-        logger.debug("Transação commitada com sucesso")
+        try:
+            with db.begin():
+                yield db
+            logger.debug("Transação commitada com sucesso")
+        except HTTPException as e:
+            detail = e.detail if isinstance(e.detail, str) else (e.detail.get("message", str(e.detail)) if isinstance(e.detail, dict) else str(e.detail))
+            logger.warning(
+                "Rollback por validação/regra de negócio (status=%s): %s",
+                e.status_code,
+                detail,
+            )
+            raise
+        except Exception as e:
+            logger.exception("Erro inesperado na transação; rollback executado: %s", str(e))
+            raise
 
 
 def execute_atomic_operation(

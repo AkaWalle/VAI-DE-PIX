@@ -23,6 +23,11 @@ class JSONFormatter(logging.Formatter):
             "line": record.lineno,
         }
         
+        # Correlação (sempre que disponível)
+        if getattr(record, "request_id", None):
+            log_data["request_id"] = record.request_id
+        if getattr(record, "idempotency_key", None):
+            log_data["idempotency_key"] = record.idempotency_key
         # Adicionar campos extras se existirem
         if hasattr(record, "user_id"):
             log_data["user_id"] = record.user_id

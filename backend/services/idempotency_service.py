@@ -159,6 +159,63 @@ def save_failed(db: Session, row: IdempotencyKey) -> None:
     db.flush()
 
 
+def save_completed_by_key(
+    db: Session,
+    user_id: str,
+    key: str,
+    endpoint: str,
+    response_status: int,
+    response_body: Any,
+) -> None:
+    """
+    Marca idempotency como completed por (user_id, key, endpoint).
+    Para uso com sessão separada: reabre a linha na sessão atual e atualiza.
+    """
+    row = (
+        db.query(IdempotencyKey)
+        .filter(
+            IdempotencyKey.user_id == user_id,
+            IdempotencyKey.key == key,
+            IdempotencyKey.endpoint == endpoint,
+        )
+        .with_for_update()
+        .first()
+    )
+    if row is None:
+        return
+    row.status = "completed"
+    row.response_status = response_status
+    row.response_body = response_body
+    if response_body is not None and isinstance(response_body, dict):
+        row.response_payload = response_body
+    db.add(row)
+    db.flush()
+
+
+def save_failed_by_key(db: Session, user_id: str, key: str, endpoint: str) -> None:
+    """
+    Marca idempotency como failed por (user_id, key, endpoint).
+    Para uso com sessão separada: reabre a linha na sessão atual e atualiza.
+    """
+    row = (
+        db.query(IdempotencyKey)
+        .filter(
+            IdempotencyKey.user_id == user_id,
+            IdempotencyKey.key == key,
+            IdempotencyKey.endpoint == endpoint,
+        )
+        .with_for_update()
+        .first()
+    )
+    if row is None:
+        return
+    row.status = "failed"
+    row.response_status = None
+    row.response_body = None
+    db.add(row)
+    db.flush()
+
+
 # --- Compatibilidade com código existente (Trilha 6.1) ---
 
 
