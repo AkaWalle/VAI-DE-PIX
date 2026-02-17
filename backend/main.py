@@ -39,6 +39,7 @@ from routers import auth, transactions, goals, envelopes, categories, accounts, 
 from auth_utils import verify_token
 from core.recurring_job import start_scheduler
 from core.request_logging import StructuredLoggingMiddleware
+from core.request_id_middleware import RequestIDMiddleware
 from core.prometheus_metrics import get_metrics_content, get_metrics_content_type
 
 # Load environment variables
@@ -93,6 +94,7 @@ else:
     ]
 
 app.add_middleware(StructuredLoggingMiddleware)
+app.add_middleware(RequestIDMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,

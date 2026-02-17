@@ -158,6 +158,30 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 # Base class for models
 Base = declarative_base()
 
+# Hook para testes: usar mesma factory que get_db (evita idempotência em outro engine)
+_idempotency_session_factory = None
+
+
+def run_with_idempotency_session(operation):
+    """
+    Executa uma operação em uma sessão separada (para idempotência).
+    Commit em sucesso; rollback em exceção. Sessão sempre fechada no finally.
+    Usado para acquire, save_completed e save_failed para não acoplar à transação principal.
+    Em testes, definir database._idempotency_session_factory = TestingSessionLocal para mesmo engine.
+    """
+    session_factory = _idempotency_session_factory if _idempotency_session_factory is not None else SessionLocal
+    db = session_factory()
+    try:
+        result = operation(db)
+        db.commit()
+        return result
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
 # Dependency to get database session
 def get_db():
     print("[DB-RUNTIME] get_db: connection start")

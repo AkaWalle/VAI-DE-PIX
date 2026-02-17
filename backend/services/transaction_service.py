@@ -9,9 +9,8 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 from typing import List, Optional
 
-from models import Transaction, Account, Tag, TransactionTag
+from models import Transaction, Account, Category, Tag, TransactionTag
 from repositories.tag_repository import TagRepository
-from core.database_utils import atomic_transaction
 from core.security import validate_ownership
 from core.ledger_utils import (
     sync_account_balance_from_ledger,
@@ -24,6 +23,134 @@ from fastapi import HTTPException, status
 from db.locks import lock_account, lock_accounts_ordered
 
 logger = get_logger(__name__)
+
+# Códigos de erro padronizados para transações
+ERROR_TRANSACTION_VALIDATION = "TRANSACTION_VALIDATION_ERROR"
+CODE_TX_VALIDATION_MISSING = "TX_VALIDATION_MISSING_FIELD"
+CODE_TX_VALIDATION_INVALID_TYPE = "TX_VALIDATION_INVALID_TYPE"
+CODE_TX_VALIDATION_AMOUNT = "TX_VALIDATION_AMOUNT"
+CODE_TX_VALIDATION_DESCRIPTION = "TX_VALIDATION_DESCRIPTION"
+CODE_TX_CATEGORY_NOT_FOUND = "TX_CATEGORY_NOT_FOUND"
+CODE_TX_INSUFFICIENT_BALANCE = "TX_INSUFFICIENT_BALANCE"
+CODE_TX_TRANSFER_TO_ACCOUNT = "TX_TRANSFER_TO_ACCOUNT"
+CODE_TX_TRANSFER_SAME_ACCOUNT = "TX_TRANSFER_SAME_ACCOUNT"
+CODE_TX_CONFLICT = "TX_CONFLICT"
+CODE_TX_INTERNAL = "TX_INTERNAL_ERROR"
+
+
+def _tx_detail(error: str, message: str, details: str, code: str) -> dict:
+    """Formato obrigatório do detail para HTTPException de transação."""
+    return {
+        "error": error,
+        "message": message,
+        "details": details,
+        "code": code,
+    }
+
+
+def _raise_tx_validation(message: str, details: str, code: str) -> None:
+    """Levanta HTTP 400 com detail padronizado (validação de payload)."""
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail=_tx_detail(ERROR_TRANSACTION_VALIDATION, message, details, code),
+    )
+
+
+def _raise_tx_business(message: str, details: str, code: str) -> None:
+    """Levanta HTTP 422 (regra de negócio, ex.: saldo insuficiente)."""
+    raise HTTPException(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        detail=_tx_detail(ERROR_TRANSACTION_VALIDATION, message, details, code),
+    )
+
+
+def _raise_tx_not_found(message: str, details: str, code: str) -> None:
+    """Levanta HTTP 404 (recurso não encontrado)."""
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=_tx_detail(ERROR_TRANSACTION_VALIDATION, message, details, code),
+    )
+
+
+def _raise_tx_conflict(message: str, details: str) -> None:
+    """Levanta HTTP 409 (conflito de concorrência)."""
+    raise HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail=_tx_detail(ERROR_TRANSACTION_VALIDATION, message, details, CODE_TX_CONFLICT),
+    )
+
+
+def _raise_tx_internal(details: str = "Erro interno ao processar transação.") -> None:
+    """Levanta HTTP 500 (erro inesperado)."""
+    raise HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        detail=_tx_detail("INTERNAL_ERROR", details, details, CODE_TX_INTERNAL),
+    )
+
+
+def _validate_transaction_payload(
+    transaction_data: dict,
+    account: Account,
+    user_id: str,
+    db: Session,
+    is_transfer: bool = False,
+) -> None:
+    """
+    Valida payload antes de gravar no banco.
+    Verifica: campos obrigatórios, tipo, amount > 0, description, categoria existente.
+    Levanta HTTPException com detail padronizado em caso de falha.
+    """
+    # account_id pode vir no payload (API) ou ser implícito via parâmetro account
+    required = ["date", "category_id", "type", "amount", "description"]
+    if is_transfer:
+        required = required + ["to_account_id"]
+    for field in required:
+        if field not in transaction_data or transaction_data[field] is None:
+            _raise_tx_validation(
+                message=f"Campo obrigatório ausente ou nulo: {field}",
+                details=f"O campo '{field}' é obrigatório para criar a transação.",
+                code=CODE_TX_VALIDATION_MISSING,
+            )
+    transaction_type = transaction_data.get("type")
+    if transaction_type not in ("income", "expense", "transfer"):
+        _raise_tx_validation(
+            message="Tipo de transação inválido",
+            details=f"type deve ser 'income', 'expense' ou 'transfer'. Recebido: {transaction_type!r}",
+            code=CODE_TX_VALIDATION_INVALID_TYPE,
+        )
+    try:
+        amount = float(transaction_data["amount"])
+    except (TypeError, ValueError):
+        _raise_tx_validation(
+            message="Valor (amount) inválido",
+            details="amount deve ser um número.",
+            code=CODE_TX_VALIDATION_AMOUNT,
+        )
+    if amount <= 0:
+        _raise_tx_validation(
+            message="Valor (amount) deve ser positivo",
+            details=f"amount deve ser maior que zero. Recebido: {amount}",
+            code=CODE_TX_VALIDATION_AMOUNT,
+        )
+    description = transaction_data.get("description") or ""
+    if not (isinstance(description, str) and description.strip()):
+        _raise_tx_validation(
+            message="Descrição não pode ser vazia",
+            details="description deve ter pelo menos um caractere.",
+            code=CODE_TX_VALIDATION_DESCRIPTION,
+        )
+    category_id = transaction_data.get("category_id")
+    category = db.query(Category).filter(
+        Category.id == category_id,
+        Category.user_id == user_id,
+    ).first()
+    if not category:
+        _raise_tx_not_found(
+            message="Categoria não encontrada",
+            details=f"Nenhuma categoria com id '{category_id}' pertence ao usuário.",
+            code=CODE_TX_CATEGORY_NOT_FOUND,
+        )
+    # Nota: compatibilidade categoria.type x transaction_type não validada para manter regras existentes.
 
 
 def _lock_accounts_for_update(account_ids: List[str], db: Session) -> None:
@@ -86,85 +213,116 @@ class TransactionService:
         Returns:
             Transação criada
         """
+        transaction_type = transaction_data.get("type")
+        amount = transaction_data.get("amount")
+        # Log detalhado antes de validações (observabilidade)
+        logger.info(
+            "create_transaction: payload recebido | user_id=%s wallet_id=%s amount=%s type=%s",
+            user_id,
+            account.id if account else None,
+            amount,
+            transaction_type,
+            extra={
+                "user_id": user_id,
+                "account_id": getattr(account, "id", None),
+                "amount": amount,
+                "type": transaction_type,
+                "payload_keys": list(transaction_data.keys()),
+            },
+        )
+
         # Validação de ownership
         validate_ownership(account.user_id, user_id, "conta")
-        
-        transaction_type = transaction_data.get('type')
-        
+
+        # Validação de payload antes de gravar no banco
+        _validate_transaction_payload(
+            transaction_data,
+            account,
+            user_id,
+            db,
+            is_transfer=(transaction_type == "transfer"),
+        )
+
         # Se for transferência, criar as duas pernas
-        if transaction_type == 'transfer':
+        if transaction_type == "transfer":
             return TransactionService._create_transfer(
                 transaction_data=transaction_data,
                 account=account,
                 user_id=user_id,
-                db=db
+                db=db,
             )
-        
-        # Operação atômica: advisory lock + FOR UPDATE + validação de saldo (despesa) + transação + ledger (append-only)
+
+        # Router controla transação (atomic_transaction). Service só executa operações na sessão.
         try:
-            with atomic_transaction(db):
-                lock_account(account.id, db)
-                _lock_accounts_for_update([account.id], db)
-                amount = transaction_data['amount']
-                if transaction_type == 'expense':
-                    current_balance = get_balance_from_ledger(account.id, db)
-                    if current_balance < Decimal(str(amount)):
-                        raise HTTPException(
-                            status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="Saldo insuficiente para esta despesa.",
-                        )
-                db_transaction = Transaction(
-                    date=transaction_data['date'],
-                    account_id=account.id,
-                    category_id=transaction_data.get('category_id'),
-                    type=transaction_type,
-                    amount=transaction_data['amount'],
-                    description=transaction_data['description'],
+            lock_account(account.id, db)
+            _lock_accounts_for_update([account.id], db)
+            amount = transaction_data["amount"]
+            if transaction_type == "expense":
+                current_balance = get_balance_from_ledger(account.id, db)
+                if current_balance < Decimal(str(amount)):
+                    _raise_tx_business(
+                        message="Saldo insuficiente para esta despesa.",
+                        details=f"Saldo atual: {current_balance}; valor da despesa: {amount}.",
+                        code=CODE_TX_INSUFFICIENT_BALANCE,
+                    )
+            db_transaction = Transaction(
+                date=transaction_data["date"],
+                account_id=account.id,
+                category_id=transaction_data["category_id"],
+                type=transaction_type,
+                amount=transaction_data["amount"],
+                description=transaction_data["description"],
+                user_id=user_id,
+                transfer_transaction_id=None,
+            )
+            db.add(db_transaction)
+            db.flush()
+
+            ledger = LedgerRepository(db)
+            if transaction_type == "income":
+                ledger.append(
                     user_id=user_id,
-                    transfer_transaction_id=None
+                    account_id=account.id,
+                    amount=amount,
+                    entry_type="credit",
+                    transaction_id=db_transaction.id,
                 )
-                db.add(db_transaction)
-                db.flush()
+            else:
+                ledger.append(
+                    user_id=user_id,
+                    account_id=account.id,
+                    amount=-amount,
+                    entry_type="debit",
+                    transaction_id=db_transaction.id,
+                )
+            db.flush()
+            sync_account_balance_from_ledger(account.id, db)
+            _sync_tags_for_transaction(
+                db, db_transaction.id, user_id,
+                transaction_data.get("tags") or [],
+            )
 
-                ledger = LedgerRepository(db)
-                if transaction_type == 'income':
-                    ledger.append(
-                        user_id=user_id,
-                        account_id=account.id,
-                        amount=amount,
-                        entry_type='credit',
-                        transaction_id=db_transaction.id,
-                    )
-                else:
-                    ledger.append(
-                        user_id=user_id,
-                        account_id=account.id,
-                        amount=-amount,
-                        entry_type='debit',
-                        transaction_id=db_transaction.id,
-                    )
-                db.flush()  # visibilidade das entradas no ledger para get_balance_from_ledger
-                sync_account_balance_from_ledger(account.id, db)
-                _sync_tags_for_transaction(
-                    db, db_transaction.id, user_id,
-                    transaction_data.get("tags") or [],
-                )
-
-                logger.info(
-                    f"Transação criada: ID={db_transaction.id}, "
-                    f"Tipo={transaction_type}, Valor={amount}, "
-                    f"Conta={account.name}",
-                    extra={"user_id": user_id, "transaction_id": db_transaction.id}
-                )
+            logger.info(
+                "Transação criada: ID=%s Tipo=%s Valor=%s Conta=%s",
+                db_transaction.id,
+                transaction_type,
+                amount,
+                account.name,
+                extra={"user_id": user_id, "transaction_id": db_transaction.id},
+            )
+            db.refresh(db_transaction)
+            db.refresh(account)
+            return db_transaction
+        except HTTPException:
+            raise
         except ConcurrencyConflictError as e:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=str(e) or "Conta alterada por outra transação; refaça a operação.",
-            ) from e
-
-        db.refresh(db_transaction)
-        db.refresh(account)
-        return db_transaction
+            _raise_tx_conflict(
+                message=str(e) or "Conta alterada por outra transação; refaça a operação.",
+                details="Conflito de concorrência no ledger/saldo.",
+            )
+        except Exception as e:
+            logger.exception("Erro inesperado em create_transaction: %s", e)
+            _raise_tx_internal(details="Erro interno ao processar transação.")
     
     @staticmethod
     def _create_transfer(
@@ -185,110 +343,119 @@ class TransactionService:
         Returns:
             Transação de origem criada
         """
-        to_account_id = transaction_data.get('to_account_id')
+        to_account_id = transaction_data.get("to_account_id")
         if not to_account_id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Transferências requerem 'to_account_id'"
+            _raise_tx_validation(
+                message="Transferências requerem 'to_account_id'",
+                details="Informe to_account_id com o id da conta de destino.",
+                code=CODE_TX_TRANSFER_TO_ACCOUNT,
             )
-        
-        # Buscar conta de destino
+
         to_account = db.query(Account).filter(
             Account.id == to_account_id,
-            Account.user_id == user_id
+            Account.user_id == user_id,
         ).first()
-        
+
         if not to_account:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Conta de destino não encontrada"
+            _raise_tx_not_found(
+                message="Conta de destino não encontrada",
+                details=f"Nenhuma conta com id '{to_account_id}' pertence ao usuário.",
+                code=CODE_TX_TRANSFER_TO_ACCOUNT,
             )
         if to_account_id == account.id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Transferência para a mesma conta não é permitida"
+            _raise_tx_validation(
+                message="Transferência para a mesma conta não é permitida",
+                details="Origem e destino não podem ser a mesma conta.",
+                code=CODE_TX_TRANSFER_SAME_ACCOUNT,
             )
         validate_ownership(to_account.user_id, user_id, "conta de destino")
-        
-        amount = transaction_data['amount']
-        date = transaction_data['date']
-        description = transaction_data.get('description', 'Transferência')
-        
-        # Operação atômica: advisory lock (ordem determinística) + FOR UPDATE + validação saldo origem + duas pernas + ledger
+
+        amount = transaction_data["amount"]
+        date = transaction_data["date"]
+        description = transaction_data.get("description", "Transferência")
+
         try:
-            with atomic_transaction(db):
-                lock_accounts_ordered([account.id, to_account.id], db)
-                _lock_accounts_for_update([account.id, to_account.id], db)
-                current_balance = get_balance_from_ledger(account.id, db)
-                if current_balance < Decimal(str(amount)):
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail="Saldo insuficiente para esta transferência.",
-                    )
-                transaction_out = Transaction(
-                    date=date,
-                    account_id=account.id,
-                    category_id=transaction_data.get('category_id'),
-                    type='transfer',
-                    amount=amount,
-                    description=f"{description} → {to_account.name}",
-                    user_id=user_id,
-                    transfer_transaction_id=None
+            lock_accounts_ordered([account.id, to_account.id], db)
+            _lock_accounts_for_update([account.id, to_account.id], db)
+            current_balance = get_balance_from_ledger(account.id, db)
+            if current_balance < Decimal(str(amount)):
+                _raise_tx_business(
+                    message="Saldo insuficiente para esta transferência.",
+                    details=f"Saldo atual: {current_balance}; valor: {amount}.",
+                    code=CODE_TX_INSUFFICIENT_BALANCE,
                 )
-                db.add(transaction_out)
-                db.flush()
+            transaction_out = Transaction(
+                date=date,
+                account_id=account.id,
+                category_id=transaction_data["category_id"],
+                type="transfer",
+                amount=amount,
+                description=f"{description} → {to_account.name}",
+                user_id=user_id,
+                transfer_transaction_id=None,
+            )
+            db.add(transaction_out)
+            db.flush()
 
-                transaction_in = Transaction(
-                    date=date,
-                    account_id=to_account.id,
-                    category_id=transaction_data.get('category_id'),
-                    type='transfer',
-                    amount=amount,
-                    description=f"{description} ← {account.name}",
-                    user_id=user_id,
-                    transfer_transaction_id=transaction_out.id
-                )
-                db.add(transaction_in)
-                db.flush()
-                transaction_out.transfer_transaction_id = transaction_in.id
+            transaction_in = Transaction(
+                date=date,
+                account_id=to_account.id,
+                category_id=transaction_data["category_id"],
+                type="transfer",
+                amount=amount,
+                description=f"{description} ← {account.name}",
+                user_id=user_id,
+                transfer_transaction_id=transaction_out.id,
+            )
+            db.add(transaction_in)
+            db.flush()
+            transaction_out.transfer_transaction_id = transaction_in.id
 
-                ledger = LedgerRepository(db)
-                ledger.append(
-                    user_id=user_id,
-                    account_id=account.id,
-                    amount=-amount,
-                    entry_type='debit',
-                    transaction_id=transaction_out.id,
-                )
-                ledger.append(
-                    user_id=user_id,
-                    account_id=to_account.id,
-                    amount=amount,
-                    entry_type='credit',
-                    transaction_id=transaction_in.id,
-                )
-                db.flush()
-                sync_account_balance_from_ledger(account.id, db)
-                sync_account_balance_from_ledger(to_account.id, db)
-                tag_names = transaction_data.get("tags") or []
-                _sync_tags_for_transaction(db, transaction_out.id, user_id, tag_names)
-                _sync_tags_for_transaction(db, transaction_in.id, user_id, tag_names)
+            ledger = LedgerRepository(db)
+            ledger.append(
+                user_id=user_id,
+                account_id=account.id,
+                amount=-amount,
+                entry_type="debit",
+                transaction_id=transaction_out.id,
+            )
+            ledger.append(
+                user_id=user_id,
+                account_id=to_account.id,
+                amount=amount,
+                entry_type="credit",
+                transaction_id=transaction_in.id,
+            )
+            db.flush()
+            sync_account_balance_from_ledger(account.id, db)
+            sync_account_balance_from_ledger(to_account.id, db)
+            tag_names = transaction_data.get("tags") or []
+            _sync_tags_for_transaction(db, transaction_out.id, user_id, tag_names)
+            _sync_tags_for_transaction(db, transaction_in.id, user_id, tag_names)
 
-                logger.info(
-                    f"Transferência criada: {account.name} → {to_account.name}, "
-                    f"Valor={amount}, IDs={transaction_out.id}/{transaction_in.id}",
-                    extra={"user_id": user_id, "transaction_id": transaction_out.id}
-                )
+            logger.info(
+                "Transferência criada: %s → %s Valor=%s IDs=%s/%s",
+                account.name,
+                to_account.name,
+                amount,
+                transaction_out.id,
+                transaction_in.id,
+                extra={"user_id": user_id, "transaction_id": transaction_out.id},
+            )
+            db.refresh(transaction_out)
+            db.refresh(account)
+            db.refresh(to_account)
+            return transaction_out
+        except HTTPException:
+            raise
         except ConcurrencyConflictError as e:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=str(e) or "Conta alterada por outra transação; refaça a operação.",
-            ) from e
-
-        db.refresh(transaction_out)
-        db.refresh(account)
-        db.refresh(to_account)
-        return transaction_out
+            _raise_tx_conflict(
+                message=str(e) or "Conta alterada por outra transação; refaça a operação.",
+                details="Conflito de concorrência no ledger/saldo.",
+            )
+        except Exception as e:
+            logger.exception("Erro inesperado em _create_transfer: %s", e)
+            _raise_tx_internal(details="Erro interno ao processar transferência.")
     
     @staticmethod
     def update_transaction(
@@ -326,77 +493,75 @@ class TransactionService:
         if old_account.id == new_account.id:
             account_ids = [old_account.id]
         try:
-            with atomic_transaction(db):
-                lock_accounts_ordered(account_ids, db)
-                _lock_accounts_for_update(account_ids, db)
-                # Reversão no ledger (entrada de sinal oposto na conta antiga)
-                if old_type == 'income':
-                    ledger.append(
-                        user_id=user_id,
-                        account_id=old_account.id,
-                        amount=-old_amount,
-                        entry_type='debit',
-                        transaction_id=db_transaction.id,
-                    )
-                else:
-                    ledger.append(
-                        user_id=user_id,
-                        account_id=old_account.id,
-                        amount=old_amount,
-                        entry_type='credit',
-                        transaction_id=db_transaction.id,
-                    )
-
-                if 'date' in update_data:
-                    db_transaction.date = update_data['date']
-                if 'account_id' in update_data:
-                    db_transaction.account_id = update_data['account_id']
-                if 'category_id' in update_data:
-                    db_transaction.category_id = update_data['category_id']
-                if 'type' in update_data:
-                    db_transaction.type = update_data['type']
-                if 'amount' in update_data:
-                    db_transaction.amount = update_data['amount']
-                if 'description' in update_data:
-                    db_transaction.description = update_data['description']
-                if 'tags' in update_data:
-                    _sync_tags_for_transaction(
-                        db, db_transaction.id, user_id,
-                        update_data.get('tags') or [],
-                    )
-                if 'transfer_transaction_id' in update_data:
-                    db_transaction.transfer_transaction_id = update_data['transfer_transaction_id']
-                db_transaction.updated_at = datetime.now()
-
-                new_type = update_data.get('type', db_transaction.type)
-                new_amount = update_data.get('amount', db_transaction.amount)
-
-                if new_type == 'income':
-                    ledger.append(
-                        user_id=user_id,
-                        account_id=new_account.id,
-                        amount=new_amount,
-                        entry_type='credit',
-                        transaction_id=db_transaction.id,
-                    )
-                else:
-                    ledger.append(
-                        user_id=user_id,
-                        account_id=new_account.id,
-                        amount=-new_amount,
-                        entry_type='debit',
-                        transaction_id=db_transaction.id,
-                    )
-
-                db.flush()
-                sync_account_balance_from_ledger(old_account.id, db)
-                sync_account_balance_from_ledger(new_account.id, db)
-
-                logger.info(
-                    f"Transação atualizada: ID={db_transaction.id}, "
-                    f"Novo tipo={new_type}, Novo valor={new_amount}",
-                    extra={"user_id": user_id, "transaction_id": db_transaction.id}
+            lock_accounts_ordered(account_ids, db)
+            _lock_accounts_for_update(account_ids, db)
+            # Reversão no ledger (entrada de sinal oposto na conta antiga)
+            if old_type == 'income':
+                ledger.append(
+                    user_id=user_id,
+                    account_id=old_account.id,
+                    amount=-old_amount,
+                    entry_type='debit',
+                    transaction_id=db_transaction.id,
                 )
+            else:
+                ledger.append(
+                    user_id=user_id,
+                    account_id=old_account.id,
+                    amount=old_amount,
+                    entry_type='credit',
+                    transaction_id=db_transaction.id,
+                )
+
+            if 'date' in update_data:
+                db_transaction.date = update_data['date']
+            if 'account_id' in update_data:
+                db_transaction.account_id = update_data['account_id']
+            if 'category_id' in update_data:
+                db_transaction.category_id = update_data['category_id']
+            if 'type' in update_data:
+                db_transaction.type = update_data['type']
+            if 'amount' in update_data:
+                db_transaction.amount = update_data['amount']
+            if 'description' in update_data:
+                db_transaction.description = update_data['description']
+            if 'tags' in update_data:
+                _sync_tags_for_transaction(
+                    db, db_transaction.id, user_id,
+                    update_data.get('tags') or [],
+                )
+            # transfer_transaction_id nunca aceito do cliente (apenas interno na criação de transfer)
+            db_transaction.updated_at = datetime.now()
+
+            new_type = update_data.get('type', db_transaction.type)
+            new_amount = update_data.get('amount', db_transaction.amount)
+
+            if new_type == 'income':
+                ledger.append(
+                    user_id=user_id,
+                    account_id=new_account.id,
+                    amount=new_amount,
+                    entry_type='credit',
+                    transaction_id=db_transaction.id,
+                )
+            else:
+                ledger.append(
+                    user_id=user_id,
+                    account_id=new_account.id,
+                    amount=-new_amount,
+                    entry_type='debit',
+                    transaction_id=db_transaction.id,
+                )
+
+            db.flush()
+            sync_account_balance_from_ledger(old_account.id, db)
+            sync_account_balance_from_ledger(new_account.id, db)
+
+            logger.info(
+                f"Transação atualizada: ID={db_transaction.id}, "
+                f"Novo tipo={new_type}, Novo valor={new_amount}",
+                extra={"user_id": user_id, "transaction_id": db_transaction.id}
+            )
         except ConcurrencyConflictError as e:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
@@ -441,47 +606,46 @@ class TransactionService:
         if partner_transaction and partner_account:
             account_ids_to_lock = sorted(set([account.id, partner_account.id]))
         try:
-            with atomic_transaction(db):
-                lock_accounts_ordered(account_ids_to_lock, db)
-                _lock_accounts_for_update(account_ids_to_lock, db)
-                # Reverter todas as entradas do ledger associadas a esta transação (e à parceira se transfer)
-                transaction_ids_to_revert = [db_transaction.id]
-                if partner_transaction:
-                    transaction_ids_to_revert.append(partner_transaction.id)
-                for tid in transaction_ids_to_revert:
-                    entries = ledger_repo.get_entries_by_transaction(tid)
-                    for entry in entries:
-                        rev_type = "credit" if entry.entry_type == "debit" else "debit"
-                        rev_amount = -entry.amount
-                        ledger_repo.append(
-                            user_id=user_id,
-                            account_id=entry.account_id,
-                            amount=rev_amount,
-                            entry_type=rev_type,
-                            transaction_id=entry.transaction_id,
-                        )
-                    db.flush()
-                    for entry in entries:
-                        sync_account_balance_from_ledger(entry.account_id, db)
+            lock_accounts_ordered(account_ids_to_lock, db)
+            _lock_accounts_for_update(account_ids_to_lock, db)
+            # Reverter todas as entradas do ledger associadas a esta transação (e à parceira se transfer)
+            transaction_ids_to_revert = [db_transaction.id]
+            if partner_transaction:
+                transaction_ids_to_revert.append(partner_transaction.id)
+            for tid in transaction_ids_to_revert:
+                entries = ledger_repo.get_entries_by_transaction(tid)
+                for entry in entries:
+                    rev_type = "credit" if entry.entry_type == "debit" else "debit"
+                    rev_amount = -entry.amount
+                    ledger_repo.append(
+                        user_id=user_id,
+                        account_id=entry.account_id,
+                        amount=rev_amount,
+                        entry_type=rev_type,
+                        transaction_id=entry.transaction_id,
+                    )
+                db.flush()
+                for entry in entries:
+                    sync_account_balance_from_ledger(entry.account_id, db)
 
-                if not hard and partner_transaction:
-                    partner_transaction.deleted_at = datetime.now()
-                    db.add(partner_transaction)
-                if hard:
-                    if partner_transaction:
-                        db.delete(partner_transaction)
-                    db.delete(db_transaction)
-                    logger.info(
-                        f"Transação(ões) deletada(s) permanentemente: ID={db_transaction.id}",
-                        extra={"user_id": user_id, "transaction_id": db_transaction.id}
-                    )
-                else:
-                    db_transaction.deleted_at = datetime.now()
-                    db.add(db_transaction)
-                    logger.info(
-                        f"Transação deletada (soft delete): ID={db_transaction.id}",
-                        extra={"user_id": user_id, "transaction_id": db_transaction.id}
-                    )
+            if not hard and partner_transaction:
+                partner_transaction.deleted_at = datetime.now()
+                db.add(partner_transaction)
+            if hard:
+                if partner_transaction:
+                    db.delete(partner_transaction)
+                db.delete(db_transaction)
+                logger.info(
+                    f"Transação(ões) deletada(s) permanentemente: ID={db_transaction.id}",
+                    extra={"user_id": user_id, "transaction_id": db_transaction.id}
+                )
+            else:
+                db_transaction.deleted_at = datetime.now()
+                db.add(db_transaction)
+                logger.info(
+                    f"Transação deletada (soft delete): ID={db_transaction.id}",
+                    extra={"user_id": user_id, "transaction_id": db_transaction.id}
+                )
         except ConcurrencyConflictError as e:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,

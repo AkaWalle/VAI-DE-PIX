@@ -84,11 +84,16 @@ def client(db):
             yield db
         finally:
             pass
-    
+
+    import database as db_module
+    db_module._idempotency_session_factory = TestingSessionLocal
     app.dependency_overrides[get_db] = override_get_db
-    with TestClient(app) as test_client:
-        yield test_client
-    app.dependency_overrides.clear()
+    try:
+        with TestClient(app) as test_client:
+            yield test_client
+    finally:
+        app.dependency_overrides.clear()
+        db_module._idempotency_session_factory = None
 
 
 @pytest.fixture
