@@ -130,6 +130,7 @@ export const API_ENDPOINTS = {
     list: "/shared-expenses",
     create: "/shared-expenses",
     pending: "/shared-expenses/pending",
+    readModel: "/shared-expenses/read-model",
     respond: (shareId: string) => `/shared-expenses/shares/${shareId}`,
     shareEvents: (shareId: string) => `/shared-expenses/shares/${shareId}/events`,
     fullDetails: (expenseId: string) => `/shared-expenses/${expenseId}/full-details`,

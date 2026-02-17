@@ -6,9 +6,15 @@ import { categoriesService } from "@/services/categories.service";
 import { accountsService } from "@/services/accounts.service";
 import { goalsService } from "@/services/goals.service";
 import { envelopesService } from "@/services/envelopes.service";
+import {
+  isSharedExpensesGodModeEnabled,
+  syncSharedExpensesFromBackend,
+} from "@/lib/shared-expenses-sync-engine";
+import { waitUntilAuthReady } from "@/lib/auth-runtime-guard";
 
 /**
- * Hook para carregar dados da API quando o usuário faz login
+ * Hook para carregar dados da API quando o usuário faz login.
+ * Só inicia loadData após auth estar pronto (bootstrap terminado), evitando 401 por sync antecipado.
  */
 export function useLoadData() {
   const { user, isAuthenticated } = useAuthStore();
@@ -16,17 +22,24 @@ export function useLoadData() {
     useFinancialStore();
 
   useEffect(() => {
-    if (!isAuthenticated || !user) {
-      console.log("⏸️ Usuário não autenticado, pulando carregamento de dados");
-      return;
-    }
+    let cancelled = false;
 
-    console.log(
-      "✅ Usuário autenticado, iniciando carregamento de dados...",
-      user,
-    );
+    const run = async () => {
+      const authReady = await waitUntilAuthReady();
+      if (cancelled || !authReady) return;
 
-    const loadData = async () => {
+      const state = useAuthStore.getState();
+      if (!state.isAuthenticated || !state.user) {
+        console.log("⏸️ Usuário não autenticado, pulando carregamento de dados");
+        return;
+      }
+
+      console.log(
+        "✅ Usuário autenticado, iniciando carregamento de dados...",
+        state.user,
+      );
+
+      const loadData = async () => {
       try {
         console.log("🔄 Carregando dados da API...");
 
@@ -155,6 +168,11 @@ export function useLoadData() {
           console.warn("⚠️ Erro ao carregar caixinhas:", err);
         }
 
+        // GOD MODE: sync despesas compartilhadas do backend (read-model)
+        if (isSharedExpensesGodModeEnabled()) {
+          await syncSharedExpensesFromBackend();
+        }
+
         console.log("✅ Dados carregados com sucesso!");
       } catch (error: unknown) {
         console.error("❌ Erro ao carregar dados da API:", error);
@@ -167,7 +185,13 @@ export function useLoadData() {
       }
     };
 
-    loadData();
+      loadData();
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+    };
   }, [isAuthenticated, user, setCategories, setAccounts, setTransactions, setGoals, setEnvelopes]);
 
   // Retornar função para recarregar manualmente se necessário
@@ -269,6 +293,10 @@ export function useLoadData() {
                   description: e.description ?? undefined,
                 })),
               );
+            }
+
+            if (isSharedExpensesGodModeEnabled()) {
+              await syncSharedExpensesFromBackend();
             }
           } catch (error) {
             console.error("Erro ao recarregar:", error);

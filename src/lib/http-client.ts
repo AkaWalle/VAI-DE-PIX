@@ -1,9 +1,27 @@
 import axios, { AxiosResponse, AxiosError } from "axios";
 import { API_CONFIG, getApiBaseURLDynamic } from "./api";
+import { runRefreshWithLock, resetRefreshLock } from "./refresh-lock-manager";
+import { incrementSessionVersion } from "./refresh-internal";
+import {
+  getTokenForRequest,
+  clearAllTokensStoragesOnly,
+} from "./token-manager";
+import {
+  incrementRequestRetryAfterRefresh,
+  incrementRequestWithoutToken,
+  exportAuthMetricsToBackend,
+} from "./metrics/auth-metrics";
+
+export { tokenManager } from "./token-manager";
+
+const HTTP_LOG_PREFIX = "[HTTP]";
 
 // Create axios instance with dynamic baseURL
 const initialBaseURL = typeof window !== 'undefined' ? getApiBaseURLDynamic() : 'http://localhost:8000/api';
 console.log('🚀 [HTTP Client] Inicializando com baseURL:', initialBaseURL);
+
+/** Máximo 1 retry após refresh por request (evita loop) */
+const MAX_RETRY_AFTER_REFRESH = 1;
 
 export const httpClient = axios.create({
   baseURL: initialBaseURL,
@@ -22,74 +40,35 @@ if (typeof window !== 'undefined') {
   });
 }
 
-// Token management
-const TOKEN_KEY = "vai-de-pix-token";
-
 /**
- * Ordem de busca obrigatória (todas as requisições autenticadas):
- * 1. localStorage.getItem(TOKEN_KEY)
- * 2. localStorage.getItem("token")
- * 3. sessionStorage.getItem("token")
- * Se existir token em qualquer storage → usar.
- */
-function getTokenForRequest(): string | null {
-  if (typeof window === "undefined") return null;
-  return (
-    localStorage.getItem(TOKEN_KEY) ||
-    localStorage.getItem("token") ||
-    sessionStorage.getItem("token") ||
-    null
-  );
-}
-
-/**
- * Remove token de todos os storages (401/403 / anti-loop).
- * localStorage: vai-de-pix-token, token
- * sessionStorage: token
+ * Remove token de todos os storages e reseta lock de refresh (401/403 / anti-loop).
+ * Incrementa session version para que refresh in-flight ignore token ao resolver.
  */
 export function clearAllTokens(): void {
   if (typeof window === "undefined") return;
-  localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem("token");
-  sessionStorage.removeItem("token");
+  exportAuthMetricsToBackend(true);
+  incrementSessionVersion();
+  resetRefreshLock();
+  clearAllTokensStoragesOnly();
 }
 
-export const tokenManager = {
-  get: (): string | null => {
-    return typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null;
-  },
+function isPublicAuthUrl(url: string | undefined): boolean {
+  if (!url) return true;
+  const u = String(url);
+  return u.includes("/auth/login") || u.includes("/auth/register") || u.includes("/health");
+}
 
-  set: (token: string): void => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem(TOKEN_KEY, token);
-    }
-  },
-
-  remove: (): void => {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem(TOKEN_KEY);
-    }
-  },
-
-  isValid: (): boolean => {
-    const token = tokenManager.get();
-    if (!token) return false;
-    try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      const currentTime = Date.now() / 1000;
-      return payload.exp > currentTime;
-    } catch {
-      return false;
-    }
-  },
-};
-
-// Request interceptor — JWT sempre que existir (backend valida expiração; não usar tokenManager.isValid() aqui)
+// Request interceptor — JWT sempre que existir; log TOKEN_INJECTED
 httpClient.interceptors.request.use(
   (config) => {
     const token = getTokenForRequest();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      if (typeof window !== "undefined" && import.meta.env.DEV) {
+        console.log(`${HTTP_LOG_PREFIX} TOKEN_INJECTED`, config.url ? String(config.url).slice(0, 60) : "");
+      }
+    } else if (!isPublicAuthUrl(config.url)) {
+      incrementRequestWithoutToken();
     }
     return config;
   },
@@ -100,14 +79,32 @@ httpClient.interceptors.request.use(
 let redirectCount = 0;
 const REDIRECT_LOOP_THRESHOLD = 5;
 
-// Response interceptor — 401/403: clearAllTokens(); não redirecionar se já estiver em /auth
+// Response interceptor — 401: tentar refresh com lock, retry 1x; 403 ou falha: clear + redirect
 httpClient.interceptors.response.use(
   (response: AxiosResponse) => {
     if (response?.status >= 200 && response?.status < 300) redirectCount = 0;
     return response;
   },
-  (error: AxiosError) => {
+  async (error: AxiosError) => {
     const status = error.response?.status;
+    const config = error.config as (typeof error.config) & { __retriedByRefresh?: number };
+
+    if (status === 401 && config && typeof window !== "undefined") {
+      const retried = (config.__retriedByRefresh ?? 0) >= MAX_RETRY_AFTER_REFRESH;
+      if (!retried) {
+        const refreshed = await runRefreshWithLock();
+        if (refreshed) {
+          config.__retriedByRefresh = (config.__retriedByRefresh ?? 0) + 1;
+          incrementRequestRetryAfterRefresh();
+          console.log(`${HTTP_LOG_PREFIX} REQUEST_RETRY_AFTER_REFRESH`, config.url ? String(config.url).slice(0, 60) : "");
+          return httpClient.request(config);
+        }
+        if (typeof window !== "undefined") {
+          console.warn(`${HTTP_LOG_PREFIX} SYNC_FAIL_401 (refresh failed or no cookie)`);
+        }
+      }
+    }
+
     if (status === 401 || status === 403) {
       clearAllTokens();
       if (typeof window !== "undefined") {
@@ -117,7 +114,6 @@ httpClient.interceptors.response.use(
           if (redirectCount > REDIRECT_LOOP_THRESHOLD) {
             console.error("Auth redirect loop detected");
             redirectCount = 0;
-            // não redirecionar para evitar loop
           } else {
             window.location.href = "/auth";
           }

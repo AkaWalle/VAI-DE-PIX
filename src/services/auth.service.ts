@@ -1,5 +1,6 @@
 import type { AxiosError } from "axios";
 import { httpClient, apiHelpers, tokenManager, clearAllTokens } from "@/lib/http-client";
+import { resetRefreshRetryCount } from "@/lib/refresh-internal";
 import { API_ENDPOINTS } from "@/lib/api";
 
 export interface LoginCredentials {
@@ -41,6 +42,7 @@ export const authService = {
 
       // Store token
       tokenManager.set(data.access_token);
+      resetRefreshRetryCount();
 
       return data;
     } catch (error: unknown) {
@@ -62,6 +64,7 @@ export const authService = {
 
       // Store token
       tokenManager.set(data.access_token);
+      resetRefreshRetryCount();
 
       return data;
     } catch (error: unknown) {

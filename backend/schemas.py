@@ -365,6 +365,48 @@ class ExpenseFullDetailsSchema(BaseModel):
     events_by_share: dict = Field(default_factory=dict, description="share_id -> list[ExpenseShareEventSchema]")
 
 
+# ----- GOD MODE: Read Model (projeção para dashboard, sync, multi-dispositivo) -----
+class SharedExpenseParticipantReadSchema(BaseModel):
+    """Participante resumido no read model."""
+    user_id: str
+    user_name: str
+    user_email: str
+    share_status: str  # pending | accepted | rejected
+    amount: float = 0  # parte do total (ex.: divisão igual)
+    paid: bool = False  # reservado para evolução futura
+
+
+class SharedExpenseItemReadSchema(BaseModel):
+    """Item de despesa no read model (uma linha do dashboard)."""
+    id: str
+    title: str  # description como título
+    description: str
+    total_amount: float
+    currency: str = "BRL"
+    status: str  # pending | settled | cancelled (mapeado de active/cancelled)
+    created_by: str
+    creator_name: str
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    participants: List[SharedExpenseParticipantReadSchema] = []
+
+
+class SharedExpensesTotalsReadSchema(BaseModel):
+    """Totais pré-calculados do read model."""
+    total_count: int = 0
+    settled_count: int = 0
+    pending_count: int = 0
+    cancelled_count: int = 0
+    total_value: float = 0.0
+
+
+class SharedExpensesReadModelSchema(BaseModel):
+    """Resposta do GET /shared-expenses/read-model. Fonte de verdade para dashboard."""
+    expenses: List[SharedExpenseItemReadSchema] = []
+    totals: SharedExpensesTotalsReadSchema = Field(default_factory=SharedExpensesTotalsReadSchema)
+    last_updated: Optional[datetime] = None  # maior updated_at ou created_at das despesas
+
+
 class ActivityFeedItemSchema(BaseModel):
     """Item do activity feed."""
     id: str

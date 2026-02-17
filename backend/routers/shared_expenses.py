@@ -15,12 +15,14 @@ from schemas import (
     PendingShareItemSchema,
     ExpenseFullDetailsSchema,
     ExpenseShareEventSchema,
+    SharedExpensesReadModelSchema,
 )
 from services.shared_expense_service import (
     create_shared_expense,
     respond_to_share,
     get_share_events,
     get_expense_full_details,
+    get_read_model,
     SharedExpenseServiceError,
 )
 from services.activity_feed_service import feed_item_to_dict
@@ -52,6 +54,18 @@ async def post_shared_expense(
         return SharedExpenseResponseSchema.model_validate(expense)
     except SharedExpenseServiceError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.get("/read-model", response_model=SharedExpensesReadModelSchema)
+async def get_read_model_route(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    GOD MODE: Read model para dashboard/sync. Retorna todas as despesas onde o usuário participa
+    (criador ou share aceito) + totais pré-calculados. Não substitui endpoints existentes.
+    """
+    return get_read_model(db=db, current_user=current_user)
 
 
 @router.get("/pending", response_model=list[PendingShareItemSchema])

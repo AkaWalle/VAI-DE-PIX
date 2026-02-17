@@ -18,7 +18,8 @@
     "test": "vitest run tests/unit --reporter=verbose",
     "test:all": "vitest run --reporter=verbose",
     "test:unit": "vitest run tests/unit --reporter=verbose",
-    "test:prod": "vitest run tests/production-api.test.ts --reporter=verbose --no-coverage --config vitest.config.ts"
+    "test:prod": "vitest run tests/production-api.test.ts --reporter=verbose --no-coverage --config vitest.config.ts",
+    "assert-auth": "node scripts/assert-no-refresh-outside-lock.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
