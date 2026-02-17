@@ -47,7 +47,53 @@ export interface ExpenseShareEventItem {
   created_at: string;
 }
 
+/** GOD MODE: Read model (backend como fonte de verdade) */
+export interface SharedExpenseParticipantRead {
+  user_id: string;
+  user_name: string;
+  user_email: string;
+  share_status: string;
+  amount: number;
+  paid: boolean;
+}
+
+export interface SharedExpenseItemRead {
+  id: string;
+  title: string;
+  description: string;
+  total_amount: number;
+  currency: string;
+  status: string;
+  created_by: string;
+  creator_name: string;
+  created_at: string;
+  updated_at: string | null;
+  participants: SharedExpenseParticipantRead[];
+}
+
+export interface SharedExpensesTotalsRead {
+  total_count: number;
+  settled_count: number;
+  pending_count: number;
+  cancelled_count: number;
+  total_value: number;
+}
+
+export interface SharedExpensesReadModel {
+  expenses: SharedExpenseItemRead[];
+  totals: SharedExpensesTotalsRead;
+  last_updated: string | null;
+}
+
 export const sharedExpenseApi = {
+  /** GOD MODE: Fetch read model (todas despesas do usuário + totais) */
+  async getReadModel(): Promise<SharedExpensesReadModel> {
+    const response = await httpClient.get<SharedExpensesReadModel>(
+      API_ENDPOINTS.sharedExpenses.readModel
+    );
+    return apiHelpers.handleResponse(response);
+  },
+
   async getPendingShares(): Promise<PendingShareItem[]> {
     const response = await httpClient.get<PendingShareItem[]>(
       API_ENDPOINTS.sharedExpenses.pending

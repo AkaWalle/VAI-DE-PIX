@@ -1,7 +1,15 @@
 import * as Sentry from "@sentry/react";
 import { createRoot } from "react-dom/client";
+import { attachAuthDebugHooks } from "./lib/auth-debug";
+import { hydrateAuthMetricsFromStorage, startAuthMetricsExportSchedule } from "./lib/metrics/auth-metrics";
 import App from "./App.tsx";
 import "./index.css";
+
+if (import.meta.env.DEV) {
+  attachAuthDebugHooks();
+}
+// Restaura métricas entre sessões antes de iniciar export; não bloqueia render.
+hydrateAuthMetricsFromStorage().then(() => startAuthMetricsExportSchedule());
 
 // Sentry (opcional): só inicializa se VITE_SENTRY_DSN estiver definido; não envia dados sensíveis
 const sentryDsn = import.meta.env.VITE_SENTRY_DSN;

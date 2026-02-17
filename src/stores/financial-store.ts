@@ -155,6 +155,8 @@ interface FinancialStore {
   addSharedExpense: (
     expense: Omit<SharedExpense, "id" | "createdAt" | "updatedAt">,
   ) => void;
+  /** GOD MODE: Substitui lista por projeção do backend (sync). */
+  setSharedExpenses: (expenses: SharedExpense[]) => void;
   updateSharedExpense: (id: string, updates: Partial<SharedExpense>) => void;
   deleteSharedExpense: (id: string) => void;
   markParticipantAsPaid: (expenseId: string, participantId: string) => void;
@@ -438,6 +440,9 @@ export const useFinancialStore = create<FinancialStore>()(
             },
           ],
         })),
+
+      setSharedExpenses: (expenses) =>
+        set({ sharedExpenses: expenses }),
 
       updateSharedExpense: (id, updates) =>
         set((state) => ({

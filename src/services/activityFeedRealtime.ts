@@ -1,10 +1,19 @@
 import { getApiBaseURLDynamic } from "@/lib/api";
+import { tokenManager } from "@/lib/http-client";
+import { getLastTokenRefreshSuccessTimestamp, registerTokenRefreshListener } from "@/lib/token-refresh-notify";
 
 type FeedNewMessage = { type: "feed_new"; data: Record<string, unknown> };
 type MessageCallback = (msg: FeedNewMessage) => void;
 
 let ws: WebSocket | null = null;
 let messageCallback: MessageCallback | null = null;
+
+let unsubscribeTokenRefresh: (() => void) | null = null;
+
+function setupTokenRefreshReconnect(client: { reconnectIfConnected(): void }): void {
+  if (unsubscribeTokenRefresh) return;
+  unsubscribeTokenRefresh = registerTokenRefreshListener(client);
+}
 
 function getWsUrl(token: string): string {
   const base = getApiBaseURLDynamic();
@@ -18,6 +27,7 @@ function getWsUrl(token: string): string {
 
 export const activityFeedRealtime = {
   connect(token: string): void {
+    setupTokenRefreshReconnect(activityFeedRealtime);
     if (ws?.readyState === WebSocket.OPEN) return;
     const url = getWsUrl(token);
     ws = new WebSocket(url);
@@ -32,6 +42,10 @@ export const activityFeedRealtime = {
       }
     };
     ws.onclose = () => {
+      const closedAt = Date.now();
+      if (getLastTokenRefreshSuccessTimestamp() > 0 && closedAt - getLastTokenRefreshSuccessTimestamp() < 10_000) {
+        console.warn("[WS_TOKEN_DRIFT] WebSocket fechou logo após refresh success");
+      }
       ws = null;
     };
   },
@@ -46,6 +60,34 @@ export const activityFeedRealtime = {
       ws = null;
     }
     messageCallback = null;
+  },
+
+  /** Reconecta com token atual se já estava conectado (ex.: após refresh). Uma vez por evento; sem storm. */
+  reconnectIfConnected(): void {
+    if (ws?.readyState !== WebSocket.OPEN) return;
+    const newToken = tokenManager.get();
+    if (!newToken) return;
+    ws.close();
+    ws = null;
+    const url = getWsUrl(newToken);
+    ws = new WebSocket(url);
+    ws.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data as string) as FeedNewMessage;
+        if (msg.type === "feed_new" && messageCallback) {
+          messageCallback(msg);
+        }
+      } catch {
+        // ignore
+      }
+    };
+    ws.onclose = () => {
+      const closedAt = Date.now();
+      if (getLastTokenRefreshSuccessTimestamp() > 0 && closedAt - getLastTokenRefreshSuccessTimestamp() < 10_000) {
+        console.warn("[WS_TOKEN_DRIFT] WebSocket fechou logo após refresh success");
+      }
+      ws = null;
+    };
   },
 
   isConnected(): boolean {
