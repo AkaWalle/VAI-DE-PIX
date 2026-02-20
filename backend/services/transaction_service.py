@@ -228,15 +228,6 @@ class TransactionService:
         Returns:
             Transação criada
         """
-        # Primeira coisa: caller pode enviar só amount_cents (int); preencher amount (Decimal) antes de qualquer validação.
-        if transaction_data.get("amount") is None and "amount_cents" in transaction_data:
-            transaction_data["amount"] = from_cents(transaction_data["amount_cents"])
-        logger.info(
-            "amount após conversão: %s",
-            transaction_data.get("amount"),
-            extra={"amount": transaction_data.get("amount"), "amount_cents": transaction_data.get("amount_cents")},
-        )
-
         transaction_type = transaction_data.get("type")
         amount = transaction_data.get("amount")
         amount_cents_log = transaction_data.get("amount_cents")

@@ -256,6 +256,7 @@ def create_shared_expense(
             "category_id": category.id,
             "type": "expense",
             "amount_cents": amount_cents_int,
+            "amount": from_cents(amount_cents_int),
             "description": description.strip() or f"Despesa compartilhada: {description[:100]}",
             "shared_expense_id": expense.id,
             "tags": [],
@@ -296,7 +297,15 @@ def delete_shared_expense(db: Session, current_user: User, expense_id: str) -> N
     expense = expense_repo.get_expense_by_id(expense_id)
     if not expense:
         raise SharedExpenseServiceError("Despesa não encontrada.")
-    if expense.created_by != current_user.id:
+    creator_ok = str(expense.created_by) == str(current_user.id)
+    logger.info(
+        "delete_shared_expense attempt | expense_id=%s created_by=%s current_user.id=%s match=%s",
+        expense_id,
+        expense.created_by,
+        current_user.id,
+        creator_ok,
+    )
+    if not creator_ok:
         raise SharedExpenseServiceError("Apenas o criador pode excluir esta despesa.")
     if expense.status == "cancelled":
         raise SharedExpenseServiceError("Esta despesa já foi excluída.")
