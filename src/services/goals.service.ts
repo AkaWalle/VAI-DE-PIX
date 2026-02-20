@@ -18,7 +18,7 @@ export interface GoalApi {
 
 export interface GoalCreateApi {
   name: string;
-  target_amount: number;
+  target_amount_cents: number;
   target_date: string;
   description?: string | null;
   category: string;
@@ -36,11 +36,14 @@ export const goalsService = {
     return apiHelpers.handleResponse(response);
   },
 
-  async updateGoal(id: string, updates: Partial<GoalCreateApi> & { current_amount?: number; status?: string }): Promise<GoalApi> {
+  async updateGoal(
+    id: string,
+    updates: Partial<GoalCreateApi> & { current_amount_cents?: number; status?: string }
+  ): Promise<GoalApi> {
     const payload: Record<string, unknown> = {};
     if (updates.name != null) payload.name = updates.name;
-    if (updates.target_amount != null) payload.target_amount = updates.target_amount;
-    if (updates.current_amount != null) payload.current_amount = updates.current_amount;
+    if (updates.target_amount_cents != null) payload.target_amount_cents = updates.target_amount_cents;
+    if (updates.current_amount_cents != null) payload.current_amount_cents = updates.current_amount_cents;
     if (updates.target_date != null) payload.target_date = updates.target_date;
     if (updates.description != null) payload.description = updates.description;
     if (updates.category != null) payload.category = updates.category;
@@ -54,11 +57,10 @@ export const goalsService = {
     await httpClient.delete(API_ENDPOINTS.goals.delete(id));
   },
 
-  async addValueToGoal(goalId: string, amount: number): Promise<{ new_amount: number }> {
+  async addValueToGoal(goalId: string, amount_cents: number): Promise<{ new_amount: number }> {
     const response = await httpClient.post<{ new_amount: number }>(
       API_ENDPOINTS.goals.addValue(goalId),
-      null,
-      { params: { amount } },
+      { amount_cents },
     );
     return apiHelpers.handleResponse(response);
   },

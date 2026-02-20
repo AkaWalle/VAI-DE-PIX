@@ -1,37 +1,74 @@
+# REGRA MONETÁRIA DO SISTEMA:
+# Todos os valores recebidos pela API devem estar em centavos (int).
+# Nenhum float é aceito na camada de entrada.
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 
 from database import get_db
 from models import Goal, User
 from auth_utils import get_current_user
 from core.database_utils import atomic_transaction
-from core.amount_parser import serialize_money
+from core.amount_parser import serialize_money, from_cents
 from middleware.idempotency import IdempotencyContext, get_idempotency_context_goals
 from db.locks import lock_goal
 
 router = APIRouter()
 
-# Pydantic models
+# Pydantic models: entrada monetária exclusivamente em centavos (int).
 class GoalCreate(BaseModel):
     name: str
-    target_amount: float
+    target_amount_cents: int = Field(..., gt=0, description="Valor da meta em centavos (inteiro positivo)")
     target_date: datetime
     description: Optional[str] = None
     category: str
     priority: str  # low, medium, high
 
+    @field_validator("target_amount_cents", mode="before")
+    @classmethod
+    def target_amount_cents_strict_int(cls, v: object) -> int:
+        """Rejeita bool, str e float; aceita apenas int (contrato único)."""
+        if isinstance(v, bool):
+            raise ValueError("target_amount_cents must be integer")
+        if not isinstance(v, int):
+            raise ValueError("target_amount_cents must be integer")
+        return v
+
 class GoalUpdate(BaseModel):
     name: Optional[str] = None
-    target_amount: Optional[float] = None
-    current_amount: Optional[float] = None
+    target_amount_cents: Optional[int] = Field(None, gt=0, description="Valor da meta em centavos")
+    current_amount_cents: Optional[int] = Field(None, ge=0, description="Valor atual em centavos")
     target_date: Optional[datetime] = None
     description: Optional[str] = None
     category: Optional[str] = None
     priority: Optional[str] = None
     status: Optional[str] = None
+
+    @field_validator("target_amount_cents", "current_amount_cents", mode="before")
+    @classmethod
+    def cents_strict_int(cls, v: object) -> Optional[int]:
+        if v is None:
+            return None
+        if isinstance(v, bool):
+            raise ValueError("monetary field must be integer")
+        if not isinstance(v, int):
+            raise ValueError("monetary field must be integer")
+        return v
+
+class AddValueToGoalBody(BaseModel):
+    """Body para POST /goals/{id}/add-value. Apenas amount_cents (int)."""
+    amount_cents: int = Field(..., gt=0, description="Valor a adicionar em centavos")
+
+    @field_validator("amount_cents", mode="before")
+    @classmethod
+    def amount_cents_strict_int(cls, v: object) -> int:
+        if isinstance(v, bool):
+            raise ValueError("amount_cents must be integer")
+        if not isinstance(v, int):
+            raise ValueError("amount_cents must be integer")
+        return v
 
 class GoalResponse(BaseModel):
     id: str
@@ -108,11 +145,18 @@ async def create_goal(
         )
 
     try:
+        # API recebe target_amount_cents; banco usa Numeric(15,2) via from_cents
+        target_amount_decimal = from_cents(goal.target_amount_cents)
         db_goal = Goal(
-            **goal.model_dump(),
+            name=goal.name,
+            target_amount=target_amount_decimal,
+            target_date=goal.target_date,
+            description=goal.description,
+            category=goal.category,
+            priority=goal.priority,
             user_id=current_user.id,
-            current_amount=0.0,
-            status="active"
+            current_amount=from_cents(0),
+            status="active",
         )
         with atomic_transaction(db):
             db.add(db_goal)
@@ -170,6 +214,11 @@ async def update_goal(
         )
     
     update_data = goal_update.model_dump(exclude_unset=True)
+    # Converter centavos para Decimal antes de setar no modelo (colunas Numeric)
+    if "target_amount_cents" in update_data:
+        update_data["target_amount"] = from_cents(update_data.pop("target_amount_cents"))
+    if "current_amount_cents" in update_data:
+        update_data["current_amount"] = from_cents(update_data.pop("current_amount_cents"))
     for field, value in update_data.items():
         setattr(db_goal, field, value)
     db_goal.updated_at = datetime.now()
@@ -206,12 +255,11 @@ async def delete_goal(
 @router.post("/{goal_id}/add-value")
 async def add_value_to_goal(
     goal_id: str,
-    amount: float,
-    description: Optional[str] = None,
+    body: AddValueToGoalBody,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Add value to a goal."""
+    """Adiciona valor à meta. Body: amount_cents (int). Validação estrita: sem float/str/bool."""
     db_goal = db.query(Goal).filter(
         Goal.id == goal_id,
         Goal.user_id == current_user.id
@@ -223,13 +271,17 @@ async def add_value_to_goal(
             detail="Meta não encontrada"
         )
     
-    if amount <= 0:
+    amount_cents = body.amount_cents
+    if amount_cents <= 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="O valor deve ser maior que zero"
+            detail="amount_cents deve ser maior que zero"
         )
     
-    db_goal.current_amount += amount
+    amount_decimal = from_cents(amount_cents)
+    # Constraint do banco: current_amount <= target_amount; limitar ao target
+    new_current = db_goal.current_amount + amount_decimal
+    db_goal.current_amount = min(new_current, db_goal.target_amount)
     db_goal.updated_at = datetime.now()
     if db_goal.current_amount >= db_goal.target_amount:
         db_goal.status = "achieved"
@@ -239,6 +291,6 @@ async def add_value_to_goal(
     db.refresh(db_goal)
     return {
         "message": "Valor adicionado com sucesso",
-        "new_amount": db_goal.current_amount,
-        "progress_percentage": min((db_goal.current_amount / db_goal.target_amount) * 100, 100)
+        "new_amount": float(db_goal.current_amount),
+        "progress_percentage": min(float(db_goal.current_amount / db_goal.target_amount * 100), 100.0)
     }

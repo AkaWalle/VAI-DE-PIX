@@ -12,7 +12,7 @@ from typing import List, Optional
 from models import Transaction, Account, Category, Tag, TransactionTag
 from repositories.tag_repository import TagRepository
 from core.security import validate_ownership
-from core.amount_parser import amount_from_api
+from core.amount_parser import from_cents
 from core.ledger_utils import (
     sync_account_balance_from_ledger,
     get_balance_from_ledger,
@@ -98,11 +98,12 @@ def _validate_transaction_payload(
 ) -> None:
     """
     Valida payload antes de gravar no banco.
-    Verifica: campos obrigatórios, tipo, amount > 0, description, categoria existente.
+    Aceita amount_cents (int) como padrão; fallback para amount (legado).
+    Verifica: campos obrigatórios, tipo, valor > 0, description, categoria existente.
     Levanta HTTPException com detail padronizado em caso de falha.
     """
     # account_id pode vir no payload (API) ou ser implícito via parâmetro account
-    required = ["date", "category_id", "type", "amount", "description"]
+    required = ["date", "category_id", "type", "description"]
     if is_transfer:
         required = required + ["to_account_id"]
     for field in required:
@@ -119,14 +120,33 @@ def _validate_transaction_payload(
             details=f"type deve ser 'income', 'expense' ou 'transfer'. Recebido: {transaction_type!r}",
             code=CODE_TX_VALIDATION_INVALID_TYPE,
         )
-    amount = amount_from_api(transaction_data.get("amount"))
-    if amount is None or amount <= 0:
-        _raise_tx_validation(
-            message="Valor (amount) inválido",
-            details="amount deve ser um número positivo (até 2 casas decimais).",
-            code=CODE_TX_VALIDATION_AMOUNT,
+    # Único caminho: amount_cents (int). Sem fallback, sem cast, sem amount (float).
+    amount_cents = transaction_data.get("amount_cents")
+    if amount_cents is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="amount_cents is required (integer, centavos)",
         )
-    transaction_data["amount"] = amount  # Decimal normalizado (2 casas)
+    if isinstance(amount_cents, bool):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="invalid amount_cents",
+        )
+    if not isinstance(amount_cents, int):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="amount_cents must be integer",
+        )
+    if amount_cents <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="amount_cents must be > 0",
+        )
+    logger.info(
+        "money_input_validation",
+        extra={"amount_cents": amount_cents, "type": type(amount_cents).__name__},
+    )
+    transaction_data["amount"] = from_cents(amount_cents)
     description = transaction_data.get("description") or ""
     if not (isinstance(description, str) and description.strip()):
         _raise_tx_validation(
@@ -481,15 +501,21 @@ class TransactionService:
         validate_ownership(old_account.user_id, user_id, "conta")
         validate_ownership(new_account.user_id, user_id, "conta")
 
-        if "amount" in update_data:
-            am = amount_from_api(update_data["amount"])
-            if am is None or am <= 0:
-                _raise_tx_validation(
-                    message="Valor (amount) inválido",
-                    details="amount deve ser um número positivo (até 2 casas decimais).",
-                    code=CODE_TX_VALIDATION_AMOUNT,
-                )
-            update_data["amount"] = am
+        if "amount_cents" in update_data:
+            ac = update_data["amount_cents"]
+            if ac is None:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="amount_cents is required when updating value")
+            if isinstance(ac, bool):
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="invalid amount_cents")
+            if not isinstance(ac, int):
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="amount_cents must be integer")
+            if ac <= 0:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="amount_cents must be > 0")
+            logger.info(
+                "money_input_validation",
+                extra={"amount_cents": ac, "type": type(ac).__name__},
+            )
+            update_data["amount"] = from_cents(ac)
 
         ledger = LedgerRepository(db)
         old_amount = db_transaction.amount
@@ -527,8 +553,8 @@ class TransactionService:
                 db_transaction.category_id = update_data['category_id']
             if 'type' in update_data:
                 db_transaction.type = update_data['type']
-            if 'amount' in update_data:
-                db_transaction.amount = update_data['amount']
+            if "amount" in update_data:
+                db_transaction.amount = update_data["amount"]
             if 'description' in update_data:
                 db_transaction.description = update_data['description']
             if 'tags' in update_data:

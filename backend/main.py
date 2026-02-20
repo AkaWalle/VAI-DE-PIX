@@ -36,6 +36,7 @@ from datetime import datetime
 from database import get_db, engine
 from sqlalchemy import text
 from routers import auth, transactions, goals, envelopes, categories, accounts, reports, notifications, insights, privacy
+from routers import shared_expenses
 from auth_utils import verify_token
 from core.recurring_job import start_scheduler
 from core.request_logging import StructuredLoggingMiddleware
@@ -121,6 +122,7 @@ app.include_router(reports.router, prefix="/api/reports", tags=["Reports"])
 app.include_router(notifications.router, prefix="/api/notifications", tags=["Notifications"])
 app.include_router(insights.router, prefix="/api/insights", tags=["Insights"])
 app.include_router(privacy.router, prefix="/api/privacy", tags=["Privacy"])
+app.include_router(shared_expenses.router, prefix="/api/shared-expenses", tags=["Shared Expenses"])
 
 # API Routes
 @app.get("/")

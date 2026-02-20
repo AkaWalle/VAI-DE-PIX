@@ -42,12 +42,20 @@ def create_shared_expense(
 ) -> Tuple[Any, List[Any], List[Any]]:
     """
     Cria despesa compartilhada e um ExpenseShare por participante (criador + convidados).
-    body: SharedExpenseCreateSchema (amount, description, split_type, invited_email?, participants?).
+    body: SharedExpenseCreateSchema (total_cents, description, split_type, ...).
     Retorna (shared_expense, list[ExpenseShare], feed_items).
     """
     from models import User as UserModel
+    from core.amount_parser import from_cents
 
-    amount = float(body.amount)
+    total_cents = getattr(body, "total_cents", None)
+    if total_cents is None:
+        raise SharedExpenseServiceError("total_cents é obrigatório (int em centavos).")
+    if not isinstance(total_cents, int) or isinstance(total_cents, bool):
+        raise SharedExpenseServiceError("total_cents deve ser um inteiro (centavos).")
+    if total_cents <= 0:
+        raise SharedExpenseServiceError("total_cents deve ser positivo.")
+
     description = (body.description or "").strip()
     if not description:
         raise SharedExpenseServiceError("Descrição é obrigatória.")
@@ -56,10 +64,8 @@ def create_shared_expense(
     participants_schema = getattr(body, "participants", None)
     invited_email = getattr(body, "invited_email", None)
 
-    # Montar lista de shares a criar: (user_id, status, percentage, amount_cents)
-    # Integer para centavos; Decimal apenas para cálculos de porcentagem (evitar float).
     shares_to_create: List[Tuple[str, str, Any, int | None]] = []
-    total_cents = int(round(amount * 100))
+    assert isinstance(total_cents, int), "total_cents must be int before create_expense"
     creator_id = creator_user.id
 
     if participants_schema and len(participants_schema) > 0:
@@ -150,9 +156,10 @@ def create_shared_expense(
     expense_repo = SharedExpenseRepository(db)
     share_repo = ExpenseShareRepository(db)
 
+    amount_decimal = from_cents(total_cents)
     expense = expense_repo.create_expense(
         created_by=creator_user.id,
-        amount=amount,
+        amount=float(amount_decimal),
         description=description,
         split_type=split_type,
     )
@@ -171,9 +178,10 @@ def create_shared_expense(
         audit_event = create_audit_event(db, share_id=share.id, action="created", performed_by=creator_user.id)
         feed_items.extend(create_from_share_event(db, audit_event))
         if status == "pending":
+            amount_display = float(amount_decimal)
             title = "Despesa compartilhada pendente"
             body_text = (
-                f"{creator_user.name} compartilhou uma despesa de R$ {amount:.2f}: "
+                f"{creator_user.name} compartilhou uma despesa de R$ {amount_display:.2f}: "
                 f"{description[:50]}{'...' if len(description) > 50 else ''}. Aceite ou recuse."
             )
             create_notification(
@@ -246,11 +254,15 @@ def create_shared_expense(
         raise SharedExpenseServiceError(
             "Nenhuma categoria de despesa encontrada para registrar a transação. Crie uma categoria ou informe category_id."
         )
+    # Garantia absoluta: total_cents deve ser int (nunca float/Decimal). Falha explícita se vazamento.
+    assert isinstance(total_cents, int), (
+        f"total_cents must be int before create_transaction; got {type(total_cents).__name__!r}"
+    )
     transaction_data = {
         "date": datetime.now(timezone.utc),
         "category_id": category.id,
         "type": "expense",
-        "amount": amount,
+        "amount_cents": total_cents,
         "description": description.strip() or f"Despesa compartilhada: {description[:100]}",
         "shared_expense_id": expense.id,
     }

@@ -19,7 +19,8 @@ export interface TransactionCreate {
   account_id: string;
   category_id: string;
   type: "income" | "expense";
-  amount: number;
+  /** Valor em centavos (int). Backend só aceita amount_cents. */
+  amount_cents: number;
   description: string;
   tags?: string[];
 }

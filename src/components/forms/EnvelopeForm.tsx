@@ -4,17 +4,17 @@ import { envelopesService } from "@/services/envelopes.service";
 import { FormDialog } from "@/components/ui/form-dialog";
 import { ActionButton } from "@/components/ui/action-button";
 import { Input } from "@/components/ui/input";
-import { CurrencyInput } from "@/components/ui/CurrencyInput";
+import { SimpleMoneyInput, displayValueToCents } from "@/components/ui/SimpleMoneyInput";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Wallet } from "lucide-react";
 
-/** Saldo e meta em centavos (number). Nunca string. */
+/** displayValue = string para input; conversão para centavos só no submit. */
 interface EnvelopeFormData {
   name: string;
-  balance: number;
-  targetAmount: number;
+  balanceDisplay: string;
+  targetAmountDisplay: string;
   color: string;
   description: string;
 }
@@ -42,8 +42,8 @@ export function EnvelopeForm({ trigger }: EnvelopeFormProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [formData, setFormData] = useState<EnvelopeFormData>({
     name: "",
-    balance: 0,
-    targetAmount: 0,
+    balanceDisplay: "",
+    targetAmountDisplay: "",
     color: "#3b82f6",
     description: "",
   });
@@ -68,24 +68,21 @@ export function EnvelopeForm({ trigger }: EnvelopeFormProps) {
         return;
       }
 
-      const balanceCents = formData.balance;
-      if (typeof balanceCents !== "number" || Number.isNaN(balanceCents) || balanceCents < 0) {
+      const balanceCents = displayValueToCents(formData.balanceDisplay);
+      if (balanceCents === null || balanceCents < 0) {
         toast({
           title: "Saldo inválido",
-          description: "Por favor, insira um saldo válido maior ou igual a zero.",
+          description: "Por favor, insira um saldo válido (ex: 0 ou 10,50).",
           variant: "destructive",
         });
         return;
       }
 
-      const targetCents = formData.targetAmount;
-      if (
-        targetCents !== 0 &&
-        (typeof targetCents !== "number" || Number.isNaN(targetCents) || targetCents <= 0)
-      ) {
+      const targetCents = displayValueToCents(formData.targetAmountDisplay);
+      if (targetCents !== null && targetCents <= 0) {
         toast({
           title: "Meta inválida",
-          description: "Por favor, insira uma meta válida maior que zero.",
+          description: "Se informar meta, deve ser maior que zero.",
           variant: "destructive",
         });
         return;
@@ -94,7 +91,7 @@ export function EnvelopeForm({ trigger }: EnvelopeFormProps) {
       const created = await envelopesService.createEnvelope({
         name: formData.name,
         balance: balanceCents,
-        target_amount: targetCents > 0 ? targetCents : null,
+        target_amount: targetCents !== null && targetCents > 0 ? targetCents : null,
         color: formData.color,
         description: formData.description || null,
       });
@@ -116,8 +113,8 @@ export function EnvelopeForm({ trigger }: EnvelopeFormProps) {
 
       setFormData({
         name: "",
-        balance: 0,
-        targetAmount: 0,
+        balanceDisplay: "",
+        targetAmountDisplay: "",
         color: "#3b82f6",
         description: "",
       });
@@ -162,19 +159,21 @@ export function EnvelopeForm({ trigger }: EnvelopeFormProps) {
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="balance">Saldo Inicial</Label>
-          <CurrencyInput
+          <SimpleMoneyInput
             id="balance"
-            value={formData.balance}
-            onChange={(v) => updateFormData("balance", v)}
+            value={formData.balanceDisplay}
+            onChange={(v) => updateFormData("balanceDisplay", v)}
+            placeholder="0,00"
           />
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="targetAmount">Meta (opcional)</Label>
-          <CurrencyInput
+          <SimpleMoneyInput
             id="targetAmount"
-            value={formData.targetAmount}
-            onChange={(v) => updateFormData("targetAmount", v)}
+            value={formData.targetAmountDisplay}
+            onChange={(v) => updateFormData("targetAmountDisplay", v)}
+            placeholder="0,00"
           />
         </div>
       </div>

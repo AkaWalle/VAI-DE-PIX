@@ -21,12 +21,10 @@ export interface SharedExpenseParticipantCreate {
 }
 
 export interface SharedExpenseCreatePayload {
-  amount: number; // reais (float)
+  total_cents: number; // centavos (int). Nunca amount em reais.
   description: string;
   split_type?: "equal" | "percentage" | "custom";
-  /** Compatibilidade: um convidado por e-mail (divisão igual). */
   invited_email?: string;
-  /** Lista de participantes (obrigatório se split_type for percentage ou custom). */
   participants?: SharedExpenseParticipantCreate[];
 }
 

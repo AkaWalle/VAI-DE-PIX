@@ -7,7 +7,7 @@ import {
 import { FormDialog } from "@/components/ui/form-dialog";
 import { ActionButton } from "@/components/ui/action-button";
 import { Input } from "@/components/ui/input";
-import { CurrencyInput } from "@/components/ui/CurrencyInput";
+import { SimpleMoneyInput, displayValueToCents } from "@/components/ui/SimpleMoneyInput";
 import { Label } from "@/components/ui/label";
 import { formatCurrencyFromCents } from "@/utils/currency";
 import {
@@ -22,7 +22,7 @@ import { Plus } from "lucide-react";
 
 interface TransactionFormData {
   type: "income" | "expense";
-  amountCents: number;
+  amountDisplay: string;
   description: string;
   category: string;
   account: string;
@@ -42,7 +42,7 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [formData, setFormData] = useState<TransactionFormData>({
     type: "expense",
-    amountCents: 0,
+    amountDisplay: "",
     description: "",
     category: "",
     account: "",
@@ -61,30 +61,13 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
     setIsLoading(true);
 
     try {
-      // Validações
-      if (
-        formData.amountCents <= 0 ||
-        !formData.description ||
-        !formData.category ||
-        !formData.account
-      ) {
+      const amountCents = displayValueToCents(formData.amountDisplay);
+      if (amountCents === null || amountCents <= 0 || !formData.description || !formData.category || !formData.account) {
         toast({
           title: "Campos obrigatórios",
-          description: "Por favor, preencha todos os campos obrigatórios.",
+          description: "Por favor, preencha valor (maior que zero), descrição, categoria e conta.",
           variant: "destructive",
         });
-        return;
-      }
-
-      // API de transações ainda espera valor em reais (float)
-      const amountReais = formData.amountCents / 100;
-      if (amountReais <= 0) {
-        toast({
-          title: "Valor inválido",
-          description: "Por favor, insira um valor válido maior que zero.",
-          variant: "destructive",
-        });
-        setIsLoading(false);
         return;
       }
 
@@ -93,7 +76,7 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
         account_id: formData.account,
         category_id: formData.category,
         type: formData.type,
-        amount: Math.abs(amountReais), // API espera valor positivo em reais
+        amount_cents: amountCents,
         description: formData.description,
         tags: formData.tags
           ? formData.tags.split(",").map((tag) => tag.trim())
@@ -106,12 +89,15 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
 
       // Converter formato da API para formato do store
       // API retorna account_id e category_id, mas store espera account e category
+      const respAmount = typeof (savedTransaction as { amount?: number }).amount === "number"
+        ? (savedTransaction as { amount: number }).amount
+        : 0;
       addTransaction({
         type: savedTransaction.type as "income" | "expense",
         amount:
           savedTransaction.type === "expense"
-            ? -Math.abs(savedTransaction.amount)
-            : Math.abs(savedTransaction.amount),
+            ? -Math.abs(respAmount)
+            : Math.abs(respAmount),
         description: savedTransaction.description,
         category:
           (savedTransaction as { category_id?: string; category?: string }).category_id ||
@@ -125,13 +111,13 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
 
       toast({
         title: "Transação criada!",
-        description: `${formData.type === "income" ? "Receita" : "Despesa"} de ${formatCurrencyFromCents(formData.amountCents)} adicionada com sucesso.`,
+        description: `${formData.type === "income" ? "Receita" : "Despesa"} de ${formatCurrencyFromCents(amountCents ?? 0)} adicionada com sucesso.`,
       });
 
       // Reset form
       setFormData({
         type: "expense",
-        amountCents: 0,
+        amountDisplay: "",
         description: "",
         category: "",
         account: "",
@@ -190,10 +176,11 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
 
         <div className="space-y-2">
           <Label htmlFor="amount">Valor *</Label>
-          <CurrencyInput
+          <SimpleMoneyInput
             id="amount"
-            value={formData.amountCents}
-            onChange={(v) => updateFormData("amountCents", v)}
+            value={formData.amountDisplay}
+            onChange={(v) => updateFormData("amountDisplay", v)}
+            placeholder="0,00"
           />
         </div>
       </div>

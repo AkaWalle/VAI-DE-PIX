@@ -23,7 +23,7 @@ class TestLedgerBalanceInvariant:
                 "date": datetime.now(),
                 "category_id": test_category.id,
                 "type": "income",
-                "amount": 300.0,
+                "amount_cents": 30000,
                 "description": "Receita",
                 "tags": [],
             },
@@ -33,8 +33,8 @@ class TestLedgerBalanceInvariant:
         )
         db.refresh(test_account)
         ledger_balance = get_balance_from_ledger(test_account.id, db)
-        assert abs(float(ledger_balance) - test_account.balance) < 1e-6
-        assert test_account.balance >= 300.0  # conta de teste já tem entrada de abertura
+        assert abs(float(ledger_balance) - float(test_account.balance)) < 1e-6
+        assert float(test_account.balance) >= 300.0  # conta de teste já tem entrada de abertura
 
     def test_after_expense_balance_equals_ledger_sum(self, db, test_user, test_account, test_category):
         """Após criar despesa, account.balance == get_balance_from_ledger(account_id)."""
@@ -43,7 +43,7 @@ class TestLedgerBalanceInvariant:
                 "date": datetime.now(),
                 "category_id": test_category.id,
                 "type": "expense",
-                "amount": 100.0,
+                "amount_cents": 10000,
                 "description": "Despesa",
                 "tags": [],
             },
@@ -53,7 +53,7 @@ class TestLedgerBalanceInvariant:
         )
         db.refresh(test_account)
         ledger_balance = get_balance_from_ledger(test_account.id, db)
-        assert abs(float(ledger_balance) - test_account.balance) < 1e-6
+        assert abs(float(ledger_balance) - float(test_account.balance)) < 1e-6
 
 
 class TestTransferNetZeroInvariant:
@@ -91,7 +91,7 @@ class TestTransferNetZeroInvariant:
                 "date": datetime.now(),
                 "category_id": test_category.id,
                 "type": "transfer",
-                "amount": 80.0,
+                "amount_cents": 8000,
                 "description": "Transferência",
                 "tags": [],
                 "to_account_id": other_account.id,
@@ -140,7 +140,7 @@ class TestTransferSameAccountRejected:
                     "date": datetime.now(),
                     "category_id": test_category.id,
                     "type": "transfer",
-                    "amount": 10.0,
+                    "amount_cents": 1000,
                     "description": "Mesma conta",
                     "tags": [],
                     "to_account_id": test_account.id,
@@ -150,7 +150,9 @@ class TestTransferSameAccountRejected:
                 db=db,
             )
         assert exc_info.value.status_code == 400
-        assert "mesma conta" in (exc_info.value.detail or "").lower()
+        detail = exc_info.value.detail
+        detail_str = (detail.get("message", "") + " " + detail.get("details", "")) if isinstance(detail, dict) else str(detail or "")
+        assert "mesma conta" in detail_str.lower()
 
 
 class TestSoftDeleteReversalInvariant:
@@ -163,7 +165,7 @@ class TestSoftDeleteReversalInvariant:
                 "date": datetime.now(),
                 "category_id": test_category.id,
                 "type": "income",
-                "amount": 200.0,
+                "amount_cents": 20000,
                 "description": "Será revertida",
                 "tags": [],
             },

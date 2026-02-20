@@ -4,7 +4,7 @@ Prova que o sistema resiste a ataques documentados em docs/THREAT-MODEL.md.
 Cada teste: resiste OU documenta limitação com TODO.
 """
 import pytest
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from fastapi.testclient import TestClient
 
@@ -197,9 +197,10 @@ def test_idempotency_key_scope_per_endpoint(
             "/api/goals",
             json={
                 "name": "Goal threat test",
-                "target_value": 100.0,
-                "current_value": 0.0,
-                "deadline": "2025-12-31",
+                "target_amount_cents": 10000,
+                "target_date": (datetime.utcnow() + timedelta(days=365)).isoformat(),
+                "category": "other",
+                "priority": "medium",
             },
             headers={"Idempotency-Key": idem_key},
         )

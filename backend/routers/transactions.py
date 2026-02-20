@@ -1,9 +1,12 @@
+# REGRA MONETÁRIA DO SISTEMA:
+# Todos os valores recebidos pela API devem estar em centavos (int).
+# Nenhum float é aceito na camada de entrada.
 from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime, date
-from pydantic import BaseModel, model_validator, field_validator
+from pydantic import BaseModel, Field, model_validator, field_validator
 
 from database import get_db
 from models import Transaction, User, Account
@@ -17,16 +20,26 @@ from core.amount_parser import serialize_money
 
 router = APIRouter()
 
-# Pydantic models
+# Pydantic models: API monetária exclusivamente em centavos (int). Sem amount, sem float.
 class TransactionCreate(BaseModel):
     date: datetime
     account_id: str
     category_id: str
     type: str  # income, expense, transfer
-    amount: float
+    amount_cents: int = Field(..., gt=0, description="Valor em centavos (inteiro positivo)")
     description: str
     tags: Optional[List[str]] = []
     to_account_id: Optional[str] = None  # obrigatório quando type=transfer
+
+    @field_validator("amount_cents", mode="before")
+    @classmethod
+    def amount_cents_strict_int(cls, v: object) -> int:
+        """Rejeita bool, str e float; aceita apenas int (contrato único)."""
+        if isinstance(v, bool):
+            raise ValueError("amount_cents must be integer")
+        if not isinstance(v, int):
+            raise ValueError("amount_cents must be integer")
+        return v
 
     @model_validator(mode="after")
     def check_transfer_has_to_account(self):
@@ -39,7 +52,7 @@ class TransactionUpdate(BaseModel):
     account_id: Optional[str] = None
     category_id: Optional[str] = None
     type: Optional[str] = None
-    amount: Optional[float] = None
+    amount_cents: Optional[int] = Field(None, gt=0, description="Valor em centavos (inteiro positivo)")
     description: Optional[str] = None
     tags: Optional[List[str]] = None
 
@@ -142,7 +155,7 @@ async def create_transaction(
             "date": transaction.date,
             "category_id": transaction.category_id,
             "type": transaction.type,
-            "amount": transaction.amount,
+            "amount_cents": transaction.amount_cents,
             "description": transaction.description,
             "tags": transaction.tags or [],
         }

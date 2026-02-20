@@ -180,7 +180,7 @@ def test_goal_amount_str_exists_and_format(client, auth_headers, test_user):
         headers=auth_headers,
         json={
             "name": "Meta QA",
-            "target_amount": 10000.50,
+            "target_amount_cents": 1000050,
             "target_date": target_date,
             "category": "savings",
             "priority": "medium",
@@ -203,8 +203,7 @@ def test_goal_current_zero_returns_000(client, auth_headers, test_user):
         headers=auth_headers,
         json={
             "name": "Meta Zero",
-            "target_amount": 1000,
-            "current_amount": 0,
+            "target_amount_cents": 100000,
             "target_date": target_date,
             "category": "savings",
             "priority": "low",

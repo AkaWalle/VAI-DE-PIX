@@ -24,7 +24,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/utils/format";
 import { fromCents, toCents, formatCurrencyFromCents, calculateSplit, getInvitedEmail } from "@/utils/currency";
-import { CurrencyInput } from "@/components/ui/CurrencyInput";
+import { SimpleMoneyInput, displayValueToCents } from "@/components/ui/SimpleMoneyInput";
 import {
   X,
   Plus,
@@ -65,7 +65,7 @@ export function SharedExpenseForm({
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    totalAmountCents: 0,
+    totalAmountDisplay: "",
     category: "",
     date: new Date().toISOString().split("T")[0],
     splitType: "equal" as "equal" | "percentage" | "custom",
@@ -93,10 +93,12 @@ export function SharedExpenseForm({
 
   useEffect(() => {
     if (expense) {
+      const cents = toCents(expense.totalAmount);
+      const reais = cents / 100;
       setFormData({
         title: expense.title,
         description: expense.description || "",
-        totalAmountCents: toCents(expense.totalAmount),
+        totalAmountDisplay: reais.toFixed(2).replace(".", ","),
         category: expense.category,
         date: expense.date,
         splitType: "equal",
@@ -120,15 +122,20 @@ export function SharedExpenseForm({
   const handleInputChange = (field: string, value: string | number) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
 
-    if (field === "totalAmountCents" || field === "splitType") {
-      const totalReais = field === "totalAmountCents" ? fromCents(value as number) : fromCents(formData.totalAmountCents);
+    if (field === "totalAmountDisplay" || field === "splitType") {
+      const totalReais =
+        field === "totalAmountDisplay"
+          ? (typeof value === "string" ? parseFloat(value.replace(",", ".")) || 0 : 0)
+          : parseFloat(formData.totalAmountDisplay.replace(",", ".")) || 0;
       const splitType = field === "splitType" ? (value as string) : formData.splitType;
       recalculateSplit(totalReais, splitType);
     }
   };
 
   const recalculateSplit = (total?: number, splitType?: string) => {
-    const t = total ?? fromCents(formData.totalAmountCents);
+    const t =
+      total ??
+      (parseFloat(formData.totalAmountDisplay.replace(",", ".")) || 0);
     const st = splitType ?? formData.splitType;
     if (participants.length === 0) return;
     if (st === "equal") {
@@ -156,7 +163,7 @@ export function SharedExpenseForm({
 
     // Recalcular divisão
     setTimeout(() => {
-      const totalReais = fromCents(formData.totalAmountCents);
+      const totalReais = parseFloat(formData.totalAmountDisplay.replace(",", ".")) || 0;
       const participantCount = participants.length + 1;
       const amountPerPersonCents = Math.round((totalReais * 100) / participantCount);
       const amountPerPerson = amountPerPersonCents / 100;
@@ -173,7 +180,7 @@ export function SharedExpenseForm({
     setParticipants((prev) => prev.filter((p) => p.userId !== userId));
 
     setTimeout(() => {
-      const totalReais = fromCents(formData.totalAmountCents);
+      const totalReais = parseFloat(formData.totalAmountDisplay.replace(",", ".")) || 0;
       const participantCount = participants.length - 1;
       const amountPerPersonCents =
         participantCount > 0 ? Math.round((totalReais * 100) / participantCount) : 0;
@@ -191,9 +198,12 @@ export function SharedExpenseForm({
     );
   };
 
-  const splitInfo = calculateSplit(fromCents(formData.totalAmountCents), participants);
+  const totalReaisForSplit = parseFloat(formData.totalAmountDisplay.replace(",", ".")) || 0;
+  const splitInfo = calculateSplit(totalReaisForSplit, participants);
+  const totalCentsForSubmit = displayValueToCents(formData.totalAmountDisplay);
   const isSubmitDisabled =
-    formData.totalAmountCents <= 0 ||
+    totalCentsForSubmit === null ||
+    totalCentsForSubmit <= 0 ||
     participants.length === 0 ||
     !splitInfo.isValid ||
     isSubmitting;
@@ -213,10 +223,11 @@ export function SharedExpenseForm({
       setIsSubmitting(true);
 
       if (isEditing) {
+        const totalReaisEdit = totalCentsForSubmit !== null ? totalCentsForSubmit / 100 : 0;
         const expenseData = {
           title: formData.title,
           description: formData.description,
-          totalAmount: fromCents(formData.totalAmountCents),
+          totalAmount: totalReaisEdit,
           currency: "BRL" as const,
           category: formData.category,
           date: formData.date,
@@ -229,18 +240,16 @@ export function SharedExpenseForm({
         return;
       }
 
-      const totalReais = fromCents(formData.totalAmountCents);
+      const totalCents = totalCentsForSubmit ?? 0;
       const invitedEmail = getInvitedEmail(participants, user?.email);
 
       if (formData.splitType === "equal" && participants.length === 2 && invitedEmail) {
-        // Fluxo legado: um convidado por e-mail, divisão igual
         await createExpense({
-          amount: totalReais,
+          total_cents: totalCents,
           description: formData.description || formData.title,
           invited_email: invitedEmail,
         });
       } else {
-        // split_type + participants (equal com N pessoas, ou percentage, ou custom)
         const creatorId = user?.id;
         const participantsPayload = participants.map((p) => {
           const isCreator = p.userEmail === user?.email || p.userId === "current-user";
@@ -251,6 +260,7 @@ export function SharedExpenseForm({
             base.email = p.userEmail;
           }
           if (formData.splitType === "percentage") {
+            const totalReais = totalCents / 100;
             const pct = totalReais > 0 ? Math.round((p.amount / totalReais) * 10000) / 100 : 0;
             base.percentage = pct;
           }
@@ -259,7 +269,6 @@ export function SharedExpenseForm({
           }
           return base;
         });
-        // Garantir que porcentagens somem 100 (ajuste no último)
         if (formData.splitType === "percentage" && participantsPayload.length > 0) {
           const sum = participantsPayload.reduce((s, p) => s + (p.percentage ?? 0), 0);
           if (sum !== 100) {
@@ -268,7 +277,7 @@ export function SharedExpenseForm({
           }
         }
         await createExpense({
-          amount: totalReais,
+          total_cents: totalCents,
           description: formData.description || formData.title,
           split_type: formData.splitType,
           participants: participantsPayload,
@@ -370,10 +379,11 @@ export function SharedExpenseForm({
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="totalAmount">Valor Total *</Label>
-                <CurrencyInput
+                <SimpleMoneyInput
                   id="totalAmount"
-                  value={formData.totalAmountCents}
-                  onChange={(v) => handleInputChange("totalAmountCents", v)}
+                  value={formData.totalAmountDisplay}
+                  onChange={(v) => handleInputChange("totalAmountDisplay", v)}
+                  placeholder="0,00"
                 />
               </div>
 

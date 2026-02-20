@@ -90,6 +90,20 @@ def amount_from_api(raw: object) -> Optional[Decimal]:
     return None
 
 
+def amount_cents_from_api(raw: object) -> Optional[int]:
+    """
+    Aceita amount_cents da API (apenas int). Retorna None se não for int válido.
+    Regra: backend trabalha exclusivamente com centavos (int) na API.
+    """
+    if raw is None:
+        return None
+    if isinstance(raw, bool):
+        return None
+    if isinstance(raw, int) and not isinstance(raw, bool):
+        return raw if raw > 0 else None
+    return None
+
+
 def serialize_money(value: Optional[Decimal]) -> str:
     """
     Serializa valor monetário para string no formato JSON enterprise ("1234.56").
