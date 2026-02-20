@@ -250,7 +250,20 @@ def create_shared_expense(
         assert isinstance(total_cents, int), (
             f"total_cents must be int before create_transaction; got {type(total_cents).__name__!r}"
         )
-        amount_cents_int = int(total_cents)
+        # Transação do criador: debitar apenas a parte dele (share), não o total — evita 422 por saldo insuficiente.
+        creator_share = next(
+            (s for s in created_shares if str(s.user_id) == str(creator_user.id)),
+            None,
+        )
+        if creator_share is not None and creator_share.amount is not None:
+            amount_cents_int = int(creator_share.amount)
+        else:
+            amount_cents_int = int(total_cents)
+        logger.info(
+            "shared_expense_transaction_amount | total_cents=%s creator_share_cents=%s",
+            total_cents,
+            amount_cents_int,
+        )
         transaction_data = {
             "date": datetime.now(timezone.utc),
             "category_id": category.id,

@@ -102,6 +102,10 @@ def _validate_transaction_payload(
     Verifica: campos obrigatórios, tipo, valor > 0, description, categoria existente.
     Levanta HTTPException com detail padronizado em caso de falha.
     """
+    # Log detalhado para debug (keys + tipos; evita vazar valores sensíveis)
+    payload_debug = {k: type(v).__name__ for k, v in transaction_data.items()}
+    logger.info("validate payload: keys_and_types=%s", payload_debug)
+
     # account_id pode vir no payload (API) ou ser implícito via parâmetro account
     required = ["date", "category_id", "type", "description"]
     if is_transfer:

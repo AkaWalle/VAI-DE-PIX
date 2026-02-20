@@ -69,6 +69,7 @@ class TransactionResponse(BaseModel):
     tags: Optional[List[str]]
     created_at: datetime
     updated_at: Optional[datetime]
+    shared_expense_id: Optional[str] = None  # despesa compartilhada vinculada (quando existir)
 
     @field_validator("amount", mode="before")
     @classmethod
