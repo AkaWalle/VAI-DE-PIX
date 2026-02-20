@@ -4,17 +4,16 @@ import { envelopesService } from "@/services/envelopes.service";
 import { FormDialog } from "@/components/ui/form-dialog";
 import { ActionButton } from "@/components/ui/action-button";
 import { Input } from "@/components/ui/input";
-import { SimpleMoneyInput, displayValueToCents } from "@/components/ui/SimpleMoneyInput";
+import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Wallet } from "lucide-react";
 
-/** displayValue = string para input; conversão para centavos só no submit. */
 interface EnvelopeFormData {
   name: string;
-  balanceDisplay: string;
-  targetAmountDisplay: string;
+  balanceCents: number;
+  targetAmountCents: number;
   color: string;
   description: string;
 }
@@ -42,8 +41,8 @@ export function EnvelopeForm({ trigger }: EnvelopeFormProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [formData, setFormData] = useState<EnvelopeFormData>({
     name: "",
-    balanceDisplay: "",
-    targetAmountDisplay: "",
+    balanceCents: 0,
+    targetAmountCents: 0,
     color: "#3b82f6",
     description: "",
   });
@@ -68,8 +67,8 @@ export function EnvelopeForm({ trigger }: EnvelopeFormProps) {
         return;
       }
 
-      const balanceCents = displayValueToCents(formData.balanceDisplay);
-      if (balanceCents === null || balanceCents < 0) {
+      const balanceCents = formData.balanceCents;
+      if (balanceCents < 0) {
         toast({
           title: "Saldo inválido",
           description: "Por favor, insira um saldo válido (ex: 0 ou 10,50).",
@@ -78,8 +77,8 @@ export function EnvelopeForm({ trigger }: EnvelopeFormProps) {
         return;
       }
 
-      const targetCents = displayValueToCents(formData.targetAmountDisplay);
-      if (targetCents !== null && targetCents <= 0) {
+      const targetCents = formData.targetAmountCents;
+      if (targetCents < 0) {
         toast({
           title: "Meta inválida",
           description: "Se informar meta, deve ser maior que zero.",
@@ -91,7 +90,7 @@ export function EnvelopeForm({ trigger }: EnvelopeFormProps) {
       const created = await envelopesService.createEnvelope({
         name: formData.name,
         balance: balanceCents,
-        target_amount: targetCents !== null && targetCents > 0 ? targetCents : null,
+        target_amount: targetCents > 0 ? targetCents : null,
         color: formData.color,
         description: formData.description || null,
       });
@@ -113,8 +112,8 @@ export function EnvelopeForm({ trigger }: EnvelopeFormProps) {
 
       setFormData({
         name: "",
-        balanceDisplay: "",
-        targetAmountDisplay: "",
+        balanceCents: 0,
+        targetAmountCents: 0,
         color: "#3b82f6",
         description: "",
       });
@@ -159,20 +158,20 @@ export function EnvelopeForm({ trigger }: EnvelopeFormProps) {
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="balance">Saldo Inicial</Label>
-          <SimpleMoneyInput
+          <CurrencyInput
             id="balance"
-            value={formData.balanceDisplay}
-            onChange={(v) => updateFormData("balanceDisplay", v)}
+            value={formData.balanceCents}
+            onChange={(v) => updateFormData("balanceCents", v)}
             placeholder="0,00"
           />
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="targetAmount">Meta (opcional)</Label>
-          <SimpleMoneyInput
+          <CurrencyInput
             id="targetAmount"
-            value={formData.targetAmountDisplay}
-            onChange={(v) => updateFormData("targetAmountDisplay", v)}
+            value={formData.targetAmountCents}
+            onChange={(v) => updateFormData("targetAmountCents", v)}
             placeholder="0,00"
           />
         </div>
