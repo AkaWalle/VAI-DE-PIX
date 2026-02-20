@@ -7,7 +7,7 @@ import {
 import { FormDialog } from "@/components/ui/form-dialog";
 import { ActionButton } from "@/components/ui/action-button";
 import { Input } from "@/components/ui/input";
-import { SimpleMoneyInput, displayValueToCents } from "@/components/ui/SimpleMoneyInput";
+import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { Label } from "@/components/ui/label";
 import { formatCurrencyFromCents } from "@/utils/currency";
 import {
@@ -22,7 +22,7 @@ import { Plus } from "lucide-react";
 
 interface TransactionFormData {
   type: "income" | "expense";
-  amountDisplay: string;
+  amountCents: number;
   description: string;
   category: string;
   account: string;
@@ -42,7 +42,7 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [formData, setFormData] = useState<TransactionFormData>({
     type: "expense",
-    amountDisplay: "",
+    amountCents: 0,
     description: "",
     category: "",
     account: "",
@@ -61,8 +61,8 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
     setIsLoading(true);
 
     try {
-      const amountCents = displayValueToCents(formData.amountDisplay);
-      if (amountCents === null || amountCents <= 0 || !formData.description || !formData.category || !formData.account) {
+      const amountCents = formData.amountCents;
+      if (amountCents <= 0 || !formData.description || !formData.category || !formData.account) {
         toast({
           title: "Campos obrigatórios",
           description: "Por favor, preencha valor (maior que zero), descrição, categoria e conta.",
@@ -111,13 +111,13 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
 
       toast({
         title: "Transação criada!",
-        description: `${formData.type === "income" ? "Receita" : "Despesa"} de ${formatCurrencyFromCents(amountCents ?? 0)} adicionada com sucesso.`,
+        description: `${formData.type === "income" ? "Receita" : "Despesa"} de ${formatCurrencyFromCents(amountCents)} adicionada com sucesso.`,
       });
 
       // Reset form
       setFormData({
         type: "expense",
-        amountDisplay: "",
+        amountCents: 0,
         description: "",
         category: "",
         account: "",
@@ -176,10 +176,10 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
 
         <div className="space-y-2">
           <Label htmlFor="amount">Valor *</Label>
-          <SimpleMoneyInput
+          <CurrencyInput
             id="amount"
-            value={formData.amountDisplay}
-            onChange={(v) => updateFormData("amountDisplay", v)}
+            value={formData.amountCents}
+            onChange={(v) => updateFormData("amountCents", v)}
             placeholder="0,00"
           />
         </div>
