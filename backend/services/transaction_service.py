@@ -228,10 +228,18 @@ class TransactionService:
         Returns:
             Transação criada
         """
+        # Primeira coisa: caller pode enviar só amount_cents (int); preencher amount (Decimal) antes de qualquer validação.
+        if transaction_data.get("amount") is None and "amount_cents" in transaction_data:
+            transaction_data["amount"] = from_cents(transaction_data["amount_cents"])
+        logger.info(
+            "amount após conversão: %s",
+            transaction_data.get("amount"),
+            extra={"amount": transaction_data.get("amount"), "amount_cents": transaction_data.get("amount_cents")},
+        )
+
         transaction_type = transaction_data.get("type")
         amount = transaction_data.get("amount")
         amount_cents_log = transaction_data.get("amount_cents")
-        # Log detalhado antes de validações (observabilidade). amount só é preenchido após _validate_transaction_payload.
         logger.info(
             "create_transaction: payload recebido | user_id=%s account_id=%s amount=%s amount_cents=%s type=%s",
             user_id,
@@ -248,10 +256,6 @@ class TransactionService:
                 "payload_keys": list(transaction_data.keys()),
             },
         )
-
-        # Caller pode enviar só amount_cents (int); preencher amount (Decimal) antes de qualquer validação que leia amount.
-        if "amount_cents" in transaction_data and transaction_data.get("amount") is None:
-            transaction_data["amount"] = from_cents(transaction_data["amount_cents"])
 
         # Validação de ownership
         validate_ownership(account.user_id, user_id, "conta")

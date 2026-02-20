@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useFinancialStore } from "@/stores/financial-store";
+import { sharedExpenseApi } from "@/services/sharedExpenseApi";
+import { syncSharedExpensesFromBackend } from "@/lib/shared-expenses-sync-engine";
 import {
   Card,
   CardContent,
@@ -39,7 +41,6 @@ import { SharedExpenseForm } from "@/components/forms/SharedExpenseForm";
 export default function SharedExpenses() {
   const {
     sharedExpenses,
-    deleteSharedExpense,
     markParticipantAsPaid,
     settleSharedExpense,
   } = useFinancialStore();
@@ -80,12 +81,21 @@ export default function SharedExpenses() {
     }
   };
 
-  const handleDeleteExpense = (id: string) => {
-    deleteSharedExpense(id);
-    toast({
-      title: "Despesa removida",
-      description: "A despesa compartilhada foi removida com sucesso.",
-    });
+  const handleDeleteExpense = async (id: string) => {
+    try {
+      await sharedExpenseApi.deleteSharedExpense(id);
+      await syncSharedExpensesFromBackend();
+      toast({
+        title: "Despesa removida",
+        description: "A despesa compartilhada foi removida com sucesso.",
+      });
+    } catch {
+      toast({
+        title: "Erro ao excluir",
+        description: "Não foi possível excluir a despesa. Tente novamente.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleMarkAsPaid = (expenseId: string, participantId: string) => {

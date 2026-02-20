@@ -129,6 +129,7 @@ export const API_ENDPOINTS = {
   sharedExpenses: {
     list: "/shared-expenses",
     create: "/shared-expenses",
+    delete: (expenseId: string) => `/shared-expenses/${expenseId}`,
     pending: "/shared-expenses/pending",
     readModel: "/shared-expenses/read-model",
     respond: (shareId: string) => `/shared-expenses/shares/${shareId}`,

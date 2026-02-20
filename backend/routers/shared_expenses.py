@@ -22,6 +22,7 @@ from schemas import (
 )
 from services.shared_expense_service import (
     create_shared_expense,
+    delete_shared_expense,
     respond_to_share,
     get_share_events,
     get_expense_full_details,
@@ -56,6 +57,23 @@ async def post_shared_expense(
         return SharedExpenseResponseSchema.model_validate(expense)
     except SharedExpenseServiceError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.delete("/{expense_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_shared_expense_route(
+    expense_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Exclui (soft delete) uma despesa compartilhada. Apenas o criador pode excluir."""
+    try:
+        delete_shared_expense(db=db, current_user=current_user, expense_id=expense_id)
+    except SharedExpenseServiceError as e:
+        if "não encontrada" in str(e).lower():
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        if "já foi excluída" in str(e).lower():
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
 
 
 @router.get("/read-model", response_model=SharedExpensesReadModelSchema)
