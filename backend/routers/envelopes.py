@@ -1,3 +1,6 @@
+# REGRA MONETÁRIA DO SISTEMA:
+# Todos os valores recebidos pela API devem estar em centavos (int).
+# Nenhum float é aceito na camada de entrada.
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional

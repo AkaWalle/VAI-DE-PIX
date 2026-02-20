@@ -19,8 +19,8 @@ from services.shared_expense_service import (
 
 
 class _Body:
-    def __init__(self, amount, description, split_type="equal", invited_email=None, participants=None, account_id=None, category_id=None):
-        self.amount = amount
+    def __init__(self, total_cents, description, split_type="equal", invited_email=None, participants=None, account_id=None, category_id=None):
+        self.total_cents = total_cents
         self.description = description
         self.split_type = split_type
         self.invited_email = invited_email
@@ -49,9 +49,9 @@ class TestSharedExpenseCreatesTransaction:
     def test_shared_expense_creates_one_transaction_for_creator(
         self, db, test_user, test_account, test_category, user2
     ):
-        """Criar despesa compartilhada 10 reais → 1 Transaction, amount=10, type=expense, shared_expense_id preenchido."""
+        """Criar despesa compartilhada 10 reais (1000 centavos) → 1 Transaction, amount=10, type=expense, shared_expense_id preenchido."""
         body = _Body(
-            amount=10.00,
+            total_cents=1000,
             description="Almoço compartilhado",
             invited_email=user2.email,
             account_id=test_account.id,
@@ -74,7 +74,7 @@ class TestSharedExpenseCreatesTransaction:
     ):
         """Despesa com 2 pessoas → apenas 1 Transaction (criador)."""
         body = _Body(
-            amount=10.00,
+            total_cents=1000,
             description="Jantar",
             split_type="equal",
             participants=[
@@ -101,9 +101,9 @@ class TestReportSumCorrect:
     def test_report_total_expense_includes_shared_and_normal(
         self, db, test_user, test_account, test_category, user2
     ):
-        """1 shared expense 1000 + 1 transação normal 500 → total despesa 1500 (não 2000)."""
+        """1 shared expense 100000 centavos + 1 transação normal 500 → total despesa 1500 (não 2000)."""
         body = _Body(
-            amount=1000.00,
+            total_cents=100000,
             description="Shared",
             participants=[
                 SharedExpenseParticipantCreateSchema(user_id=test_user.id),
@@ -137,7 +137,7 @@ class TestSharedExpenseDeletionSetsNull:
     ):
         """Deletar SharedExpense → Transaction permanece; em PG shared_expense_id vira NULL (SQLite pode não aplicar FK)."""
         body = _Body(
-            amount=50.00,
+            total_cents=5000,
             description="Test delete",
             participants=[
                 SharedExpenseParticipantCreateSchema(user_id=test_user.id),
@@ -167,7 +167,7 @@ class TestSharedExpenseTransactionConsistency:
     ):
         """Criar SharedExpense (com Transaction), remover a Transaction, rodar check → expense_id na lista e log CRITICAL."""
         body = _Body(
-            amount=10.00,
+            total_cents=1000,
             description="Consistency test",
             participants=[
                 SharedExpenseParticipantCreateSchema(user_id=test_user.id),
@@ -199,7 +199,7 @@ class TestSharedExpenseTransactionConsistency:
     ):
         """Se toda SharedExpense tem Transaction, a lista retornada é vazia."""
         body = _Body(
-            amount=10.00,
+            total_cents=1000,
             description="All good",
             invited_email=user2.email,
             account_id=test_account.id,

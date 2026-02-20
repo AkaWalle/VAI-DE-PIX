@@ -1,3 +1,6 @@
+# REGRA MONETÁRIA DO SISTEMA:
+# Todos os valores recebidos pela API devem estar em centavos (int).
+# Nenhum float é aceito na camada de entrada.
 """
 Rotas de despesas compartilhadas (criar, listar pendências, aceitar/recusar).
 """

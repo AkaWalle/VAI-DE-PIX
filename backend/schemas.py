@@ -314,12 +314,12 @@ class SharedExpenseParticipantCreateSchema(BaseModel):
 
 
 class SharedExpenseCreateSchema(BaseModel):
-    amount: float = Field(..., gt=0, description="Valor total da despesa (reais)")
+    total_cents: int = Field(..., gt=0, description="Valor total da despesa em centavos (int)")
     description: str = Field(..., min_length=1, description="Descrição")
     split_type: Literal["equal", "percentage", "custom"] = Field("equal", description="Tipo de divisão")
     invited_email: Optional[EmailStr] = Field(None, description="E-mail do convidado (compatibilidade: igual a 1 participante)")
-    account_id: Optional[str] = Field(None, description="Conta do criador para registrar a saída (opcional; usa primeira conta ativa se omitido)")
-    category_id: Optional[str] = Field(None, description="Categoria da despesa para a Transaction do criador (opcional; usa primeira categoria expense se omitido)")
+    account_id: Optional[str] = Field(None, description="Conta do criador para registrar a saída (opcional)")
+    category_id: Optional[str] = Field(None, description="Categoria da despesa para a Transaction do criador (opcional)")
     participants: Optional[List[SharedExpenseParticipantCreateSchema]] = Field(
         None,
         description="Lista de participantes (user_id + percentage ou amount conforme split_type). Se omitido, usa invited_email com divisão igual.",
@@ -330,7 +330,7 @@ class SharedExpenseCreateSchema(BaseModel):
         if v is not None and len(v) == 0:
             v = None
         split_type = values.get("split_type", "equal")
-        amount = values.get("amount")
+        total_cents = values.get("total_cents")
         invited_email = values.get("invited_email")
         if split_type in ("percentage", "custom") and (not v or len(v) == 0):
             raise ValueError("split_type percentage ou custom exige participants com percentage ou amount")
@@ -342,8 +342,7 @@ class SharedExpenseCreateSchema(BaseModel):
             total_pct = sum(p.percentage or 0 for p in v)
             if abs(total_pct - 100.0) > 0.01:
                 raise ValueError("Soma das porcentagens deve ser 100")
-        if split_type == "custom" and amount is not None:
-            total_cents = int(round(amount * 100))
+        if split_type == "custom" and total_cents is not None:
             sum_cents = sum(p.amount or 0 for p in v)
             if sum_cents != total_cents:
                 raise ValueError("Soma dos valores (amount em centavos) deve ser igual ao total da despesa")

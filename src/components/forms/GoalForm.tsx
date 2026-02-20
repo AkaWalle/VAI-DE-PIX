@@ -67,17 +67,6 @@ export function GoalForm({ trigger }: GoalFormProps) {
         return;
       }
 
-      // API de metas ainda espera valor em reais (float)
-      const targetAmountReais = formData.targetAmountCents / 100;
-      if (targetAmountReais <= 0) {
-        toast({
-          title: "Valor inválido",
-          description: "Por favor, insira um valor válido maior que zero.",
-          variant: "destructive",
-        });
-        return;
-      }
-
       const targetDate = new Date(formData.targetDate);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -91,10 +80,10 @@ export function GoalForm({ trigger }: GoalFormProps) {
         return;
       }
 
-      // Salvar na API e atualizar o store
+      // Salvar na API (contrato: target_amount_cents int) e atualizar o store
       const created = await goalsService.createGoal({
         name: formData.name,
-        target_amount: targetAmountReais,
+        target_amount_cents: formData.targetAmountCents,
         target_date: formData.targetDate,
         description: formData.description || null,
         category: formData.category,

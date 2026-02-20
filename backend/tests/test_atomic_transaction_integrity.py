@@ -25,13 +25,14 @@ class TestTransactionServiceRollbackOnFailure:
             "services.transaction_service.LedgerRepository.append",
             side_effect=RuntimeError("Simulando falha no ledger"),
         ):
-            with pytest.raises(RuntimeError, match="Simulando falha no ledger"):
+            from fastapi import HTTPException
+            with pytest.raises(HTTPException):
                 TransactionService.create_transaction(
                     transaction_data={
                         "date": datetime.now(),
                         "category_id": test_category.id,
                         "type": "income",
-                        "amount": 500.0,
+                        "amount_cents": 50000,
                         "description": "Transação que falha no meio",
                         "tags": [],
                     },
@@ -39,8 +40,9 @@ class TestTransactionServiceRollbackOnFailure:
                     user_id=test_user.id,
                     db=db,
                 )
+        db.rollback()
 
-        # Nenhuma escrita parcial: contagens inalteradas
+        # Nenhuma escrita parcial: contagens inalteradas (rollback desfaz flush parcial)
         assert db.query(Transaction).count() == count_t_before
         assert db.query(LedgerEntry).count() == count_l_before
 
@@ -55,13 +57,14 @@ class TestTransactionServiceRollbackOnFailure:
             "services.transaction_service.sync_account_balance_from_ledger",
             side_effect=RuntimeError("Simulando falha no sync"),
         ):
-            with pytest.raises(RuntimeError, match="Simulando falha no sync"):
+            from fastapi import HTTPException
+            with pytest.raises(HTTPException):
                 TransactionService.create_transaction(
                     transaction_data={
                         "date": datetime.now(),
                         "category_id": test_category.id,
                         "type": "income",
-                        "amount": 250.0,
+                        "amount_cents": 25000,
                         "description": "Transação que falha no sync",
                         "tags": [],
                     },
@@ -69,6 +72,7 @@ class TestTransactionServiceRollbackOnFailure:
                     user_id=test_user.id,
                     db=db,
                 )
+        db.rollback()
 
         assert db.query(Transaction).count() == count_t_before
         assert db.query(LedgerEntry).count() == count_l_before

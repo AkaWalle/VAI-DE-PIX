@@ -57,10 +57,7 @@ export function AddGoalValueForm({
     setIsLoading(true);
 
     try {
-      // Validações
-      // API de metas ainda espera valor em reais (float)
-      const amountReais = formData.amountCents / 100;
-      if (amountReais <= 0) {
+      if (formData.amountCents <= 0) {
         toast({
           title: "Valor inválido",
           description: "Por favor, insira um valor válido maior que zero.",
@@ -78,8 +75,8 @@ export function AddGoalValueForm({
         return;
       }
 
-      // Salvar na API e atualizar o store
-      const result = await goalsService.addValueToGoal(goalId, amountReais);
+      // API: amount_cents (int); resposta new_amount em reais para o store
+      const result = await goalsService.addValueToGoal(goalId, formData.amountCents);
       updateGoal(goalId, {
         currentAmount: result.new_amount,
       });

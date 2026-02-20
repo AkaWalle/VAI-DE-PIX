@@ -2,6 +2,7 @@
 Testes críticos para transações financeiras
 Garante que saldos são atualizados corretamente e atomicamente
 """
+from decimal import Decimal
 import pytest
 from datetime import datetime
 
@@ -21,15 +22,15 @@ class TestAccountService:
         AccountService.apply_transaction(
             account=test_account,
             transaction_type=TRANSACTION_TYPE_INCOME,
-            amount=500.0,
+            amount=Decimal("500.0"),
             db=db
         )
-        
+
         # Commit para persistir mudanças no banco
         db.commit()
         db.refresh(test_account)
-        assert test_account.balance == initial_balance + 500.0
-    
+        assert float(test_account.balance) == float(initial_balance) + 500.0
+
     def test_apply_expense_transaction(self, db, test_account):
         """Testa aplicação de despesa diminui saldo."""
         initial_balance = test_account.balance
@@ -37,15 +38,15 @@ class TestAccountService:
         AccountService.apply_transaction(
             account=test_account,
             transaction_type=TRANSACTION_TYPE_EXPENSE,
-            amount=200.0,
+            amount=Decimal("200.0"),
             db=db
         )
-        
+
         # Commit para persistir mudanças no banco
         db.commit()
         db.refresh(test_account)
-        assert test_account.balance == initial_balance - 200.0
-    
+        assert float(test_account.balance) == float(initial_balance) - 200.0
+
     def test_revert_income_transaction(self, db, test_account):
         """Testa reversão de receita diminui saldo."""
         initial_balance = test_account.balance
@@ -54,21 +55,21 @@ class TestAccountService:
         AccountService.apply_transaction(
             account=test_account,
             transaction_type=TRANSACTION_TYPE_INCOME,
-            amount=500.0,
+            amount=Decimal("500.0"),
             db=db
         )
-        
+
         # Reverter
         AccountService.revert_transaction(
             account=test_account,
             transaction_type=TRANSACTION_TYPE_INCOME,
-            amount=500.0,
+            amount=Decimal("500.0"),
             db=db
         )
         
         db.refresh(test_account)
-        assert test_account.balance == initial_balance
-    
+        assert float(test_account.balance) == float(initial_balance)
+
     def test_revert_expense_transaction(self, db, test_account):
         """Testa reversão de despesa aumenta saldo."""
         initial_balance = test_account.balance
@@ -77,20 +78,20 @@ class TestAccountService:
         AccountService.apply_transaction(
             account=test_account,
             transaction_type=TRANSACTION_TYPE_EXPENSE,
-            amount=200.0,
+            amount=Decimal("200.0"),
             db=db
         )
-        
+
         # Reverter
         AccountService.revert_transaction(
             account=test_account,
             transaction_type=TRANSACTION_TYPE_EXPENSE,
-            amount=200.0,
+            amount=Decimal("200.0"),
             db=db
         )
         
         db.refresh(test_account)
-        assert test_account.balance == initial_balance
+        assert float(test_account.balance) == float(initial_balance)
 
 
 class TestTransactionService:
@@ -106,7 +107,7 @@ class TestTransactionService:
                 'date': datetime.now(),
                 'category_id': test_category.id,
                 'type': TRANSACTION_TYPE_INCOME,
-                'amount': amount,
+                'amount_cents': int(round(amount * 100)),
                 'description': 'Test income',
                 'tags': []
             },
@@ -117,12 +118,12 @@ class TestTransactionService:
         
         # Verificar transação criada
         assert transaction.id is not None
-        assert transaction.amount == amount
+        assert float(transaction.amount) == amount
         assert transaction.type == TRANSACTION_TYPE_INCOME
-        
+
         # Verificar saldo atualizado
         db.refresh(test_account)
-        assert test_account.balance == initial_balance + amount
+        assert float(test_account.balance) == float(initial_balance) + amount
     
     def test_create_expense_transaction_updates_balance(self, db, test_user, test_account, test_category):
         """Testa que criar despesa atualiza saldo atomicamente."""
@@ -134,7 +135,7 @@ class TestTransactionService:
                 'date': datetime.now(),
                 'category_id': test_category.id,
                 'type': TRANSACTION_TYPE_EXPENSE,
-                'amount': amount,
+                'amount_cents': int(round(amount * 100)),
                 'description': 'Test expense',
                 'tags': []
             },
@@ -145,11 +146,11 @@ class TestTransactionService:
         
         # Verificar transação criada
         assert transaction.id is not None
-        assert transaction.amount == amount
-        
+        assert float(transaction.amount) == amount
+
         # Verificar saldo atualizado
         db.refresh(test_account)
-        assert test_account.balance == initial_balance - amount
+        assert float(test_account.balance) == float(initial_balance) - amount
     
     def test_update_transaction_reverts_and_applies_balance(self, db, test_user, test_account, test_category):
         """Testa que atualizar transação reverte saldo antigo e aplica novo."""
@@ -162,7 +163,7 @@ class TestTransactionService:
                 'date': datetime.now(),
                 'category_id': test_category.id,
                 'type': TRANSACTION_TYPE_INCOME,
-                'amount': old_amount,
+                'amount_cents': int(round(old_amount * 100)),
                 'description': 'Original',
                 'tags': []
             },
@@ -173,13 +174,13 @@ class TestTransactionService:
         
         db.refresh(test_account)
         balance_after_create = test_account.balance
-        assert balance_after_create == initial_balance + old_amount
+        assert float(balance_after_create) == float(initial_balance) + old_amount
         
-        # Atualizar transação
+        # Atualizar transação (API só aceita amount_cents)
         new_amount = 800.0
         updated_transaction = TransactionService.update_transaction(
             db_transaction=transaction,
-            update_data={'amount': new_amount},
+            update_data={"amount_cents": int(round(new_amount * 100))},
             old_account=test_account,
             new_account=test_account,
             user_id=test_user.id,
@@ -187,12 +188,12 @@ class TestTransactionService:
         )
         
         # Verificar transação atualizada
-        assert updated_transaction.amount == new_amount
-        
+        assert float(updated_transaction.amount) == new_amount
+
         # Verificar saldo: deve reverter old_amount e aplicar new_amount
         db.refresh(test_account)
-        expected_balance = initial_balance + new_amount  # Reverteu old, aplicou new
-        assert abs(test_account.balance - expected_balance) < 0.01
+        expected_balance = float(initial_balance) + new_amount  # Reverteu old, aplicou new
+        assert abs(float(test_account.balance) - expected_balance) < 0.01
     
     def test_delete_transaction_reverts_balance(self, db, test_user, test_account, test_category):
         """Testa que deletar transação reverte saldo."""
@@ -205,7 +206,7 @@ class TestTransactionService:
                 'date': datetime.now(),
                 'category_id': test_category.id,
                 'type': TRANSACTION_TYPE_INCOME,
-                'amount': amount,
+                'amount_cents': int(round(amount * 100)),
                 'description': 'To delete',
                 'tags': []
             },
@@ -215,8 +216,8 @@ class TestTransactionService:
         )
         
         db.refresh(test_account)
-        assert test_account.balance == initial_balance + amount
-        
+        assert float(test_account.balance) == float(initial_balance) + amount
+
         # Deletar transação
         TransactionService.delete_transaction(
             db_transaction=transaction,
@@ -227,7 +228,7 @@ class TestTransactionService:
         
         # Verificar saldo revertido
         db.refresh(test_account)
-        assert test_account.balance == initial_balance
+        assert float(test_account.balance) == float(initial_balance)
         
         # Verificar transação deletada (soft delete por padrão: registro existe com deleted_at preenchido)
         deleted = db.query(Transaction).filter(Transaction.id == transaction.id).first()
@@ -246,7 +247,7 @@ class TestTransactionService:
                     'date': datetime.now(),
                     'category_id': test_category.id,
                     'type': TRANSACTION_TYPE_INCOME,
-                    'amount': amount,
+                    'amount_cents': int(round(amount * 100)),
                     'description': f'Transaction {amount}',
                     'tags': []
                 },
@@ -257,6 +258,6 @@ class TestTransactionService:
         
         # Verificar saldo final
         db.refresh(test_account)
-        expected_balance = initial_balance + sum(amounts)
-        assert abs(test_account.balance - expected_balance) < 0.01
+        expected_balance = float(initial_balance) + sum(amounts)
+        assert abs(float(test_account.balance) - expected_balance) < 0.01
 

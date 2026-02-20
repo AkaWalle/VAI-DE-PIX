@@ -28,7 +28,7 @@ def test_create_transaction_idempotency_retry_returns_same(client: TestClient, d
         "account_id": test_account.id,
         "category_id": test_category.id,
         "type": "income",
-        "amount": 50.0,
+        "amount_cents": 5000,
         "description": "Receita idempotente",
         "tags": [],
     }
@@ -56,7 +56,7 @@ def test_create_transaction_same_key_different_payload_returns_400(client: TestC
         "account_id": test_account.id,
         "category_id": test_category.id,
         "type": "income",
-        "amount": 10.0,
+        "amount_cents": 1000,
         "description": "Primeira",
         "tags": [],
     }
@@ -64,7 +64,7 @@ def test_create_transaction_same_key_different_payload_returns_400(client: TestC
     r1 = client.post("/api/transactions", json=body1, headers=headers)
     assert r1.status_code == 200
 
-    body2 = {**body1, "amount": 20.0, "description": "Segunda"}
+    body2 = {**body1, "amount_cents": 2000, "description": "Segunda"}
     r2 = client.post("/api/transactions", json=body2, headers=headers)
     assert r2.status_code == 400
     assert "Idempotency" in r2.json().get("detail", "") or "corpo" in r2.json().get("detail", "").lower()
@@ -77,7 +77,7 @@ def test_create_goal_idempotency_retry_returns_same(client: TestClient, db, auth
     target = (datetime.utcnow() + timedelta(days=365)).isoformat()
     body = {
         "name": "Meta idempotente",
-        "target_amount": 1000.0,
+        "target_amount_cents": 100000,
         "target_date": target,
         "description": "",
         "category": "Viagem",
@@ -117,7 +117,7 @@ def test_retry_after_simulated_failure_no_duplicate_ledger_or_transaction(
             "date": datetime.now(),
             "category_id": category.id,
             "type": "income",
-            "amount": 75.0,
+            "amount_cents": 7500,
             "description": "Receita retry",
             "tags": [],
         }
@@ -199,7 +199,7 @@ def test_timeout_retry_no_duplication_commit_once(
             "date": datetime.now(),
             "category_id": category.id,
             "type": "income",
-            "amount": 30.0,
+            "amount_cents": 3000,
             "description": "Receita timeout retry",
             "tags": [],
         }
