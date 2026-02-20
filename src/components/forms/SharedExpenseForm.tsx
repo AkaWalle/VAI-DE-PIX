@@ -23,8 +23,8 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/utils/format";
-import { fromCents, toCents, formatCurrencyFromCents, calculateSplit, getInvitedEmail } from "@/utils/currency";
-import { SimpleMoneyInput, displayValueToCents } from "@/components/ui/SimpleMoneyInput";
+import { fromCents, toCents, formatCurrencyFromCents, calculateSplit, getInvitedEmail, parseCurrencyInput } from "@/utils/currency";
+import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import {
   X,
   Plus,
@@ -65,7 +65,7 @@ export function SharedExpenseForm({
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    totalAmountDisplay: "",
+    totalAmountCents: 0,
     category: "",
     date: new Date().toISOString().split("T")[0],
     splitType: "equal" as "equal" | "percentage" | "custom",
@@ -93,12 +93,11 @@ export function SharedExpenseForm({
 
   useEffect(() => {
     if (expense) {
-      const cents = toCents(expense.totalAmount);
-      const reais = cents / 100;
+      const totalAmountCents = toCents(expense.totalAmount);
       setFormData({
         title: expense.title,
         description: expense.description || "",
-        totalAmountDisplay: reais.toFixed(2).replace(".", ","),
+        totalAmountCents,
         category: expense.category,
         date: expense.date,
         splitType: "equal",
@@ -122,20 +121,18 @@ export function SharedExpenseForm({
   const handleInputChange = (field: string, value: string | number) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
 
-    if (field === "totalAmountDisplay" || field === "splitType") {
+    if (field === "totalAmountCents" || field === "splitType") {
       const totalReais =
-        field === "totalAmountDisplay"
-          ? (typeof value === "string" ? parseFloat(value.replace(",", ".")) || 0 : 0)
-          : parseFloat(formData.totalAmountDisplay.replace(",", ".")) || 0;
+        field === "totalAmountCents"
+          ? (typeof value === "number" ? value / 100 : 0)
+          : formData.totalAmountCents / 100;
       const splitType = field === "splitType" ? (value as string) : formData.splitType;
       recalculateSplit(totalReais, splitType);
     }
   };
 
   const recalculateSplit = (total?: number, splitType?: string) => {
-    const t =
-      total ??
-      (parseFloat(formData.totalAmountDisplay.replace(",", ".")) || 0);
+    const t = total ?? formData.totalAmountCents / 100;
     const st = splitType ?? formData.splitType;
     if (participants.length === 0) return;
     if (st === "equal") {
@@ -163,7 +160,7 @@ export function SharedExpenseForm({
 
     // Recalcular divisão
     setTimeout(() => {
-      const totalReais = parseFloat(formData.totalAmountDisplay.replace(",", ".")) || 0;
+      const totalReais = formData.totalAmountCents / 100;
       const participantCount = participants.length + 1;
       const amountPerPersonCents = Math.round((totalReais * 100) / participantCount);
       const amountPerPerson = amountPerPersonCents / 100;
@@ -180,7 +177,7 @@ export function SharedExpenseForm({
     setParticipants((prev) => prev.filter((p) => p.userId !== userId));
 
     setTimeout(() => {
-      const totalReais = parseFloat(formData.totalAmountDisplay.replace(",", ".")) || 0;
+      const totalReais = formData.totalAmountCents / 100;
       const participantCount = participants.length - 1;
       const amountPerPersonCents =
         participantCount > 0 ? Math.round((totalReais * 100) / participantCount) : 0;
@@ -198,12 +195,10 @@ export function SharedExpenseForm({
     );
   };
 
-  const totalReaisForSplit = parseFloat(formData.totalAmountDisplay.replace(",", ".")) || 0;
+  const totalReaisForSplit = formData.totalAmountCents / 100;
   const splitInfo = calculateSplit(totalReaisForSplit, participants);
-  const totalCentsForSubmit = displayValueToCents(formData.totalAmountDisplay);
   const isSubmitDisabled =
-    totalCentsForSubmit === null ||
-    totalCentsForSubmit <= 0 ||
+    formData.totalAmountCents <= 0 ||
     participants.length === 0 ||
     !splitInfo.isValid ||
     isSubmitting;
@@ -213,17 +208,11 @@ export function SharedExpenseForm({
 
     if (isSubmitDisabled) return;
 
-    console.log("[SharedExpense Submit]", {
-      totalAmountCents: formData.totalAmountCents,
-      participantsCount: participants.length,
-      splitValid: splitInfo.isValid,
-    });
-
     try {
       setIsSubmitting(true);
 
       if (isEditing) {
-        const totalReaisEdit = totalCentsForSubmit !== null ? totalCentsForSubmit / 100 : 0;
+        const totalReaisEdit = formData.totalAmountCents / 100;
         const expenseData = {
           title: formData.title,
           description: formData.description,
@@ -240,7 +229,7 @@ export function SharedExpenseForm({
         return;
       }
 
-      const totalCents = totalCentsForSubmit ?? 0;
+      const totalCents = formData.totalAmountCents;
       const invitedEmail = getInvitedEmail(participants, user?.email);
 
       if (formData.splitType === "equal" && participants.length === 2 && invitedEmail) {
@@ -379,10 +368,10 @@ export function SharedExpenseForm({
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="totalAmount">Valor Total *</Label>
-                <SimpleMoneyInput
+                <CurrencyInput
                   id="totalAmount"
-                  value={formData.totalAmountDisplay}
-                  onChange={(v) => handleInputChange("totalAmountDisplay", v)}
+                  value={formData.totalAmountCents}
+                  onChange={(v) => handleInputChange("totalAmountCents", v)}
                   placeholder="0,00"
                 />
               </div>
