@@ -206,7 +206,14 @@ export function SharedExpenseForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (isSubmitDisabled) return;
+    if (isSubmitDisabled) {
+      toast({
+        title: "Campos incompletos",
+        description: "Preencha valor total (maior que zero), participantes e confira se a divisão está correta.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
       setIsSubmitting(true);
@@ -275,12 +282,44 @@ export function SharedExpenseForm({
 
       toast({ title: "Despesa criada com sucesso" });
       onSuccess();
-    } catch (err) {
+    } catch (err: unknown) {
       console.error(err);
-      toast({
-        title: "Erro ao criar despesa",
-        variant: "destructive",
-      });
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      const detailStr = typeof detail === "string" ? detail : detail ? JSON.stringify(detail) : "";
+      const message = (err as { message?: string })?.message ?? "";
+
+      if (status === 422 && (detailStr.includes("Saldo") || detailStr.includes("insuficiente"))) {
+        toast({
+          title: "Saldo insuficiente",
+          description: "O valor da despesa é maior que o saldo disponível na conta selecionada.",
+          variant: "destructive",
+        });
+      } else if (status === 400 && (detailStr.includes("convidar a si mesmo") || detailStr.includes("você mesmo"))) {
+        toast({
+          title: "E-mail inválido",
+          description: "Você não pode dividir uma despesa com você mesmo.",
+          variant: "destructive",
+        });
+      } else if (status === 400 && (detailStr.includes("e-mail") || detailStr.includes("email") || detailStr.includes("cadastrado"))) {
+        toast({
+          title: "E-mail inválido",
+          description: "Informe um e-mail válido para dividir a despesa.",
+          variant: "destructive",
+        });
+      } else if ((status !== undefined && status >= 500) || status === 0 || /network|timeout|conexão/i.test(message)) {
+        toast({
+          title: "Erro de conexão",
+          description: "Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Erro inesperado",
+          description: "Algo deu errado. Se persistir, tente recarregar a página.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }

@@ -76,8 +76,8 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
       const amountCents = formData.amountCents;
       if (amountCents <= 0 || !formData.description || !formData.category || !formData.account) {
         toast({
-          title: "Campos obrigatórios",
-          description: "Por favor, preencha valor (maior que zero), descrição, categoria e conta.",
+          title: "Campos incompletos",
+          description: "Preencha valor (maior que zero), descrição, categoria e conta.",
           variant: "destructive",
         });
         return;
@@ -105,7 +105,7 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
         if (!isValidEmail(email)) {
           toast({
             title: "E-mail inválido",
-            description: "Informe um e-mail válido para quem divide a despesa.",
+            description: "Informe um e-mail válido para dividir a despesa.",
             variant: "destructive",
           });
           return;
@@ -187,12 +187,37 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
       });
 
       setIsOpen(false);
-    } catch {
-      toast({
-        title: "Erro ao criar transação",
-        description: "Ocorreu um erro inesperado. Tente novamente.",
-        variant: "destructive",
-      });
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      const detailStr = typeof detail === "string" ? detail : detail ? JSON.stringify(detail) : "";
+      const message = (err as { message?: string })?.message ?? "";
+
+      if (status === 422 && (detailStr.includes("Saldo") || detailStr.includes("insuficiente"))) {
+        toast({
+          title: "Saldo insuficiente",
+          description: "O valor da despesa é maior que o saldo disponível na conta selecionada.",
+          variant: "destructive",
+        });
+      } else if (status === 400 && (detailStr.includes("convidar a si mesmo") || detailStr.includes("você mesmo"))) {
+        toast({
+          title: "E-mail inválido",
+          description: "Você não pode dividir uma despesa com você mesmo.",
+          variant: "destructive",
+        });
+      } else if ((status !== undefined && status >= 500) || status === 0 || /network|timeout|conexão/i.test(message)) {
+        toast({
+          title: "Erro de conexão",
+          description: "Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Erro inesperado",
+          description: "Algo deu errado. Se persistir, tente recarregar a página.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoading(false);
     }
