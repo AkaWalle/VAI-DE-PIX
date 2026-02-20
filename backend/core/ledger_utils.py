@@ -44,7 +44,7 @@ def sync_account_balance_from_ledger(account_id: str, db: Session) -> None:
     stmt = (
         update(Account)
         .where(Account.id == account_id, Account.row_version == current_version)
-        .values(balance=float(balance), row_version=current_version + 1, updated_at=now)
+        .values(balance=balance, row_version=current_version + 1, updated_at=now)
     )
     result = db.execute(stmt)
     if result.rowcount == 0:

@@ -4,7 +4,9 @@ import { goalsService } from "@/services/goals.service";
 import { FormDialog } from "@/components/ui/form-dialog";
 import { ActionButton } from "@/components/ui/action-button";
 import { Input } from "@/components/ui/input";
+import { MoneyInput } from "@/components/ui/money-input";
 import { Label } from "@/components/ui/label";
+import { toApiAmount } from "@/utils/currency";
 import {
   Select,
   SelectContent,
@@ -18,7 +20,7 @@ import { Target } from "lucide-react";
 
 interface GoalFormData {
   name: string;
-  targetAmount: string;
+  targetAmount: number;
   targetDate: string;
   description: string;
   category: string;
@@ -37,7 +39,7 @@ export function GoalForm({ trigger }: GoalFormProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [formData, setFormData] = useState<GoalFormData>({
     name: "",
-    targetAmount: "",
+    targetAmount: 0,
     targetDate: "",
     description: "",
     category: "savings",
@@ -56,7 +58,7 @@ export function GoalForm({ trigger }: GoalFormProps) {
 
     try {
       // Validações
-      if (!formData.name || !formData.targetAmount || !formData.targetDate) {
+      if (!formData.name || formData.targetAmount <= 0 || !formData.targetDate) {
         toast({
           title: "Campos obrigatórios",
           description: "Por favor, preencha todos os campos obrigatórios.",
@@ -65,8 +67,8 @@ export function GoalForm({ trigger }: GoalFormProps) {
         return;
       }
 
-      const targetAmount = parseFloat(formData.targetAmount.replace(",", "."));
-      if (isNaN(targetAmount) || targetAmount <= 0) {
+      const targetAmount = toApiAmount(formData.targetAmount);
+      if (targetAmount <= 0) {
         toast({
           title: "Valor inválido",
           description: "Por favor, insira um valor válido maior que zero.",
@@ -91,7 +93,7 @@ export function GoalForm({ trigger }: GoalFormProps) {
       // Salvar na API e atualizar o store
       const created = await goalsService.createGoal({
         name: formData.name,
-        target_amount: targetAmount,
+        target_amount: targetAmount, // valor numérico puro para a API
         target_date: formData.targetDate,
         description: formData.description || null,
         category: formData.category,
@@ -118,7 +120,7 @@ export function GoalForm({ trigger }: GoalFormProps) {
       // Reset form
       setFormData({
         name: "",
-        targetAmount: "",
+        targetAmount: 0,
         targetDate: "",
         description: "",
         category: "savings",
@@ -137,7 +139,10 @@ export function GoalForm({ trigger }: GoalFormProps) {
     }
   };
 
-  const updateFormData = (field: keyof GoalFormData, value: string) => {
+  const updateFormData = (
+    field: keyof GoalFormData,
+    value: string | number,
+  ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -165,12 +170,10 @@ export function GoalForm({ trigger }: GoalFormProps) {
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="targetAmount">Valor da Meta *</Label>
-          <Input
+          <MoneyInput
             id="targetAmount"
-            type="text"
-            placeholder="0,00"
             value={formData.targetAmount}
-            onChange={(e) => updateFormData("targetAmount", e.target.value)}
+            onChange={(v) => updateFormData("targetAmount", v)}
             className="text-right"
           />
         </div>

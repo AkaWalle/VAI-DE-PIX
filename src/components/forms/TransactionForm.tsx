@@ -7,7 +7,9 @@ import {
 import { FormDialog } from "@/components/ui/form-dialog";
 import { ActionButton } from "@/components/ui/action-button";
 import { Input } from "@/components/ui/input";
+import { MoneyInput } from "@/components/ui/money-input";
 import { Label } from "@/components/ui/label";
+import { toApiAmount } from "@/utils/currency";
 import {
   Select,
   SelectContent,
@@ -20,7 +22,7 @@ import { Plus } from "lucide-react";
 
 interface TransactionFormData {
   type: "income" | "expense";
-  amount: string;
+  amount: number;
   description: string;
   category: string;
   account: string;
@@ -40,7 +42,7 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [formData, setFormData] = useState<TransactionFormData>({
     type: "expense",
-    amount: "",
+    amount: 0,
     description: "",
     category: "",
     account: "",
@@ -61,7 +63,7 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
     try {
       // Validações
       if (
-        !formData.amount ||
+        formData.amount <= 0 ||
         !formData.description ||
         !formData.category ||
         !formData.account
@@ -74,8 +76,8 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
         return;
       }
 
-      const amount = parseFloat(formData.amount.replace(",", "."));
-      if (isNaN(amount) || amount <= 0) {
+      const amount = toApiAmount(formData.amount);
+      if (amount <= 0) {
         toast({
           title: "Valor inválido",
           description: "Por favor, insira um valor válido maior que zero.",
@@ -85,7 +87,7 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
         return;
       }
 
-      // Preparar dados para a API
+      // Preparar dados para a API (valor numérico puro, nunca string formatada)
       const transactionData: TransactionCreate = {
         date: new Date(formData.date).toISOString(),
         account_id: formData.account,
@@ -129,7 +131,7 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
       // Reset form
       setFormData({
         type: "expense",
-        amount: "",
+        amount: 0,
         description: "",
         category: "",
         account: "",
@@ -149,7 +151,10 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
     }
   };
 
-  const updateFormData = (field: keyof TransactionFormData, value: string) => {
+  const updateFormData = (
+    field: keyof TransactionFormData,
+    value: string | number,
+  ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -185,12 +190,10 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
 
         <div className="space-y-2">
           <Label htmlFor="amount">Valor *</Label>
-          <Input
+          <MoneyInput
             id="amount"
-            type="text"
-            placeholder="0,00"
             value={formData.amount}
-            onChange={(e) => updateFormData("amount", e.target.value)}
+            onChange={(v) => updateFormData("amount", v)}
             className="text-right"
           />
         </div>

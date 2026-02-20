@@ -1,112 +1,105 @@
 """
-Função robusta para parsing de valores monetários brasileiros
-Suporta todos os formatos comuns: R$ 1.234,56, 1234,56, 1.234, 1000, etc.
+Parsing seguro de valores monetários pt-BR.
+Regra: vírgula = decimal, ponto = milhar. Nunca usar float para decisões;
+usar Decimal ou centavos (int).
 """
 import re
+from decimal import Decimal, ROUND_HALF_UP
 from typing import Optional
 
+# 2 casas decimais (centavos)
+QUANTIZE = Decimal("0.01")
 
-def parse_brazilian_amount(text: str) -> Optional[float]:
+
+def _round_decimal(value: Decimal) -> Decimal:
+    return value.quantize(QUANTIZE, rounding=ROUND_HALF_UP)
+
+
+def parse_brazilian_amount(text: str) -> Optional[Decimal]:
     """
-    Parseia valores monetários brasileiros para float.
-    
-    Suporta os seguintes formatos:
-    - R$ 1.234,56 → 1234.56
-    - 1234,56 → 1234.56
-    - 1.234 → 1234.0
-    - 1000 → 1000.0
-    - R$1000,00 → 1000.0
-    - 1.234,56 → 1234.56
-    - 1234.56 → 1234.56 (formato internacional também aceito)
-    
-    Args:
-        text: String contendo o valor monetário
-        
-    Returns:
-        Valor float ou None se não conseguir parsear
+    Parseia string pt-BR para Decimal (2 casas).
+    - Vírgula = decimal, ponto = milhar.
+    - Ex.: "9.000,00" → Decimal("9000.00"), "10,00" → Decimal("10.00").
     """
     if not text or not isinstance(text, str):
         return None
-    
-    # Remove espaços e converte para minúsculas
-    text = text.strip().lower()
-    
-    # Remove R$ e espaços
-    text = re.sub(r'r\$\s*', '', text)
-    text = text.strip()
-    
-    if not text:
+    cleaned = text.strip().lower()
+    cleaned = re.sub(r"r\$\s*", "", cleaned).strip()
+    if not cleaned:
         return None
-    
-    # Padrão 1: Formato brasileiro com vírgula decimal e ponto milhar (1.234,56)
-    # Detecta se tem vírgula seguida de 1-2 dígitos no final
-    brazilian_pattern = r'^(\d{1,3}(?:\.\d{3})*),(\d{1,2})$'
-    match = re.match(brazilian_pattern, text)
-    if match:
-        integer_part = match.group(1).replace('.', '')  # Remove pontos de milhar
-        decimal_part = match.group(2)
-        # Garante 2 casas decimais
-        if len(decimal_part) == 1:
-            decimal_part += '0'
-        try:
-            return float(f"{integer_part}.{decimal_part}")
-        except ValueError:
-            pass
-    
-    # Padrão 2: Formato brasileiro sem decimais mas com ponto milhar (1.234)
-    # Verifica se tem ponto mas não vírgula, e se o último ponto tem 3 dígitos após
-    if '.' in text and ',' not in text:
-        # Verifica se é formato brasileiro (ponto como separador de milhar)
-        # Ex: 1.234 ou 12.345
-        parts = text.split('.')
-        # Se todas as partes (exceto a primeira) têm exatamente 3 dígitos, é milhar
-        if len(parts) > 1 and all(len(p) == 3 for p in parts[1:]):
-            # É formato brasileiro de milhar
-            integer_part = ''.join(parts)
-            try:
-                return float(integer_part)
-            except ValueError:
-                pass
-        # Caso contrário, pode ser formato internacional (ponto decimal)
-        try:
-            return float(text)
-        except ValueError:
-            pass
-    
-    # Padrão 3: Formato internacional com ponto decimal (1234.56)
-    if '.' in text and ',' not in text:
-        try:
-            return float(text)
-        except ValueError:
-            pass
-    
-    # Padrão 4: Apenas números inteiros (1000, 5000, etc)
-    if re.match(r'^\d+$', text):
-        try:
-            return float(text)
-        except ValueError:
-            pass
-    
-    # Padrão 5: Formato com vírgula mas sem ponto milhar (1234,56)
-    if ',' in text and '.' not in text:
-        text_with_dot = text.replace(',', '.')
-        try:
-            return float(text_with_dot)
-        except ValueError:
-            pass
-    
-    # Padrão 6: Formato misto (tentar remover tudo exceto números e vírgula/ponto)
-    # Remove tudo exceto dígitos, vírgula e ponto
-    cleaned = re.sub(r'[^\d,.]', '', text)
-    if cleaned:
-        # Se tem vírgula, assume formato brasileiro
-        if ',' in cleaned:
-            # Remove pontos (milhar) e substitui vírgula por ponto
-            cleaned = cleaned.replace('.', '').replace(',', '.')
-        try:
-            return float(cleaned)
-        except ValueError:
-            pass
-    
+    cleaned = re.sub(r"[^\d,.]", "", cleaned)
+    if not cleaned:
+        return None
+
+    if "," in cleaned:
+        # pt-BR: vírgula decimal, ponto milhar
+        normalized = cleaned.replace(".", "").replace(",", ".")
+    elif "." in cleaned:
+        parts = cleaned.split(".")
+        if len(parts) == 2 and len(parts[1]) <= 2:
+            normalized = cleaned  # um ponto com 1–2 dígitos = decimal
+        else:
+            normalized = "".join(parts)  # vários pontos = milhar
+    else:
+        normalized = cleaned
+
+    try:
+        value = Decimal(normalized)
+    except Exception:
+        return None
+    if value < 0:
+        return None
+    return _round_decimal(value)
+
+
+def parse_brazilian_to_float(text: str) -> Optional[float]:
+    """
+    Retorna float para compatibilidade (ex.: extrato/relatórios).
+    Preferir parse_brazilian_amount (Decimal) em código novo.
+    """
+    d = parse_brazilian_amount(text)
+    return float(d) if d is not None else None
+
+
+def to_cents(value: Decimal) -> int:
+    """Converte reais (Decimal) para centavos (int)."""
+    if value is None:
+        return 0
+    return int((value * 100).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+
+
+def from_cents(cents: int) -> Decimal:
+    """Converte centavos (int) para reais (Decimal)."""
+    return (Decimal(cents) / 100).quantize(QUANTIZE, rounding=ROUND_HALF_UP)
+
+
+def amount_from_api(raw: object) -> Optional[Decimal]:
+    """
+    Aceita valor vindo da API (float ou int) e converte para Decimal (2 casas).
+    Evita drift de float; usar sempre antes de persistir.
+    """
+    if raw is None:
+        return None
+    if isinstance(raw, Decimal):
+        return _round_decimal(raw)
+    try:
+        if isinstance(raw, (int, float)):
+            return _round_decimal(Decimal(str(raw)))
+    except Exception:
+        pass
     return None
 
+
+def serialize_money(value: Optional[Decimal]) -> str:
+    """
+    Serializa valor monetário para string no formato JSON enterprise ("1234.56").
+    Usa quantize(0.01); nunca usa float(). Uso: respostas da API (campo _str).
+    """
+    if value is None:
+        return "0.00"
+    if not isinstance(value, Decimal):
+        try:
+            value = _round_decimal(Decimal(str(value)))
+        except Exception:
+            return "0.00"
+    return str(_round_decimal(value))

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 from pydantic import BaseModel
 
@@ -8,6 +8,7 @@ from database import get_db
 from models import Account, User
 from auth_utils import get_current_user
 from core.database_utils import atomic_transaction
+from core.amount_parser import serialize_money
 
 router = APIRouter()
 
@@ -25,11 +26,18 @@ class AccountResponse(BaseModel):
     id: str
     name: str
     type: str
-    balance: float
+    balance: float  # backward compatibility
+    balance_str: Optional[str] = None  # enterprise: "1234.56"
     created_at: datetime
 
     class Config:
         from_attributes = True
+
+
+def _account_to_response(a: Account) -> AccountResponse:
+    r = AccountResponse.model_validate(a)
+    r.balance_str = serialize_money(a.balance)
+    return r
 
 @router.get("/", response_model=List[AccountResponse])
 async def get_accounts(
@@ -37,7 +45,8 @@ async def get_accounts(
     db: Session = Depends(get_db)
 ):
     """Get user's accounts."""
-    return db.query(Account).filter(Account.user_id == current_user.id).all()
+    accounts = db.query(Account).filter(Account.user_id == current_user.id).all()
+    return [_account_to_response(a) for a in accounts]
 
 @router.post("/", response_model=AccountResponse)
 async def create_account(
@@ -54,7 +63,7 @@ async def create_account(
         db.add(db_account)
         db.flush()
     db.refresh(db_account)
-    return db_account
+    return _account_to_response(db_account)
 
 @router.put("/{account_id}", response_model=AccountResponse)
 async def update_account(
@@ -82,8 +91,7 @@ async def update_account(
     db_account.updated_at = datetime.now()
     db.commit()
     db.refresh(db_account)
-    
-    return db_account
+    return _account_to_response(db_account)
 
 @router.delete("/{account_id}")
 async def delete_account(

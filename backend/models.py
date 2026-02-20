@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, Text, ForeignKey, JSON, Index, CheckConstraint
+from sqlalchemy import Column, Integer, String, Float, Numeric, DateTime, Boolean, Text, ForeignKey, JSON, Index, CheckConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from database import Base
@@ -48,7 +48,7 @@ class Account(Base):
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String(100), nullable=False)
     type = Column(String(20), nullable=False)  # checking, savings, investment, credit, cash
-    balance = Column(Float, default=0.0, nullable=False)
+    balance = Column(Numeric(15, 2), default=0, nullable=False)
     row_version = Column(Integer, default=0, nullable=False)  # Trilha 6.2: optimistic locking
     user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
@@ -78,7 +78,7 @@ class AccountBalanceSnapshot(Base):
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     account_id = Column(String, ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False, index=True)
     snapshot_date = Column(DateTime(timezone=True), nullable=False, index=True)  # YYYY-MM-01 00:00:00
-    balance = Column(Float, nullable=False)
+    balance = Column(Numeric(15, 2), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     account = relationship("Account", back_populates="balance_snapshots")
@@ -122,7 +122,7 @@ class Transaction(Base):
     account_id = Column(String, ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False, index=True)
     category_id = Column(String, ForeignKey("categories.id", ondelete="CASCADE"), nullable=False, index=True)
     type = Column(String(20), nullable=False)  # income, expense
-    amount = Column(Float, nullable=False)
+    amount = Column(Numeric(15, 2), nullable=False)
     description = Column(String(200), nullable=False)
     user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     transfer_transaction_id = Column(String, ForeignKey("transactions.id", ondelete="SET NULL"), nullable=True, index=True)  # migração c42fc5c6c743
@@ -161,8 +161,8 @@ class Goal(Base):
     
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String(100), nullable=False)
-    target_amount = Column(Float, nullable=False)
-    current_amount = Column(Float, default=0.0, nullable=False)
+    target_amount = Column(Numeric(15, 2), nullable=False)
+    current_amount = Column(Numeric(15, 2), default=0, nullable=False)
     target_date = Column(DateTime(timezone=True), nullable=False, index=True)
     description = Column(Text, nullable=True)
     category = Column(String(50), nullable=False)
@@ -193,8 +193,8 @@ class Envelope(Base):
     
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String(100), nullable=False)
-    balance = Column(Float, default=0.0, nullable=False)
-    target_amount = Column(Float, nullable=True)
+    balance = Column(Numeric(15, 2), default=0, nullable=False)
+    target_amount = Column(Numeric(15, 2), nullable=True)
     color = Column(String(7), nullable=False)  # Hex color format
     description = Column(Text, nullable=True)
     user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
@@ -274,7 +274,7 @@ class SharedExpense(Base):
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     created_by = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    amount = Column(Float, nullable=False)
+    amount = Column(Numeric(15, 2), nullable=False)
     description = Column(Text, nullable=False)
     status = Column(String(20), default="active", nullable=False)  # active, cancelled
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
@@ -385,7 +385,7 @@ class LedgerEntry(Base):
     user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     account_id = Column(String, ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False, index=True)
     transaction_id = Column(String, ForeignKey("transactions.id", ondelete="SET NULL"), nullable=True, index=True)
-    amount = Column(Float, nullable=False)  # signed: credit > 0, debit < 0
+    amount = Column(Numeric(15, 2), nullable=False)  # signed: credit > 0, debit < 0
     entry_type = Column(String(10), nullable=False)  # 'credit' | 'debit'
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 

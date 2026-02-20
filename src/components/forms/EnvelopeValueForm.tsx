@@ -4,14 +4,16 @@ import { envelopesService } from "@/services/envelopes.service";
 import { FormDialog } from "@/components/ui/form-dialog";
 import { ActionButton } from "@/components/ui/action-button";
 import { Input } from "@/components/ui/input";
+import { MoneyInput } from "@/components/ui/money-input";
 import { Label } from "@/components/ui/label";
+import { toApiAmount } from "@/utils/currency";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { PlusCircle, MinusCircle } from "lucide-react";
 
 interface ValueFormData {
   type: "add" | "withdraw";
-  amount: string;
+  amount: number;
   description: string;
   date: string;
 }
@@ -38,7 +40,7 @@ export function EnvelopeValueForm({
   const [isOpen, setIsOpen] = useState(false);
   const [formData, setFormData] = useState<ValueFormData>({
     type,
-    amount: "",
+    amount: 0,
     description: "",
     date: new Date().toISOString().split("T")[0],
   });
@@ -62,17 +64,8 @@ export function EnvelopeValueForm({
 
     try {
       // Validações
-      if (!formData.amount) {
-        toast({
-          title: "Valor obrigatório",
-          description: "Por favor, insira o valor.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const amount = parseFloat(formData.amount.replace(",", "."));
-      if (isNaN(amount) || amount <= 0) {
+      const amount = toApiAmount(formData.amount);
+      if (amount <= 0) {
         toast({
           title: "Valor inválido",
           description: "Por favor, insira um valor válido maior que zero.",
@@ -91,7 +84,7 @@ export function EnvelopeValueForm({
         return;
       }
 
-      // Salvar na API e atualizar o store
+      // Salvar na API (valor numérico puro)
       const result = isWithdraw
         ? await envelopesService.withdrawValueFromEnvelope(envelopeId, amount)
         : await envelopesService.addValueToEnvelope(envelopeId, amount);
@@ -109,7 +102,7 @@ export function EnvelopeValueForm({
       // Reset form
       setFormData({
         type,
-        amount: "",
+        amount: 0,
         description: "",
         date: new Date().toISOString().split("T")[0],
       });
@@ -126,7 +119,10 @@ export function EnvelopeValueForm({
     }
   };
 
-  const updateFormData = (field: keyof ValueFormData, value: string) => {
+  const updateFormData = (
+    field: keyof ValueFormData,
+    value: string | number,
+  ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -143,12 +139,10 @@ export function EnvelopeValueForm({
     >
       <div className="space-y-2">
         <Label htmlFor="amount">Valor *</Label>
-        <Input
+        <MoneyInput
           id="amount"
-          type="text"
-          placeholder="0,00"
           value={formData.amount}
-          onChange={(e) => updateFormData("amount", e.target.value)}
+          onChange={(v) => updateFormData("amount", v)}
           className="text-right"
         />
         {isWithdraw && (
