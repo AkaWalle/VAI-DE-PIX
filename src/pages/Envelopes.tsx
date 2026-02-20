@@ -13,7 +13,7 @@ import { ActionButton } from "@/components/ui/action-button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EnvelopeForm } from "@/components/forms/EnvelopeForm";
 import { EnvelopeValueForm } from "@/components/forms/EnvelopeValueForm";
-import { formatCurrency } from "@/utils/format";
+import { formatCurrencyFromCents } from "@/utils/currency";
 import { useToast } from "@/hooks/use-toast";
 import {
   Plus,
@@ -44,9 +44,10 @@ export default function Envelopes() {
     }
   };
 
+  // Valores no store estão em centavos (number)
   const totalBalance = envelopes.reduce((sum, env) => sum + env.balance, 0);
   const totalTarget = envelopes.reduce(
-    (sum, env) => sum + (env.targetAmount || 0),
+    (sum, env) => sum + (env.targetAmount ?? 0),
     0,
   );
 
@@ -78,7 +79,7 @@ export default function Envelopes() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {formatCurrency(totalBalance)}
+              {formatCurrencyFromCents(totalBalance)}
             </div>
             <p className="text-xs text-muted-foreground">
               {envelopes.length} caixinhas ativas
@@ -94,7 +95,7 @@ export default function Envelopes() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {formatCurrency(totalTarget)}
+              {formatCurrencyFromCents(totalTarget)}
             </div>
             <p className="text-xs text-muted-foreground">
               Objetivos das caixinhas
@@ -112,7 +113,7 @@ export default function Envelopes() {
             <div className="text-2xl font-bold">
               {totalTarget > 0
                 ? ((totalBalance / totalTarget) * 100).toFixed(1)
-                : 0}
+                : "0"}
               %
             </div>
             <p className="text-xs text-muted-foreground">Das metas atingidas</p>
@@ -142,11 +143,10 @@ export default function Envelopes() {
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {envelopes.map((envelope) => {
-            const progressPercentage = envelope.targetAmount
-              ? Math.min((envelope.balance / envelope.targetAmount) * 100, 100)
-              : 0;
-            const isOverTarget =
-              envelope.targetAmount && envelope.balance > envelope.targetAmount;
+            const meta = envelope.targetAmount ?? 0;
+            const progressPercentage =
+              meta > 0 ? Math.min((envelope.balance / meta) * 100, 100) : 0;
+            const isOverTarget = meta > 0 && envelope.balance > meta;
 
             return (
               <Card
@@ -175,20 +175,20 @@ export default function Envelopes() {
                 </CardHeader>
 
                 <CardContent className="space-y-4">
-                  {/* Balance */}
+                  {/* Balance (valores em centavos no store) */}
                   <div className="text-center">
                     <div className="text-3xl font-bold mb-1">
-                      {formatCurrency(envelope.balance)}
+                      {formatCurrencyFromCents(envelope.balance)}
                     </div>
-                    {envelope.targetAmount && (
+                    {envelope.targetAmount != null && envelope.targetAmount > 0 && (
                       <div className="text-sm text-muted-foreground">
-                        de {formatCurrency(envelope.targetAmount)}
+                        de {formatCurrencyFromCents(envelope.targetAmount)}
                       </div>
                     )}
                   </div>
 
                   {/* Progress Bar */}
-                  {envelope.targetAmount && (
+                  {envelope.targetAmount != null && envelope.targetAmount > 0 && (
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Progresso</span>
@@ -206,8 +206,8 @@ export default function Envelopes() {
                         <div className="text-xs text-warning flex items-center gap-1">
                           <TrendingUp className="h-3 w-3" />
                           Acima da meta em{" "}
-                          {formatCurrency(
-                            envelope.balance - envelope.targetAmount,
+                          {formatCurrencyFromCents(
+                            envelope.balance - (envelope.targetAmount ?? 0),
                           )}
                         </div>
                       )}
@@ -216,7 +216,7 @@ export default function Envelopes() {
 
                   {/* Status Badge */}
                   <div className="flex justify-center">
-                    {envelope.targetAmount ? (
+                    {envelope.targetAmount != null && envelope.targetAmount > 0 ? (
                       <Badge
                         variant={
                           isOverTarget
@@ -307,7 +307,7 @@ export default function Envelopes() {
                   <option value="">Selecione uma caixinha</option>
                   {envelopes.map((env) => (
                     <option key={env.id} value={env.id}>
-                      {env.name} ({formatCurrency(env.balance)})
+                      {env.name} ({formatCurrencyFromCents(env.balance)})
                     </option>
                   ))}
                 </select>
@@ -318,7 +318,7 @@ export default function Envelopes() {
                   <option value="">Selecione uma caixinha</option>
                   {envelopes.map((env) => (
                     <option key={env.id} value={env.id}>
-                      {env.name} ({formatCurrency(env.balance)})
+                      {env.name} ({formatCurrencyFromCents(env.balance)})
                     </option>
                   ))}
                 </select>

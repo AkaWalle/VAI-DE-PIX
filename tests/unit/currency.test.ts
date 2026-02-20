@@ -9,6 +9,8 @@ import {
   toCents,
   fromCents,
   toApiAmount,
+  toCentsSafe,
+  formatCurrencyFromCents,
   parseCurrencyInput,
 } from '@/utils/currency';
 
@@ -74,5 +76,42 @@ describe('parseCurrencyInput (compatibilidade)', () => {
   it('delega para parseBrazilianCurrency', () => {
     expect(parseCurrencyInput('9.000,00')).toBe(9000);
     expect(parseCurrencyInput('10,00')).toBe(10);
+  });
+});
+
+describe('formatCurrencyFromCents', () => {
+  it('formata centavos para moeda pt-BR', () => {
+    expect(formatCurrencyFromCents(1000)).toMatch(/10[,.]00/);
+    expect(formatCurrencyFromCents(900000000)).toMatch(/9\.?\.?000\.?000[,.]00/);
+  });
+
+  it('R$ 9.000.000,00 = 900000000 centavos', () => {
+    const cents = 900000000;
+    const formatted = formatCurrencyFromCents(cents);
+    expect(formatted).toContain('9');
+    expect(formatted).toContain('000');
+    expect(formatted).toMatch(/R\$/);
+  });
+});
+
+describe('toCentsSafe', () => {
+  it('converte reais para centavos (integer) e valida', () => {
+    expect(toCentsSafe(10)).toBe(1000);
+    expect(toCentsSafe(9_000_000)).toBe(900_000_000);
+    expect(toCentsSafe(35_000_000)).toBe(3_500_000_000);
+  });
+  it('retorna 0 para inválidos', () => {
+    expect(toCentsSafe(-1)).toBe(0);
+    expect(toCentsSafe(NaN)).toBe(0);
+  });
+});
+
+describe('Progresso 25.7% (R$ 9M / R$ 35M)', () => {
+  it('saldo 9.000.000,00 e meta 35.000.000,00 → progresso 25.7%', () => {
+    const saldoCents = 900_000_000; // R$ 9.000.000,00
+    const metaCents = 3_500_000_000; // R$ 35.000.000,00
+    const progresso = metaCents > 0 ? (saldoCents / metaCents) * 100 : 0;
+    expect(progresso).toBeCloseTo(25.714285, 1);
+    expect(progresso.toFixed(1)).toBe('25.7');
   });
 });

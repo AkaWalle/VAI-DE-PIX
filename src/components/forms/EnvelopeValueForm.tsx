@@ -1,19 +1,20 @@
 import { useState } from "react";
+import { NumericFormat } from "react-number-format";
 import { useFinancialStore } from "@/stores/financial-store";
 import { envelopesService } from "@/services/envelopes.service";
 import { FormDialog } from "@/components/ui/form-dialog";
 import { ActionButton } from "@/components/ui/action-button";
 import { Input } from "@/components/ui/input";
-import { MoneyInput } from "@/components/ui/money-input";
 import { Label } from "@/components/ui/label";
-import { toApiAmount } from "@/utils/currency";
+import { formatCurrencyFromCents } from "@/utils/currency";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { PlusCircle, MinusCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface ValueFormData {
   type: "add" | "withdraw";
-  amount: number;
+  amount: number; // centavos
   description: string;
   date: string;
 }
@@ -21,10 +22,13 @@ interface ValueFormData {
 interface EnvelopeValueFormProps {
   envelopeId: string;
   envelopeName: string;
-  currentBalance: number;
+  currentBalance: number; // centavos
   type: "add" | "withdraw";
   trigger?: React.ReactNode;
 }
+
+const inputBaseClass =
+  "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm";
 
 export function EnvelopeValueForm({
   envelopeId,
@@ -63,9 +67,12 @@ export function EnvelopeValueForm({
     setIsLoading(true);
 
     try {
-      // Validações
-      const amount = toApiAmount(formData.amount);
-      if (amount <= 0) {
+      const amountCents = formData.amount;
+      if (
+        typeof amountCents !== "number" ||
+        Number.isNaN(amountCents) ||
+        amountCents <= 0
+      ) {
         toast({
           title: "Valor inválido",
           description: "Por favor, insira um valor válido maior que zero.",
@@ -74,20 +81,18 @@ export function EnvelopeValueForm({
         return;
       }
 
-      // Verificar se há saldo suficiente para retirada
-      if (isWithdraw && amount > currentBalance) {
+      if (isWithdraw && amountCents > currentBalance) {
         toast({
           title: "Saldo insuficiente",
-          description: `Você não pode retirar mais que o saldo atual (${currentBalance.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}).`,
+          description: `Você não pode retirar mais que o saldo atual (${formatCurrencyFromCents(currentBalance)}).`,
           variant: "destructive",
         });
         return;
       }
 
-      // Salvar na API (valor numérico puro)
       const result = isWithdraw
-        ? await envelopesService.withdrawValueFromEnvelope(envelopeId, amount)
-        : await envelopesService.addValueToEnvelope(envelopeId, amount);
+        ? await envelopesService.withdrawValueFromEnvelope(envelopeId, amountCents)
+        : await envelopesService.addValueToEnvelope(envelopeId, amountCents);
 
       const newBalance = result.new_balance;
       updateEnvelope(envelopeId, {
@@ -96,10 +101,9 @@ export function EnvelopeValueForm({
 
       toast({
         title: `Valor ${isWithdraw ? "retirado" : "adicionado"}!`,
-        description: `${amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} ${isWithdraw ? "retirado da" : "adicionado à"} caixinha "${envelopeName}".`,
+        description: `${formatCurrencyFromCents(amountCents)} ${isWithdraw ? "retirado da" : "adicionado à"} caixinha "${envelopeName}".`,
       });
 
-      // Reset form
       setFormData({
         type,
         amount: 0,
@@ -130,7 +134,7 @@ export function EnvelopeValueForm({
     <FormDialog
       trigger={trigger || defaultTrigger}
       title={`${isWithdraw ? "Retirar de" : "Adicionar à"} ${envelopeName}`}
-      description={`Saldo atual: ${currentBalance.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`}
+      description={`Saldo atual: ${formatCurrencyFromCents(currentBalance)}`}
       onSubmit={handleSubmit}
       isLoading={isLoading}
       open={isOpen}
@@ -139,19 +143,27 @@ export function EnvelopeValueForm({
     >
       <div className="space-y-2">
         <Label htmlFor="amount">Valor *</Label>
-        <MoneyInput
+        <NumericFormat
           id="amount"
-          value={formData.amount}
-          onChange={(v) => updateFormData("amount", v)}
-          className="text-right"
+          value={formData.amount / 100}
+          thousandSeparator="."
+          decimalSeparator=","
+          prefix="R$ "
+          decimalScale={2}
+          fixedDecimalScale
+          allowNegative={false}
+          onValueChange={(values) => {
+            updateFormData(
+              "amount",
+              values.floatValue != null ? Math.round(values.floatValue * 100) : 0
+            );
+          }}
+          className={cn(inputBaseClass, "text-right")}
+          placeholder="0,00"
         />
         {isWithdraw && (
           <p className="text-xs text-muted-foreground">
-            Máximo:{" "}
-            {currentBalance.toLocaleString("pt-BR", {
-              style: "currency",
-              currency: "BRL",
-            })}
+            Máximo: {formatCurrencyFromCents(currentBalance)}
           </p>
         )}
       </div>

@@ -221,29 +221,32 @@ def test_goal_current_zero_returns_000(client, auth_headers, test_user):
 # --- Envelopes ---
 
 
-def test_envelope_balance_str_exists_and_format(client, auth_headers, test_user):
-    """GET /envelopes: balance_str e target_amount_str no formato correto."""
+def test_envelope_amounts_in_cents(client, auth_headers, test_user):
+    """Envelopes: balance e target_amount em centavos (integer). Progresso correto."""
+    # R$ 50,75 = 5075 centavos, R$ 500,00 = 50000 centavos
     create = client.post(
         "/api/envelopes",
         headers=auth_headers,
         json={
             "name": "Caixinha QA",
-            "balance": 50.75,
-            "target_amount": 500.00,
+            "balance": 5075,
+            "target_amount": 50000,
             "color": "#3b82f6",
         },
     )
     assert create.status_code == 200
     data = create.json()
-    assert "balance_str" in data
-    _assert_amount_consistent(data["balance"], data["balance_str"], "envelope.balance")
-    if data.get("target_amount") is not None:
-        assert "target_amount_str" in data
-        _assert_amount_consistent(data["target_amount"], data["target_amount_str"], "envelope.target_amount")
+    assert data["balance"] == 5075
+    assert data["target_amount"] == 50000
+    assert isinstance(data["balance"], int)
+    assert isinstance(data["target_amount"], int)
+    # progresso = 5075/50000 * 100 = 10.15%
+    assert data.get("progress_percentage") is not None
+    assert 10.0 <= data["progress_percentage"] <= 10.2
 
 
-def test_envelope_balance_zero_returns_000(client, auth_headers, test_user):
-    """Envelope com balance 0: balance_str deve ser '0.00'."""
+def test_envelope_balance_zero_cents(client, auth_headers, test_user):
+    """Envelope com balance 0 centavos."""
     create = client.post(
         "/api/envelopes",
         headers=auth_headers,
@@ -252,9 +255,7 @@ def test_envelope_balance_zero_returns_000(client, auth_headers, test_user):
     assert create.status_code == 200
     data = create.json()
     assert data.get("balance") == 0
-    assert data.get("balance_str") == "0.00", (
-        f"balance 0 deve serializar como '0.00'. Obtido: {data.get('balance_str')!r}"
-    )
+    assert isinstance(data["balance"], int)
 
 
 # --- Borda: valor máximo ---

@@ -1,38 +1,73 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from database import get_db
 from models import Envelope, User
 from auth_utils import get_current_user
 from core.database_utils import atomic_transaction
-from core.amount_parser import serialize_money
 
 router = APIRouter()
 
+
+def _validate_cents(v: Optional[int], field_name: str) -> Optional[int]:
+    """Valida valor em centavos: number, não NaN, não negativo."""
+    if v is None:
+        return None
+    if not isinstance(v, int) or v < 0:
+        raise ValueError(f"{field_name} deve ser um inteiro não negativo (centavos)")
+    return v
+
+
 class EnvelopeCreate(BaseModel):
+    """Valores em centavos (integer)."""
     name: str
-    balance: float = 0.0
-    target_amount: Optional[float] = None
+    balance: int = 0  # centavos
+    target_amount: Optional[int] = None  # centavos
     color: str
     description: Optional[str] = None
 
+    @field_validator("balance")
+    @classmethod
+    def balance_cents(cls, v: int) -> int:
+        return _validate_cents(v, "balance") or 0
+
+    @field_validator("target_amount")
+    @classmethod
+    def target_cents(cls, v: Optional[int]) -> Optional[int]:
+        if v is not None and (not isinstance(v, int) or v <= 0):
+            raise ValueError("target_amount deve ser um inteiro positivo (centavos)")
+        return v
+
+
 class EnvelopeUpdate(BaseModel):
     name: Optional[str] = None
-    balance: Optional[float] = None
-    target_amount: Optional[float] = None
+    balance: Optional[int] = None  # centavos
+    target_amount: Optional[int] = None  # centavos
     color: Optional[str] = None
     description: Optional[str] = None
 
+    @field_validator("balance")
+    @classmethod
+    def balance_cents(cls, v: Optional[int]) -> Optional[int]:
+        return _validate_cents(v, "balance")
+
+    @field_validator("target_amount")
+    @classmethod
+    def target_cents(cls, v: Optional[int]) -> Optional[int]:
+        if v is not None and (not isinstance(v, int) or v <= 0):
+            raise ValueError("target_amount deve ser um inteiro positivo (centavos)")
+        return v
+
+
 class EnvelopeResponse(BaseModel):
+    """balance e target_amount em centavos (integer)."""
     id: str
     name: str
-    balance: float
-    target_amount: Optional[float]
-    balance_str: Optional[str] = None  # enterprise: "1234.56"
-    target_amount_str: Optional[str] = None
+    balance: int  # centavos
+    target_amount: Optional[int]  # centavos
     color: str
     description: Optional[str]
     progress_percentage: Optional[float]
@@ -43,10 +78,16 @@ class EnvelopeResponse(BaseModel):
 
 
 def _envelope_to_response(e: Envelope) -> EnvelopeResponse:
-    r = EnvelopeResponse.model_validate(e)
-    r.balance_str = serialize_money(e.balance)
-    r.target_amount_str = serialize_money(e.target_amount) if e.target_amount is not None else None
-    return r
+    return EnvelopeResponse(
+        id=e.id,
+        name=e.name,
+        balance=int(e.balance),
+        target_amount=int(e.target_amount) if e.target_amount is not None else None,
+        color=e.color,
+        description=e.description,
+        progress_percentage=getattr(e, "progress_percentage", None),
+        created_at=e.created_at,
+    )
 
 @router.get("/", response_model=List[EnvelopeResponse])
 async def get_envelopes(
@@ -142,11 +183,11 @@ async def delete_envelope(
 @router.post("/{envelope_id}/add-value")
 async def add_value_to_envelope(
     envelope_id: str,
-    amount: float,
+    amount: int = Query(..., ge=1, description="Valor em centavos"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Add value to an envelope."""
+    """Adiciona valor ao envelope. amount em centavos (integer)."""
     db_envelope = db.query(Envelope).filter(
         Envelope.id == envelope_id,
         Envelope.user_id == current_user.id
@@ -158,30 +199,24 @@ async def add_value_to_envelope(
             detail="Caixinha não encontrada"
         )
     
-    if amount <= 0:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="O valor deve ser maior que zero"
-        )
-    
-    db_envelope.balance += amount
+    db_envelope.balance = int(db_envelope.balance) + amount
     db_envelope.updated_at = datetime.now()
     with atomic_transaction(db):
         db.add(db_envelope)
     db.refresh(db_envelope)
     return {
         "message": "Valor adicionado com sucesso",
-        "new_balance": db_envelope.balance
+        "new_balance": int(db_envelope.balance)
     }
 
 @router.post("/{envelope_id}/withdraw-value")
 async def withdraw_value_from_envelope(
     envelope_id: str,
-    amount: float,
+    amount: int = Query(..., ge=1, description="Valor em centavos"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Withdraw value from an envelope."""
+    """Retira valor do envelope. amount em centavos (integer)."""
     db_envelope = db.query(Envelope).filter(
         Envelope.id == envelope_id,
         Envelope.user_id == current_user.id
@@ -193,24 +228,19 @@ async def withdraw_value_from_envelope(
             detail="Caixinha não encontrada"
         )
     
-    if amount <= 0:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="O valor deve ser maior que zero"
-        )
-    
-    if amount > db_envelope.balance:
+    balance_cents = int(db_envelope.balance)
+    if amount > balance_cents:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Saldo insuficiente"
         )
     
-    db_envelope.balance -= amount
+    db_envelope.balance = balance_cents - amount
     db_envelope.updated_at = datetime.now()
     with atomic_transaction(db):
         db.add(db_envelope)
     db.refresh(db_envelope)
     return {
         "message": "Valor retirado com sucesso",
-        "new_balance": db_envelope.balance
+        "new_balance": int(db_envelope.balance)
     }

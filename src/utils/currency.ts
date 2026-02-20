@@ -94,6 +94,18 @@ export function fromCents(cents: number): number {
 }
 
 /**
+ * Formata valor em centavos para exibição em pt-BR (R$ 0,00).
+ * Usar sempre que o valor vier do backend em centavos.
+ */
+export function formatCurrencyFromCents(cents: number): string {
+  if (!Number.isFinite(cents)) return (0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  return (cents / CENTS_FACTOR).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+}
+
+/**
  * @deprecated Use parseBrazilianCurrency. Mantido para compatibilidade durante migração.
  */
 export function parseCurrencyInput(value: string): number {
@@ -102,10 +114,20 @@ export function parseCurrencyInput(value: string): number {
 
 /**
  * Valida e retorna valor em reais para envio à API (sempre número, 2 decimais).
+ * @deprecated Para envelopes use centavos (toCents) e envie inteiro.
  */
 export function toApiAmount(value: number): number {
   if (!Number.isFinite(value) || value < 0) return 0;
   return roundToTwoDecimals(value);
+}
+
+/**
+ * Valida e retorna valor em centavos (integer) para envio à API de envelopes.
+ * Garante: number, não NaN, não negativo.
+ */
+export function toCentsSafe(value: number): number {
+  if (!Number.isFinite(value) || value < 0) return 0;
+  return Math.round(value * CENTS_FACTOR);
 }
 
 export function calculateSplit(

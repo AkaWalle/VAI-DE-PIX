@@ -19,7 +19,8 @@
     "test:all": "vitest run --reporter=verbose",
     "test:unit": "vitest run tests/unit --reporter=verbose",
     "test:prod": "vitest run tests/production-api.test.ts --reporter=verbose --no-coverage --config vitest.config.ts",
-    "assert-auth": "node scripts/assert-no-refresh-outside-lock.mjs"
+    "assert-auth": "node scripts/assert-no-refresh-outside-lock.mjs",
+    "guard:no-miro": "node scripts/guard-no-miro.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -65,6 +66,7 @@
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.61.1",
+    "react-number-format": "^5.4.0",
     "react-resizable-panels": "^2.1.9",
     "react-router-dom": "^6.30.1",
     "recharts": "^2.15.4",

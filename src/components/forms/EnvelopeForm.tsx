@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { NumericFormat } from "react-number-format";
 import { useFinancialStore } from "@/stores/financial-store";
 import { envelopesService } from "@/services/envelopes.service";
 import { FormDialog } from "@/components/ui/form-dialog";
@@ -8,11 +9,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Wallet } from "lucide-react";
+import { cn } from "@/lib/utils";
 
+/** Saldo e meta em centavos (number). Nunca string. */
 interface EnvelopeFormData {
   name: string;
-  balance: string;
-  targetAmount: string;
+  balance: number;
+  targetAmount: number;
   color: string;
   description: string;
 }
@@ -32,6 +35,9 @@ const colorOptions = [
   { value: "#ec4899", label: "Rosa", color: "bg-pink-500" },
 ];
 
+const inputBaseClass =
+  "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm";
+
 export function EnvelopeForm({ trigger }: EnvelopeFormProps) {
   const { envelopes, setEnvelopes } = useFinancialStore();
   const { toast } = useToast();
@@ -40,8 +46,8 @@ export function EnvelopeForm({ trigger }: EnvelopeFormProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [formData, setFormData] = useState<EnvelopeFormData>({
     name: "",
-    balance: "",
-    targetAmount: "",
+    balance: 0,
+    targetAmount: 0,
     color: "#3b82f6",
     description: "",
   });
@@ -57,7 +63,6 @@ export function EnvelopeForm({ trigger }: EnvelopeFormProps) {
     setIsLoading(true);
 
     try {
-      // Validações
       if (!formData.name) {
         toast({
           title: "Nome obrigatório",
@@ -67,25 +72,20 @@ export function EnvelopeForm({ trigger }: EnvelopeFormProps) {
         return;
       }
 
-      const balance = formData.balance
-        ? parseFloat(formData.balance.replace(",", "."))
-        : 0;
-      if (formData.balance && (isNaN(balance) || balance < 0)) {
+      const balanceCents = formData.balance;
+      if (typeof balanceCents !== "number" || Number.isNaN(balanceCents) || balanceCents < 0) {
         toast({
           title: "Saldo inválido",
-          description:
-            "Por favor, insira um saldo válido maior ou igual a zero.",
+          description: "Por favor, insira um saldo válido maior ou igual a zero.",
           variant: "destructive",
         });
         return;
       }
 
-      const targetAmount = formData.targetAmount
-        ? parseFloat(formData.targetAmount.replace(",", "."))
-        : undefined;
+      const targetCents = formData.targetAmount;
       if (
-        formData.targetAmount &&
-        (isNaN(targetAmount!) || targetAmount! <= 0)
+        targetCents !== 0 &&
+        (typeof targetCents !== "number" || Number.isNaN(targetCents) || targetCents <= 0)
       ) {
         toast({
           title: "Meta inválida",
@@ -95,11 +95,10 @@ export function EnvelopeForm({ trigger }: EnvelopeFormProps) {
         return;
       }
 
-      // Salvar na API e atualizar o store
       const created = await envelopesService.createEnvelope({
         name: formData.name,
-        balance,
-        target_amount: targetAmount ?? null,
+        balance: balanceCents,
+        target_amount: targetCents > 0 ? targetCents : null,
         color: formData.color,
         description: formData.description || null,
       });
@@ -119,11 +118,10 @@ export function EnvelopeForm({ trigger }: EnvelopeFormProps) {
         description: `Caixinha "${formData.name}" criada com sucesso.`,
       });
 
-      // Reset form
       setFormData({
         name: "",
-        balance: "",
-        targetAmount: "",
+        balance: 0,
+        targetAmount: 0,
         color: "#3b82f6",
         description: "",
       });
@@ -140,7 +138,7 @@ export function EnvelopeForm({ trigger }: EnvelopeFormProps) {
     }
   };
 
-  const updateFormData = (field: keyof EnvelopeFormData, value: string) => {
+  const updateFormData = (field: keyof EnvelopeFormData, value: string | number) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -168,25 +166,45 @@ export function EnvelopeForm({ trigger }: EnvelopeFormProps) {
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="balance">Saldo Inicial</Label>
-          <Input
+          <NumericFormat
             id="balance"
-            type="text"
+            value={formData.balance / 100}
+            thousandSeparator="."
+            decimalSeparator=","
+            prefix="R$ "
+            decimalScale={2}
+            fixedDecimalScale
+            allowNegative={false}
+            onValueChange={(values) => {
+              updateFormData(
+                "balance",
+                values.floatValue != null ? Math.round(values.floatValue * 100) : 0
+              );
+            }}
+            className={cn(inputBaseClass, "text-right")}
             placeholder="0,00"
-            value={formData.balance}
-            onChange={(e) => updateFormData("balance", e.target.value)}
-            className="text-right"
           />
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="targetAmount">Meta (opcional)</Label>
-          <Input
+          <NumericFormat
             id="targetAmount"
-            type="text"
+            value={formData.targetAmount / 100}
+            thousandSeparator="."
+            decimalSeparator=","
+            prefix="R$ "
+            decimalScale={2}
+            fixedDecimalScale
+            allowNegative={false}
+            onValueChange={(values) => {
+              updateFormData(
+                "targetAmount",
+                values.floatValue != null ? Math.round(values.floatValue * 100) : 0
+              );
+            }}
+            className={cn(inputBaseClass, "text-right")}
             placeholder="0,00"
-            value={formData.targetAmount}
-            onChange={(e) => updateFormData("targetAmount", e.target.value)}
-            className="text-right"
           />
         </div>
       </div>

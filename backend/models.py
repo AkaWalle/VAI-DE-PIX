@@ -189,12 +189,13 @@ class Goal(Base):
     )
 
 class Envelope(Base):
+    """Caixinhas (envelopes). Valores monetários em centavos (integer)."""
     __tablename__ = "envelopes"
     
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String(100), nullable=False)
-    balance = Column(Numeric(15, 2), default=0, nullable=False)
-    target_amount = Column(Numeric(15, 2), nullable=True)
+    balance = Column(Integer, default=0, nullable=False)  # centavos
+    target_amount = Column(Integer, nullable=True)  # centavos
     color = Column(String(7), nullable=False)  # Hex color format
     description = Column(Text, nullable=True)
     user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
