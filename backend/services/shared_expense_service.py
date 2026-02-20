@@ -258,13 +258,16 @@ def create_shared_expense(
     assert isinstance(total_cents, int), (
         f"total_cents must be int before create_transaction; got {type(total_cents).__name__!r}"
     )
+    # TransactionService.create_transaction exige amount_cents (int); não envia amount (float).
+    amount_cents_int = int(total_cents)
     transaction_data = {
         "date": datetime.now(timezone.utc),
         "category_id": category.id,
         "type": "expense",
-        "amount_cents": total_cents,
+        "amount_cents": amount_cents_int,
         "description": description.strip() or f"Despesa compartilhada: {description[:100]}",
         "shared_expense_id": expense.id,
+        "tags": [],
     }
     try:
         TransactionService.create_transaction(
