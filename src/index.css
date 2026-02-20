@@ -318,3 +318,13 @@
     display: none; /* Safari and Chrome */
   }
 }
+
+/* ─── Hide native scrollbar (mantém scroll funcional) ─── */
+* {
+  scrollbar-width: none;        /* Firefox */
+  -ms-overflow-style: none;     /* IE / Edge */
+}
+
+*::-webkit-scrollbar {
+  display: none;                /* Chrome / Safari / Opera */
+}
