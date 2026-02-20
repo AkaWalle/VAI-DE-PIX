@@ -230,17 +230,20 @@ class TransactionService:
         """
         transaction_type = transaction_data.get("type")
         amount = transaction_data.get("amount")
-        # Log detalhado antes de validações (observabilidade)
+        amount_cents_log = transaction_data.get("amount_cents")
+        # Log detalhado antes de validações (observabilidade). amount só é preenchido após _validate_transaction_payload.
         logger.info(
-            "create_transaction: payload recebido | user_id=%s wallet_id=%s amount=%s type=%s",
+            "create_transaction: payload recebido | user_id=%s account_id=%s amount=%s amount_cents=%s type=%s",
             user_id,
             account.id if account else None,
             amount,
+            amount_cents_log,
             transaction_type,
             extra={
                 "user_id": user_id,
                 "account_id": getattr(account, "id", None),
                 "amount": amount,
+                "amount_cents": amount_cents_log,
                 "type": transaction_type,
                 "payload_keys": list(transaction_data.keys()),
             },
