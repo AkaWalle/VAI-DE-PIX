@@ -91,6 +91,6 @@ export const activityFeedRealtime = {
   },
 
   isConnected(): boolean {
-    return ws?.readyState === WebSocket.OPEN ?? false;
+    return ws?.readyState === WebSocket.OPEN;
   },
 };

@@ -1,8 +1,11 @@
 /**
  * Camada monetária segura — padrão financeiro (pt-BR).
- * - Nunca usar float para decisões; usar centavos (int) ou número com 2 decimais.
- * - Parse: aceita input formatado pt-BR (vírgula decimal, ponto milhar).
- * - Formatação: só para exibição; valor enviado ao backend é sempre número puro.
+ *
+ * Regras do projeto:
+ * - Estado/armazenamento: sempre em CENTAVOS (integer). Nunca string, nunca float para valor monetário.
+ * - Inputs: usar somente CurrencyInput (value/onChange em centavos). Nunca input type="number" para moeda.
+ * - Exibição: formatCurrencyFromCents(cents) para valores em centavos.
+ * - APIs que ainda esperam reais (float): converter no ponto de chamada (cents / 100).
  */
 
 /** Máximo de casas decimais (centavos). */

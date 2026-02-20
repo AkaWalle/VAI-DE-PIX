@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -41,11 +42,13 @@ import {
   Save,
   Lightbulb,
 } from "lucide-react";
+import { accountsService } from "@/services/accounts.service";
 import { Switch } from "@/components/ui/switch";
 
 export default function Settings() {
   const { user, updateProfile } = useAuthStore();
-  const { categories, accounts, addAccount, addCategory } = useFinancialStore();
+  const { categories, accounts, addAccount, addCategory, setAccounts } =
+    useFinancialStore();
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
 
@@ -58,7 +61,7 @@ export default function Settings() {
   const [newAccount, setNewAccount] = useState({
     name: "",
     type: "checking" as const,
-    balance: "",
+    balanceCents: 0,
   });
 
   const [newCategory, setNewCategory] = useState({
@@ -116,12 +119,28 @@ export default function Settings() {
     "#ec4899",
   ];
 
-  const accountTypeLabels = {
+  const accountTypeLabels: Record<
+    "checking" | "savings" | "investment" | "credit" | "cash" | "refeicao" | "alimentacao",
+    string
+  > = {
     checking: "Conta Corrente",
     savings: "Poupança",
     investment: "Investimento",
     credit: "Cartão de Crédito",
     cash: "Dinheiro",
+    refeicao: "Refeição",
+    alimentacao: "Alimentação",
+  };
+
+  const storeAccountTypeLabels: Record<
+    "bank" | "cash" | "card" | "refeicao" | "alimentacao",
+    string
+  > = {
+    bank: "Conta bancária",
+    cash: "Dinheiro",
+    card: "Cartão de Crédito",
+    refeicao: "Refeição",
+    alimentacao: "Alimentação",
   };
 
   const handleUpdateProfile = async () => {
@@ -147,6 +166,14 @@ export default function Settings() {
     }
   };
 
+  const apiTypeToStoreType = (
+    t: "checking" | "savings" | "investment" | "credit" | "cash" | "refeicao" | "alimentacao"
+  ): "bank" | "cash" | "card" | "refeicao" | "alimentacao" => {
+    if (t === "credit") return "card";
+    if (t === "cash" || t === "refeicao" || t === "alimentacao") return t;
+    return "bank";
+  };
+
   const handleAddAccount = () => {
     if (!newAccount.name) {
       toast({
@@ -157,14 +184,13 @@ export default function Settings() {
       return;
     }
 
-    const balance = newAccount.balance
-      ? parseFloat(newAccount.balance.replace(",", "."))
-      : 0;
+    // Store/API de contas ainda esperam saldo em reais (float)
+    const balanceReais = newAccount.balanceCents / 100;
 
     addAccount({
       name: newAccount.name,
-      type: newAccount.type,
-      balance,
+      type: apiTypeToStoreType(newAccount.type),
+      balance: balanceReais,
     });
 
     toast({
@@ -172,8 +198,26 @@ export default function Settings() {
       description: `A conta "${newAccount.name}" foi criada com sucesso.`,
     });
 
-    setNewAccount({ name: "", type: "checking", balance: "" });
+    setNewAccount({ name: "", type: "checking", balanceCents: 0 });
     setShowNewAccount(false);
+  };
+
+  const handleDeleteAccount = async (accountId: string, accountName: string) => {
+    try {
+      await accountsService.deleteAccount(accountId);
+      const loaded = await accountsService.getAccounts();
+      setAccounts(accountsService.mapApiAccountsToStore(loaded));
+      toast({
+        title: "Conta excluída",
+        description: `"${accountName}" foi removida da lista.`,
+      });
+    } catch {
+      toast({
+        title: "Erro ao excluir conta",
+        description: "Não foi possível excluir a conta. Tente novamente.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleAddCategory = () => {
@@ -441,21 +485,21 @@ export default function Settings() {
                           Cartão de Crédito
                         </SelectItem>
                         <SelectItem value="cash">Dinheiro</SelectItem>
+                        <SelectItem value="refeicao">Refeição</SelectItem>
+                        <SelectItem value="alimentacao">Alimentação</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
                     <Label>Saldo Inicial</Label>
-                    <Input
-                      value={newAccount.balance}
-                      onChange={(e) =>
+                    <CurrencyInput
+                      value={newAccount.balanceCents}
+                      onChange={(v) =>
                         setNewAccount((prev) => ({
                           ...prev,
-                          balance: e.target.value,
+                          balanceCents: v,
                         }))
                       }
-                      placeholder="0,00"
-                      className="text-right"
                     />
                   </div>
                 </div>
@@ -484,34 +528,49 @@ export default function Settings() {
               >
                 <div className="flex items-center gap-3">
                   <div className="text-2xl">
-                    {account.type === "checking"
+                    {account.type === "bank"
                       ? "🏦"
-                      : account.type === "savings"
-                        ? "🐷"
-                        : account.type === "investment"
-                          ? "📈"
-                          : account.type === "credit"
-                            ? "💳"
-                            : "💰"}
+                      : account.type === "cash"
+                        ? "💰"
+                        : account.type === "card"
+                          ? "💳"
+                          : account.type === "refeicao"
+                            ? "🍽️"
+                            : account.type === "alimentacao"
+                              ? "🛒"
+                              : "🏦"}
                   </div>
                   <div>
                     <p className="font-medium">{account.name}</p>
                     <p className="text-sm text-muted-foreground">
                       {
-                        accountTypeLabels[
-                          account.type as keyof typeof accountTypeLabels
+                        storeAccountTypeLabels[
+                          account.type as keyof typeof storeAccountTypeLabels
                         ]
                       }
                     </p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="font-semibold">
-                    {formatCurrency(account.balance)}
-                  </p>
-                  <Badge variant="outline" className="text-xs">
-                    {account.type}
-                  </Badge>
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    <p className="font-semibold">
+                      {formatCurrency(account.balance)}
+                    </p>
+                    <Badge variant="outline" className="text-xs">
+                      {account.type}
+                    </Badge>
+                  </div>
+                  <ConfirmDialog
+                    trigger={
+                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    }
+                    title="Excluir conta"
+                    description={`Tem certeza que deseja excluir a conta "${account.name}"? Ela não aparecerá mais na lista, mas os dados permanecerão no sistema.`}
+                    confirmText="Excluir"
+                    onConfirm={() => handleDeleteAccount(account.id, account.name)}
+                  />
                 </div>
               </div>
             ))}

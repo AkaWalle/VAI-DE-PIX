@@ -1,15 +1,14 @@
 import { useState } from "react";
-import { NumericFormat } from "react-number-format";
 import { useFinancialStore } from "@/stores/financial-store";
 import { envelopesService } from "@/services/envelopes.service";
 import { FormDialog } from "@/components/ui/form-dialog";
 import { ActionButton } from "@/components/ui/action-button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Wallet } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 /** Saldo e meta em centavos (number). Nunca string. */
 interface EnvelopeFormData {
@@ -34,9 +33,6 @@ const colorOptions = [
   { value: "#8b5cf6", label: "Roxo", color: "bg-purple-500" },
   { value: "#ec4899", label: "Rosa", color: "bg-pink-500" },
 ];
-
-const inputBaseClass =
-  "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm";
 
 export function EnvelopeForm({ trigger }: EnvelopeFormProps) {
   const { envelopes, setEnvelopes } = useFinancialStore();
@@ -166,45 +162,19 @@ export function EnvelopeForm({ trigger }: EnvelopeFormProps) {
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="balance">Saldo Inicial</Label>
-          <NumericFormat
+          <CurrencyInput
             id="balance"
-            value={formData.balance / 100}
-            thousandSeparator="."
-            decimalSeparator=","
-            prefix="R$ "
-            decimalScale={2}
-            fixedDecimalScale
-            allowNegative={false}
-            onValueChange={(values) => {
-              updateFormData(
-                "balance",
-                values.floatValue != null ? Math.round(values.floatValue * 100) : 0
-              );
-            }}
-            className={cn(inputBaseClass, "text-right")}
-            placeholder="0,00"
+            value={formData.balance}
+            onChange={(v) => updateFormData("balance", v)}
           />
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="targetAmount">Meta (opcional)</Label>
-          <NumericFormat
+          <CurrencyInput
             id="targetAmount"
-            value={formData.targetAmount / 100}
-            thousandSeparator="."
-            decimalSeparator=","
-            prefix="R$ "
-            decimalScale={2}
-            fixedDecimalScale
-            allowNegative={false}
-            onValueChange={(values) => {
-              updateFormData(
-                "targetAmount",
-                values.floatValue != null ? Math.round(values.floatValue * 100) : 0
-              );
-            }}
-            className={cn(inputBaseClass, "text-right")}
-            placeholder="0,00"
+            value={formData.targetAmount}
+            onChange={(v) => updateFormData("targetAmount", v)}
           />
         </div>
       </div>

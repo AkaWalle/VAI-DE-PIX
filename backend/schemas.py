@@ -2,8 +2,8 @@
 Schemas Pydantic para validação de dados da API VAI DE PIX
 """
 
-from pydantic import BaseModel, EmailStr, Field, validator
-from typing import Optional, List
+from pydantic import BaseModel, EmailStr, Field, validator, root_validator
+from typing import Optional, List, Literal
 from datetime import datetime, date
 from enum import Enum
 
@@ -18,6 +18,8 @@ class AccountType(str, Enum):
     INVESTMENT = "investment"
     CREDIT = "credit"
     CASH = "cash"
+    REFEICAO = "refeicao"
+    ALIMENTACAO = "alimentacao"
 
 class GoalPriority(str, Enum):
     LOW = "low"
@@ -297,21 +299,69 @@ class NotificationMarkRead(BaseModel):
     read_at: Optional[datetime] = None  # None = marcar como lida agora
 
 # Shared Expense Schemas
+class SharedExpenseParticipantCreateSchema(BaseModel):
+    """Participante na criação: user_id ou email (um dos dois) e opcionalmente percentage ou amount."""
+    user_id: Optional[str] = Field(None, description="ID do usuário")
+    email: Optional[EmailStr] = Field(None, description="E-mail do usuário (alternativa a user_id)")
+    percentage: Optional[float] = Field(None, ge=0, le=100, description="Porcentagem (split_type=percentage)")
+    amount: Optional[int] = Field(None, ge=0, description="Valor em centavos (split_type=custom)")
+
+    @root_validator(skip_on_failure=True)
+    def require_user_id_or_email(cls, values):
+        if values.get("user_id") or values.get("email"):
+            return values
+        raise ValueError("Informe user_id ou email do participante")
+
+
 class SharedExpenseCreateSchema(BaseModel):
-    amount: float = Field(..., gt=0, description="Valor da despesa")
+    amount: float = Field(..., gt=0, description="Valor total da despesa (reais)")
     description: str = Field(..., min_length=1, description="Descrição")
-    invited_email: EmailStr = Field(..., description="E-mail do usuário convidado")
+    split_type: Literal["equal", "percentage", "custom"] = Field("equal", description="Tipo de divisão")
+    invited_email: Optional[EmailStr] = Field(None, description="E-mail do convidado (compatibilidade: igual a 1 participante)")
+    account_id: Optional[str] = Field(None, description="Conta do criador para registrar a saída (opcional; usa primeira conta ativa se omitido)")
+    category_id: Optional[str] = Field(None, description="Categoria da despesa para a Transaction do criador (opcional; usa primeira categoria expense se omitido)")
+    participants: Optional[List[SharedExpenseParticipantCreateSchema]] = Field(
+        None,
+        description="Lista de participantes (user_id + percentage ou amount conforme split_type). Se omitido, usa invited_email com divisão igual.",
+    )
+
+    @validator("participants")
+    def validate_participants(cls, v, values):
+        if v is not None and len(v) == 0:
+            v = None
+        split_type = values.get("split_type", "equal")
+        amount = values.get("amount")
+        invited_email = values.get("invited_email")
+        if split_type in ("percentage", "custom") and (not v or len(v) == 0):
+            raise ValueError("split_type percentage ou custom exige participants com percentage ou amount")
+        if split_type == "equal" and not v and not invited_email:
+            raise ValueError("Informe invited_email ou participants")
+        if v is None:
+            return v
+        if split_type == "percentage":
+            total_pct = sum(p.percentage or 0 for p in v)
+            if abs(total_pct - 100.0) > 0.01:
+                raise ValueError("Soma das porcentagens deve ser 100")
+        if split_type == "custom" and amount is not None:
+            total_cents = int(round(amount * 100))
+            sum_cents = sum(p.amount or 0 for p in v)
+            if sum_cents != total_cents:
+                raise ValueError("Soma dos valores (amount em centavos) deve ser igual ao total da despesa")
+        return v
 
 class ExpenseShareResponseSchema(BaseModel):
     id: str
     expense_id: str
     user_id: str
     status: str
+    percentage: Optional[float] = None
+    amount: Optional[int] = None  # centavos
     created_at: datetime
     responded_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
+
 
 class SharedExpenseResponseSchema(BaseModel):
     id: str
@@ -319,6 +369,7 @@ class SharedExpenseResponseSchema(BaseModel):
     amount: float
     description: str
     status: str
+    split_type: str = "equal"
     created_at: datetime
     updated_at: Optional[datetime] = None
 
@@ -372,7 +423,8 @@ class SharedExpenseParticipantReadSchema(BaseModel):
     user_name: str
     user_email: str
     share_status: str  # pending | accepted | rejected
-    amount: float = 0  # parte do total (ex.: divisão igual)
+    amount: float = 0  # parte do total em reais (para exibição)
+    percentage: Optional[float] = None
     paid: bool = False  # reservado para evolução futura
 
 
@@ -384,6 +436,7 @@ class SharedExpenseItemReadSchema(BaseModel):
     total_amount: float
     currency: str = "BRL"
     status: str  # pending | settled | cancelled (mapeado de active/cancelled)
+    split_type: str = "equal"
     created_by: str
     creator_name: str
     created_at: datetime

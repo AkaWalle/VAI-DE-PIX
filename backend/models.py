@@ -40,16 +40,17 @@ class User(Base):
 
 class Account(Base):
     """
-    Conta do usuário. row_version (Trilha 6.2) para concorrência segura:
-    incrementado a cada mudança de saldo; validação em UPDATE evita conflitos (409).
+    Conta do usuário. row_version (Trilha 6.2) para concorrência segura.
+    is_active: soft delete; exclusão física não permitida.
     """
     __tablename__ = "accounts"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String(100), nullable=False)
-    type = Column(String(20), nullable=False)  # checking, savings, investment, credit, cash
+    type = Column(String(20), nullable=False)  # checking, savings, investment, credit, cash, refeicao, alimentacao
     balance = Column(Numeric(15, 2), default=0, nullable=False)
     row_version = Column(Integer, default=0, nullable=False)  # Trilha 6.2: optimistic locking
+    is_active = Column(Boolean, default=True, nullable=False)  # soft delete
     user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
@@ -61,9 +62,12 @@ class Account(Base):
 
     # Constraints and Indexes
     __table_args__ = (
-        CheckConstraint("type IN ('checking', 'savings', 'investment', 'credit', 'cash')", name="check_account_type"),
+        CheckConstraint(
+            "type IN ('checking', 'savings', 'investment', 'credit', 'cash', 'refeicao', 'alimentacao')",
+            name="check_account_type",
+        ),
         CheckConstraint("length(name) >= 1", name="check_account_name_length"),
-        Index('idx_accounts_user_type', 'user_id', 'type'),
+        Index("idx_accounts_user_type", "user_id", "type"),
     )
 
 
@@ -126,6 +130,7 @@ class Transaction(Base):
     description = Column(String(200), nullable=False)
     user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     transfer_transaction_id = Column(String, ForeignKey("transactions.id", ondelete="SET NULL"), nullable=True, index=True)  # migração c42fc5c6c743
+    shared_expense_id = Column(String, ForeignKey("shared_expenses.id", ondelete="SET NULL"), nullable=True, index=True)  # despesa compartilhada que originou esta saída (só criador)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
     deleted_at = Column(DateTime(timezone=True), nullable=True)  # soft delete (migração final_pre_launch_critical_fixes)
@@ -278,6 +283,7 @@ class SharedExpense(Base):
     amount = Column(Numeric(15, 2), nullable=False)
     description = Column(Text, nullable=False)
     status = Column(String(20), default="active", nullable=False)  # active, cancelled
+    split_type = Column(String(20), nullable=False, default="equal")  # equal, percentage, custom
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
 
@@ -287,6 +293,10 @@ class SharedExpense(Base):
     __table_args__ = (
         CheckConstraint("status IN ('active', 'cancelled')", name="check_shared_expense_status"),
         CheckConstraint("amount > 0", name="check_shared_expense_amount_positive"),
+        CheckConstraint(
+            "split_type IN ('equal', 'percentage', 'custom')",
+            name="check_shared_expense_split_type",
+        ),
     )
 
 
@@ -298,6 +308,8 @@ class ExpenseShare(Base):
     expense_id = Column(String, ForeignKey("shared_expenses.id", ondelete="CASCADE"), nullable=False, index=True)
     user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     status = Column(String(20), default="pending", nullable=False)  # pending, accepted, rejected
+    percentage = Column(Numeric(5, 2), nullable=True)  # preenchido quando split_type da despesa é percentage
+    amount = Column(Integer, nullable=True)  # em centavos; preenchido quando split_type é percentage ou custom
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     responded_at = Column(DateTime(timezone=True), nullable=True)
 
@@ -307,6 +319,11 @@ class ExpenseShare(Base):
 
     __table_args__ = (
         CheckConstraint("status IN ('pending', 'accepted', 'rejected')", name="check_expense_share_status"),
+        CheckConstraint(
+            "percentage IS NULL OR (percentage >= 0 AND percentage <= 100)",
+            name="check_expense_share_percentage",
+        ),
+        CheckConstraint("amount IS NULL OR amount >= 0", name="check_expense_share_amount_non_neg"),
         Index("idx_expense_shares_expense_user", "expense_id", "user_id"),
     )
 

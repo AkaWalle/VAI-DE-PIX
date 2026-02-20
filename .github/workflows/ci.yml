@@ -29,6 +29,9 @@ jobs:
       - name: Verificar tipos TypeScript
         run: npm run type-check
 
+      - name: Guard anti-reintrodução Miro
+        run: npm run guard:no-miro
+
   lint-backend:
     name: Lint Backend
     runs-on: ubuntu-latest

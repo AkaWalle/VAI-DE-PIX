@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -71,7 +72,7 @@ export default function Automations() {
     type: "recurring_transaction" as const,
     trigger: "monthly",
     frequency: "",
-    amount: "",
+    amountCents: 0,
     category: "",
     account: "",
     actionType: "add_transaction",
@@ -184,7 +185,7 @@ export default function Automations() {
         conditions: {
           trigger: newRule.trigger,
           frequency: newRule.frequency || undefined,
-          amount: newRule.amount ? parseFloat(newRule.amount) : undefined,
+          amount: newRule.amountCents ? newRule.amountCents / 100 : undefined,
           category: newRule.category || undefined,
           account: newRule.account || undefined,
         },
@@ -220,7 +221,7 @@ export default function Automations() {
         type: "recurring_transaction",
         trigger: "monthly",
         frequency: "",
-        amount: "",
+        amountCents: 0,
         category: "",
         account: "",
         actionType: "add_transaction",
@@ -248,7 +249,7 @@ export default function Automations() {
       type: rule.type,
       trigger: rule.conditions.trigger,
       frequency: rule.conditions.frequency || "",
-      amount: rule.conditions.amount?.toString() || "",
+      amountCents: rule.conditions.amount != null ? Math.round(rule.conditions.amount * 100) : 0,
       category: rule.conditions.category || "",
       account: rule.conditions.account || "",
       actionType: rule.actions.type,
@@ -278,7 +279,7 @@ export default function Automations() {
           conditions: {
             trigger: newRule.trigger,
             frequency: newRule.frequency || undefined,
-            amount: newRule.amount ? parseFloat(newRule.amount) : undefined,
+            amount: newRule.amountCents ? newRule.amountCents / 100 : undefined,
             category: newRule.category || undefined,
             account: newRule.account || undefined,
           },
@@ -319,7 +320,7 @@ export default function Automations() {
         type: "recurring_transaction",
         trigger: "monthly",
         frequency: "",
-        amount: "",
+        amountCents: 0,
         category: "",
         account: "",
         actionType: "add_transaction",
@@ -345,7 +346,7 @@ export default function Automations() {
       type: "recurring_transaction",
       trigger: "monthly",
       frequency: "",
-      amount: "",
+      amountCents: 0,
       category: "",
       account: "",
       actionType: "add_transaction",
@@ -552,16 +553,14 @@ export default function Automations() {
                 </div>
                 <div className="space-y-2">
                   <Label>Valor</Label>
-                  <Input
-                    value={newRule.amount}
-                    onChange={(e) =>
+                  <CurrencyInput
+                    value={newRule.amountCents}
+                    onChange={(v) =>
                       setNewRule((prev) => ({
                         ...prev,
-                        amount: e.target.value,
+                        amountCents: v,
                       }))
                     }
-                    placeholder="0,00"
-                    className="text-right"
                   />
                 </div>
                 <div className="space-y-2">
@@ -609,16 +608,14 @@ export default function Automations() {
                 </div>
                 <div className="space-y-2">
                   <Label>Limite</Label>
-                  <Input
-                    value={newRule.amount}
-                    onChange={(e) =>
+                  <CurrencyInput
+                    value={newRule.amountCents}
+                    onChange={(v) =>
                       setNewRule((prev) => ({
                         ...prev,
-                        amount: e.target.value,
+                        amountCents: v,
                       }))
                     }
-                    placeholder="800,00"
-                    className="text-right"
                   />
                 </div>
               </div>

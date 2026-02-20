@@ -15,12 +15,21 @@ class ExpenseShareRepository(BaseRepository[ExpenseShare]):
     def __init__(self, db: Session):
         super().__init__(db, ExpenseShare)
 
-    def create_share(self, expense_id: str, user_id: str) -> ExpenseShare:
-        """Cria um share (convite) para um usuário."""
+    def create_share(
+        self,
+        expense_id: str,
+        user_id: str,
+        status: str = "pending",
+        percentage: Optional[float] = None,
+        amount_cents: Optional[int] = None,
+    ) -> ExpenseShare:
+        """Cria um share (convite) para um usuário. amount_cents em centavos."""
         share = ExpenseShare(
             expense_id=expense_id,
             user_id=user_id,
-            status="pending",
+            status=status,
+            percentage=percentage,
+            amount=amount_cents,
         )
         self.db.add(share)
         self.db.flush()

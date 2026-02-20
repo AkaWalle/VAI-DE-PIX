@@ -7,9 +7,9 @@ import {
 import { FormDialog } from "@/components/ui/form-dialog";
 import { ActionButton } from "@/components/ui/action-button";
 import { Input } from "@/components/ui/input";
-import { MoneyInput } from "@/components/ui/money-input";
+import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { Label } from "@/components/ui/label";
-import { toApiAmount } from "@/utils/currency";
+import { formatCurrencyFromCents } from "@/utils/currency";
 import {
   Select,
   SelectContent,
@@ -22,7 +22,7 @@ import { Plus } from "lucide-react";
 
 interface TransactionFormData {
   type: "income" | "expense";
-  amount: number;
+  amountCents: number;
   description: string;
   category: string;
   account: string;
@@ -42,7 +42,7 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [formData, setFormData] = useState<TransactionFormData>({
     type: "expense",
-    amount: 0,
+    amountCents: 0,
     description: "",
     category: "",
     account: "",
@@ -63,7 +63,7 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
     try {
       // Validações
       if (
-        formData.amount <= 0 ||
+        formData.amountCents <= 0 ||
         !formData.description ||
         !formData.category ||
         !formData.account
@@ -76,8 +76,9 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
         return;
       }
 
-      const amount = toApiAmount(formData.amount);
-      if (amount <= 0) {
+      // API de transações ainda espera valor em reais (float)
+      const amountReais = formData.amountCents / 100;
+      if (amountReais <= 0) {
         toast({
           title: "Valor inválido",
           description: "Por favor, insira um valor válido maior que zero.",
@@ -87,13 +88,12 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
         return;
       }
 
-      // Preparar dados para a API (valor numérico puro, nunca string formatada)
       const transactionData: TransactionCreate = {
         date: new Date(formData.date).toISOString(),
         account_id: formData.account,
         category_id: formData.category,
         type: formData.type,
-        amount: Math.abs(amount), // API espera valor positivo
+        amount: Math.abs(amountReais), // API espera valor positivo em reais
         description: formData.description,
         tags: formData.tags
           ? formData.tags.split(",").map((tag) => tag.trim())
@@ -125,13 +125,13 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
 
       toast({
         title: "Transação criada!",
-        description: `${formData.type === "income" ? "Receita" : "Despesa"} de ${amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} adicionada com sucesso.`,
+        description: `${formData.type === "income" ? "Receita" : "Despesa"} de ${formatCurrencyFromCents(formData.amountCents)} adicionada com sucesso.`,
       });
 
       // Reset form
       setFormData({
         type: "expense",
-        amount: 0,
+        amountCents: 0,
         description: "",
         category: "",
         account: "",
@@ -190,11 +190,10 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
 
         <div className="space-y-2">
           <Label htmlFor="amount">Valor *</Label>
-          <MoneyInput
+          <CurrencyInput
             id="amount"
-            value={formData.amount}
-            onChange={(v) => updateFormData("amount", v)}
-            className="text-right"
+            value={formData.amountCents}
+            onChange={(v) => updateFormData("amountCents", v)}
           />
         </div>
       </div>

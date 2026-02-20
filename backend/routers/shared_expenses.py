@@ -24,6 +24,7 @@ from services.shared_expense_service import (
     get_expense_full_details,
     get_read_model,
     SharedExpenseServiceError,
+    SharedExpenseDataIntegrityError,
 )
 from services.activity_feed_service import feed_item_to_dict
 from repositories.expense_share_repository import ExpenseShareRepository
@@ -39,14 +40,12 @@ async def post_shared_expense(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Cria despesa compartilhada e envia convite para o e-mail informado (usuário deve existir)."""
+    """Cria despesa compartilhada (split_type: equal | percentage | custom). Aceita invited_email ou participants."""
     try:
-        expense, share, feed_items = create_shared_expense(
+        expense, created_shares, feed_items = create_shared_expense(
             db=db,
             creator_user=current_user,
-            amount=body.amount,
-            description=body.description,
-            invited_email=body.invited_email,
+            body=body,
         )
         ws_manager = get_feed_ws_manager()
         for item in feed_items:
@@ -65,7 +64,13 @@ async def get_read_model_route(
     GOD MODE: Read model para dashboard/sync. Retorna todas as despesas onde o usuário participa
     (criador ou share aceito) + totais pré-calculados. Não substitui endpoints existentes.
     """
-    return get_read_model(db=db, current_user=current_user)
+    try:
+        return get_read_model(db=db, current_user=current_user)
+    except SharedExpenseDataIntegrityError as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Inconsistência nos dados de despesas compartilhadas. Contate o suporte. Detalhe: {e!s}",
+        )
 
 
 @router.get("/pending", response_model=list[PendingShareItemSchema])

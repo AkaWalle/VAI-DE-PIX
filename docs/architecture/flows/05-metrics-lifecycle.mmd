@@ -1,0 +1,46 @@
+flowchart TD
+  subgraph Bootstrap["Bootstrap main.tsx"]
+    A[hydrateAuthMetricsFromStorage] --> B{isAllZeros metrics?}
+    B -->|Não| C[Skip]
+    B -->|Sim| D[getStoredMetrics]
+    D --> E[metrics = payload.metrics]
+    E --> F[startAuthMetricsExportSchedule]
+    F --> G[setInterval 60s exportAuthMetricsToBackend false]
+  end
+
+  subgraph Increment["Increment"]
+    H[incrementRefreshCalls / Success / Timeout / etc] --> I[metrics.* += 1]
+    I --> J[schedulePersist]
+    J --> K{persistTimer?}
+    K -->|Sim| L[clearTimeout]
+    K -->|Não| M[setTimeout 500ms]
+    L --> M
+    M --> N[setStoredMetrics metrics]
+    N --> O[IndexedDB ou localStorage]
+  end
+
+  subgraph Persist["Persist"]
+    O --> P[(metrics-storage)]
+    P --> Q[Schema versionado]
+  end
+
+  subgraph Export["Export Schedule"]
+    G --> R[exportAuthMetricsToBackend false]
+    R --> S{VITE_AUTH_METRICS_ENDPOINT?}
+    S -->|Não| T[schedulePersist]
+    S -->|Sim| U[getExportBlob]
+    U --> V[retryQueue.length > 0?]
+    V -->|Sim| W[Flush queue: send cada snap]
+    W --> X[fetch POST blob]
+    V -->|Não| X
+    X --> Y{Success?}
+    Y -->|Não| Z[push getAuthMetricsSnapshot to retryQueue]
+    Z --> AA[retryQueue.length < 100]
+    Y -->|Sim| AB[Next cycle]
+  end
+
+  subgraph Immediate["Immediate Export"]
+    AC[clearAllTokens / logout] --> AD[exportAuthMetricsToBackend true]
+    AD --> S
+    AD --> AE[schedulePersist]
+  end

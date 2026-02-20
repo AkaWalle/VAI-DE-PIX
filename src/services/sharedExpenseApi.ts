@@ -13,10 +13,21 @@ export interface PendingShareItem {
   creator_name: string;
 }
 
+export interface SharedExpenseParticipantCreate {
+  user_id?: string;
+  email?: string;
+  percentage?: number;
+  amount?: number; // centavos (custom)
+}
+
 export interface SharedExpenseCreatePayload {
-  amount: number;
+  amount: number; // reais (float)
   description: string;
-  invited_email: string;
+  split_type?: "equal" | "percentage" | "custom";
+  /** Compatibilidade: um convidado por e-mail (divisão igual). */
+  invited_email?: string;
+  /** Lista de participantes (obrigatório se split_type for percentage ou custom). */
+  participants?: SharedExpenseParticipantCreate[];
 }
 
 export interface SharedExpenseResponse {
@@ -54,6 +65,7 @@ export interface SharedExpenseParticipantRead {
   user_email: string;
   share_status: string;
   amount: number;
+  percentage?: number;
   paid: boolean;
 }
 
@@ -64,6 +76,7 @@ export interface SharedExpenseItemRead {
   total_amount: number;
   currency: string;
   status: string;
+  split_type?: string;
   created_by: string;
   creator_name: string;
   created_at: string;

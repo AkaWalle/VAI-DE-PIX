@@ -1,0 +1,53 @@
+flowchart TD
+  subgraph Entry["Entry"]
+    A[runRefreshWithLock] --> B{refreshPromise !== null?}
+    B -->|Sim| C[Return refreshPromise]
+    B -->|Não| D[Cross-tab: tryAcquireCrossTabLock]
+  end
+
+  subgraph CrossTab["Cross-tab"]
+    D --> E{Lock adquirido?}
+    E -->|Não| F[waitForRefreshResultFromOtherTab]
+    F --> G[Return result]
+    E -->|Sim| H[broadcastRefreshStarted]
+    H --> I[incrementRefreshCalls]
+    I --> J[refreshPromise = async ...]
+  end
+
+  subgraph Internal["Refresh Internal"]
+    J --> K{consecutiveRefreshFailures >= 2?}
+    K -->|Sim| L[incrementRefreshSkipMaxRetry]
+    L --> M[Return false]
+    K -->|Não| N[capturedVersion = authSessionVersion]
+    N --> O[AbortController + setTimeout 10s]
+    O --> P[POST /api/auth/refresh credentials include]
+    P --> Q{res.ok?}
+    Q -->|Não| R[consecutiveRefreshFailures++]
+    R --> M
+    Q -->|Sim| S[data.access_token?]
+    S -->|Não| R
+    S -->|Sim| T{getSessionVersion === capturedVersion?}
+    T -->|Não| U[incrementRefreshSessionMismatch]
+    U --> M
+    T -->|Sim| V[tokenManager.set]
+    V --> W[consecutiveRefreshFailures = 0]
+    W --> X[incrementRefreshSuccess]
+    X --> Y[notifyTokenRefreshSuccess]
+    Y --> Z[Return true]
+  end
+
+  subgraph Timeout["Timeout Path"]
+    P -.->|AbortError| AA[clearTimeout]
+    AA --> AB[incrementRefreshTimeout]
+    AB --> R
+  end
+
+  subgraph Finally["Finally"]
+    Z --> FC[broadcastRefreshDone]
+    M --> FC
+    FC --> FD[releaseCrossTabLock]
+    FD --> FE[refreshPromise = null]
+    FE --> FF[REFRESH_LOCK_RELEASED]
+  end
+
+  C --> FC
