@@ -23,6 +23,8 @@ export interface TransactionCreate {
   amount_cents: number;
   description: string;
   tags?: string[];
+  /** ID da despesa compartilhada vinculada (opcional). */
+  shared_expense_id?: string;
 }
 
 export interface TransactionFilters {

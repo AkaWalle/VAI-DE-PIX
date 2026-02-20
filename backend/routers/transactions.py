@@ -30,6 +30,7 @@ class TransactionCreate(BaseModel):
     description: str
     tags: Optional[List[str]] = []
     to_account_id: Optional[str] = None  # obrigatório quando type=transfer
+    shared_expense_id: Optional[str] = None  # despesa compartilhada vinculada (opcional)
 
     @field_validator("amount_cents", mode="before")
     @classmethod
@@ -161,6 +162,8 @@ async def create_transaction(
         }
         if transaction.to_account_id is not None:
             transaction_data["to_account_id"] = transaction.to_account_id
+        if transaction.shared_expense_id is not None:
+            transaction_data["shared_expense_id"] = transaction.shared_expense_id
 
         with atomic_transaction(db):
             db_transaction = TransactionService.create_transaction(
