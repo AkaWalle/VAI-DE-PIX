@@ -139,4 +139,9 @@ export const sharedExpenseApi = {
     );
     return apiHelpers.handleResponse(response);
   },
+
+  /** Exclui (soft delete) uma despesa compartilhada. Apenas o criador pode excluir. */
+  async deleteSharedExpense(expenseId: string): Promise<void> {
+    await httpClient.delete(API_ENDPOINTS.sharedExpenses.delete(expenseId));
+  },
 };

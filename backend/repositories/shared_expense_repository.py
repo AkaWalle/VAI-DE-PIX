@@ -57,6 +57,7 @@ class SharedExpenseRepository(BaseRepository[SharedExpense]):
                 joinedload(SharedExpense.shares).joinedload(ExpenseShare.user),
             )
             .filter(
+                SharedExpense.status == "active",
                 or_(
                     SharedExpense.created_by == user_id,
                     SharedExpense.id.in_(sub_accepted),
@@ -65,3 +66,12 @@ class SharedExpenseRepository(BaseRepository[SharedExpense]):
             .order_by(SharedExpense.updated_at.desc(), SharedExpense.created_at.desc())
             .all()
         )
+
+    def cancel_expense(self, expense_id: str) -> Optional[SharedExpense]:
+        """Soft delete: marca despesa como cancelled. Retorna a despesa ou None se não encontrada."""
+        expense = self.get_expense_by_id(expense_id)
+        if not expense:
+            return None
+        expense.status = "cancelled"
+        self.db.flush()
+        return expense

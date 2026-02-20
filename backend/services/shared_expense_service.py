@@ -156,143 +156,152 @@ def create_shared_expense(
     expense_repo = SharedExpenseRepository(db)
     share_repo = ExpenseShareRepository(db)
 
-    amount_decimal = from_cents(total_cents)
-    expense = expense_repo.create_expense(
-        created_by=creator_user.id,
-        amount=float(amount_decimal),
-        description=description,
-        split_type=split_type,
-    )
-    created_shares: List[Any] = []
-    feed_items: List[Any] = []
-
-    for user_id, status, percentage, amount_cents in shares_to_create:
-        share = share_repo.create_share(
-            expense_id=expense.id,
-            user_id=user_id,
-            status=status,
-            percentage=percentage,
-            amount_cents=amount_cents,
-        )
-        created_shares.append(share)
-        audit_event = create_audit_event(db, share_id=share.id, action="created", performed_by=creator_user.id)
-        feed_items.extend(create_from_share_event(db, audit_event))
-        if status == "pending":
-            amount_display = float(amount_decimal)
-            title = "Despesa compartilhada pendente"
-            body_text = (
-                f"{creator_user.name} compartilhou uma despesa de R$ {amount_display:.2f}: "
-                f"{description[:50]}{'...' if len(description) > 50 else ''}. Aceite ou recuse."
-            )
-            create_notification(
-                db=db,
-                user_id=user_id,
-                type="expense_share_pending",
-                title=title,
-                body=body_text,
-                metadata={"expense_id": expense.id, "share_id": share.id},
-            )
-
-    # Garantia matemática: soma dos amounts deve ser exatamente total_cents.
-    sum_shares = sum((s.amount or 0) for s in created_shares)
-    if sum_shares != total_cents:
-        logger.critical(
-            "shared_expense_split_invariant_violation",
-            extra={
-                "expense_id": expense.id,
-                "split_type": split_type,
-                "total_cents": total_cents,
-                "sum_shares": sum_shares,
-                "distribution": [(s.user_id, s.amount) for s in created_shares],
-            },
-        )
-        raise SharedExpenseDataIntegrityError(
-            f"Inconsistência na divisão: soma dos shares ({sum_shares}) != total ({total_cents} centavos)."
-        )
-    logger.info(
-        "shared_expense_created",
-        extra={
-            "expense_id": expense.id,
-            "split_type": split_type,
-            "total_cents": total_cents,
-            "distribution": [(s.user_id, s.amount) for s in created_shares],
-        },
-    )
-
-    # Transaction real apenas para o criador (quem pagou); participantes não recebem transação até liquidar.
-    account_id = getattr(body, "account_id", None)
-    category_id = getattr(body, "category_id", None)
-    account = None
-    if account_id:
-        account = db.query(Account).filter(
-            Account.id == account_id,
-            Account.user_id == creator_user.id,
-            Account.is_active.is_(True),
-        ).first()
-    if not account:
-        account = db.query(Account).filter(
-            Account.user_id == creator_user.id,
-            Account.is_active.is_(True),
-        ).order_by(Account.created_at.asc()).first()
-    if not account:
-        raise SharedExpenseServiceError(
-            "Nenhuma conta ativa encontrada para registrar a saída. Crie uma conta ou informe account_id."
-        )
-    category = None
-    if category_id:
-        category = db.query(Category).filter(
-            Category.id == category_id,
-            Category.user_id == creator_user.id,
-            Category.type == "expense",
-        ).first()
-    if not category:
-        category = db.query(Category).filter(
-            Category.user_id == creator_user.id,
-            Category.type == "expense",
-        ).order_by(Category.created_at.asc()).first()
-    if not category:
-        raise SharedExpenseServiceError(
-            "Nenhuma categoria de despesa encontrada para registrar a transação. Crie uma categoria ou informe category_id."
-        )
-    # Garantia absoluta: total_cents deve ser int (nunca float/Decimal). Falha explícita se vazamento.
-    assert isinstance(total_cents, int), (
-        f"total_cents must be int before create_transaction; got {type(total_cents).__name__!r}"
-    )
-    # TransactionService.create_transaction exige amount_cents (int); não envia amount (float).
-    amount_cents_int = int(total_cents)
-    transaction_data = {
-        "date": datetime.now(timezone.utc),
-        "category_id": category.id,
-        "type": "expense",
-        "amount_cents": amount_cents_int,
-        "description": description.strip() or f"Despesa compartilhada: {description[:100]}",
-        "shared_expense_id": expense.id,
-        "tags": [],
-    }
     try:
+        amount_decimal = from_cents(total_cents)
+        expense = expense_repo.create_expense(
+            created_by=creator_user.id,
+            amount=float(amount_decimal),
+            description=description,
+            split_type=split_type,
+        )
+        created_shares: List[Any] = []
+        feed_items: List[Any] = []
+
+        for user_id, status, percentage, amount_cents in shares_to_create:
+            share = share_repo.create_share(
+                expense_id=expense.id,
+                user_id=user_id,
+                status=status,
+                percentage=percentage,
+                amount_cents=amount_cents,
+            )
+            created_shares.append(share)
+            audit_event = create_audit_event(db, share_id=share.id, action="created", performed_by=creator_user.id)
+            feed_items.extend(create_from_share_event(db, audit_event))
+            if status == "pending":
+                amount_display = float(amount_decimal)
+                title = "Despesa compartilhada pendente"
+                body_text = (
+                    f"{creator_user.name} compartilhou uma despesa de R$ {amount_display:.2f}: "
+                    f"{description[:50]}{'...' if len(description) > 50 else ''}. Aceite ou recuse."
+                )
+                create_notification(
+                    db=db,
+                    user_id=user_id,
+                    type="expense_share_pending",
+                    title=title,
+                    body=body_text,
+                    metadata={"expense_id": expense.id, "share_id": share.id},
+                )
+
+        # Garantia matemática: soma dos amounts deve ser exatamente total_cents.
+        sum_shares = sum((s.amount or 0) for s in created_shares)
+        if sum_shares != total_cents:
+            logger.critical(
+                "shared_expense_split_invariant_violation",
+                extra={
+                    "expense_id": expense.id,
+                    "split_type": split_type,
+                    "total_cents": total_cents,
+                    "sum_shares": sum_shares,
+                    "distribution": [(s.user_id, s.amount) for s in created_shares],
+                },
+            )
+            raise SharedExpenseDataIntegrityError(
+                f"Inconsistência na divisão: soma dos shares ({sum_shares}) != total ({total_cents} centavos)."
+            )
+
+        # Transaction real apenas para o criador (quem pagou); participantes não recebem transação até liquidar.
+        account_id = getattr(body, "account_id", None)
+        category_id = getattr(body, "category_id", None)
+        account = None
+        if account_id:
+            account = db.query(Account).filter(
+                Account.id == account_id,
+                Account.user_id == creator_user.id,
+                Account.is_active.is_(True),
+            ).first()
+        if not account:
+            account = db.query(Account).filter(
+                Account.user_id == creator_user.id,
+                Account.is_active.is_(True),
+            ).order_by(Account.created_at.asc()).first()
+        if not account:
+            raise SharedExpenseServiceError(
+                "Nenhuma conta ativa encontrada para registrar a saída. Crie uma conta ou informe account_id."
+            )
+        category = None
+        if category_id:
+            category = db.query(Category).filter(
+                Category.id == category_id,
+                Category.user_id == creator_user.id,
+                Category.type == "expense",
+            ).first()
+        if not category:
+            category = db.query(Category).filter(
+                Category.user_id == creator_user.id,
+                Category.type == "expense",
+            ).order_by(Category.created_at.asc()).first()
+        if not category:
+            raise SharedExpenseServiceError(
+                "Nenhuma categoria de despesa encontrada para registrar a transação. Crie uma categoria ou informe category_id."
+            )
+        # Garantia absoluta: total_cents deve ser int (nunca float/Decimal). Falha explícita se vazamento.
+        assert isinstance(total_cents, int), (
+            f"total_cents must be int before create_transaction; got {type(total_cents).__name__!r}"
+        )
+        amount_cents_int = int(total_cents)
+        transaction_data = {
+            "date": datetime.now(timezone.utc),
+            "category_id": category.id,
+            "type": "expense",
+            "amount_cents": amount_cents_int,
+            "description": description.strip() or f"Despesa compartilhada: {description[:100]}",
+            "shared_expense_id": expense.id,
+            "tags": [],
+        }
         TransactionService.create_transaction(
             transaction_data=transaction_data,
             account=account,
             user_id=creator_user.id,
             db=db,
         )
-    except Exception as e:
-        logger.exception("shared_expense_transaction_creation_failed expense_id=%s", expense.id)
-        from fastapi import HTTPException
-        if isinstance(e, HTTPException):
-            raise
-        raise SharedExpenseServiceError(
-            f"Não foi possível registrar a saída em caixa: {e!s}"
-        ) from e
+        logger.info(
+            "shared_expense_created",
+            extra={
+                "expense_id": expense.id,
+                "split_type": split_type,
+                "total_cents": total_cents,
+                "distribution": [(s.user_id, s.amount) for s in created_shares],
+            },
+        )
+        db.commit()
+        db.refresh(expense)
+        for s in created_shares:
+            db.refresh(s)
+        for it in feed_items:
+            db.refresh(it)
+        return expense, created_shares, feed_items
+    except Exception:
+        db.rollback()
+        raise
 
+
+def delete_shared_expense(db: Session, current_user: User, expense_id: str) -> None:
+    """
+    Soft delete: marca despesa como cancelled.
+    Apenas o criador pode excluir. Levanta SharedExpenseServiceError se não encontrada ou sem permissão.
+    """
+    expense_repo = SharedExpenseRepository(db)
+    expense = expense_repo.get_expense_by_id(expense_id)
+    if not expense:
+        raise SharedExpenseServiceError("Despesa não encontrada.")
+    if expense.created_by != current_user.id:
+        raise SharedExpenseServiceError("Apenas o criador pode excluir esta despesa.")
+    if expense.status == "cancelled":
+        raise SharedExpenseServiceError("Esta despesa já foi excluída.")
+    expense_repo.cancel_expense(expense_id)
     db.commit()
-    db.refresh(expense)
-    for s in created_shares:
-        db.refresh(s)
-    for it in feed_items:
-        db.refresh(it)
-
-    return expense, created_shares, feed_items
 
 
 def respond_to_share(
