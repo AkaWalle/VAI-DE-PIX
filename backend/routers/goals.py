@@ -8,6 +8,7 @@ from database import get_db
 from models import Goal, User
 from auth_utils import get_current_user
 from core.database_utils import atomic_transaction
+from core.amount_parser import serialize_money
 from middleware.idempotency import IdempotencyContext, get_idempotency_context_goals
 from db.locks import lock_goal
 
@@ -37,6 +38,8 @@ class GoalResponse(BaseModel):
     name: str
     target_amount: float
     current_amount: float
+    target_amount_str: Optional[str] = None  # enterprise: "1234.56"
+    current_amount_str: Optional[str] = None
     target_date: datetime
     description: Optional[str]
     category: str
@@ -48,6 +51,13 @@ class GoalResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+def _goal_to_response(g: Goal) -> GoalResponse:
+    r = GoalResponse.model_validate(g)
+    r.target_amount_str = serialize_money(g.target_amount)
+    r.current_amount_str = serialize_money(g.current_amount)
+    return r
 
 @router.get("/", response_model=List[GoalResponse])
 async def get_goals(
@@ -76,7 +86,7 @@ async def get_goals(
         else:
             goal.status = "active"
 
-    return goals
+    return [_goal_to_response(g) for g in goals]
 
 @router.post("/", response_model=GoalResponse)
 async def create_goal(
@@ -109,9 +119,9 @@ async def create_goal(
             db.flush()
         db.refresh(db_goal)
         db_goal.progress_percentage = 0.0
-        payload = GoalResponse.model_validate(db_goal).model_dump(mode="json")
-        idem.save_success(200, payload)
-        return db_goal
+        resp = _goal_to_response(db_goal)
+        idem.save_success(200, resp.model_dump(mode="json"))
+        return resp
     except HTTPException:
         idem.save_failed()
         raise
@@ -138,7 +148,7 @@ async def get_goal(
         )
     
     goal.progress_percentage = min((goal.current_amount / goal.target_amount) * 100, 100)
-    return goal
+    return _goal_to_response(goal)
 
 @router.put("/{goal_id}", response_model=GoalResponse)
 async def update_goal(
@@ -168,7 +178,7 @@ async def update_goal(
         db.add(db_goal)
     db.refresh(db_goal)
     db_goal.progress_percentage = min((db_goal.current_amount / db_goal.target_amount) * 100, 100)
-    return db_goal
+    return _goal_to_response(db_goal)
 
 @router.delete("/{goal_id}")
 async def delete_goal(

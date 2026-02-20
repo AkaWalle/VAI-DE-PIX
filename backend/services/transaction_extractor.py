@@ -141,7 +141,7 @@ class TransactionExtractor:
             candidates.sort(key=lambda x: (-x[0], x[2]))
             best_amount = candidates[0][0]
             logger.debug(f"Valor escolhido: {best_amount} (de {len(candidates)} candidatos)")
-            return best_amount
+            return float(best_amount)
         
         # Se não encontrou com padrões, tentar extrair números da mensagem
         # Buscar sequências de dígitos que possam ser valores
@@ -152,7 +152,7 @@ class TransactionExtractor:
             amount = parse_brazilian_amount(amount_str)
             if amount is not None and 0 < amount < MAX_TRANSACTION_AMOUNT:
                 logger.debug(f"Valor encontrado na mensagem (número solto): {amount} (string: '{amount_str}')")
-                return amount
+                return float(amount)
         
         return None
     

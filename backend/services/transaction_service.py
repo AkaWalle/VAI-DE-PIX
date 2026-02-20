@@ -12,6 +12,7 @@ from typing import List, Optional
 from models import Transaction, Account, Category, Tag, TransactionTag
 from repositories.tag_repository import TagRepository
 from core.security import validate_ownership
+from core.amount_parser import amount_from_api
 from core.ledger_utils import (
     sync_account_balance_from_ledger,
     get_balance_from_ledger,
@@ -118,20 +119,14 @@ def _validate_transaction_payload(
             details=f"type deve ser 'income', 'expense' ou 'transfer'. Recebido: {transaction_type!r}",
             code=CODE_TX_VALIDATION_INVALID_TYPE,
         )
-    try:
-        amount = float(transaction_data["amount"])
-    except (TypeError, ValueError):
+    amount = amount_from_api(transaction_data.get("amount"))
+    if amount is None or amount <= 0:
         _raise_tx_validation(
             message="Valor (amount) inválido",
-            details="amount deve ser um número.",
+            details="amount deve ser um número positivo (até 2 casas decimais).",
             code=CODE_TX_VALIDATION_AMOUNT,
         )
-    if amount <= 0:
-        _raise_tx_validation(
-            message="Valor (amount) deve ser positivo",
-            details=f"amount deve ser maior que zero. Recebido: {amount}",
-            code=CODE_TX_VALIDATION_AMOUNT,
-        )
+    transaction_data["amount"] = amount  # Decimal normalizado (2 casas)
     description = transaction_data.get("description") or ""
     if not (isinstance(description, str) and description.strip()):
         _raise_tx_validation(
@@ -484,7 +479,17 @@ class TransactionService:
         validate_ownership(db_transaction.user_id, user_id, "transação")
         validate_ownership(old_account.user_id, user_id, "conta")
         validate_ownership(new_account.user_id, user_id, "conta")
-        
+
+        if "amount" in update_data:
+            am = amount_from_api(update_data["amount"])
+            if am is None or am <= 0:
+                _raise_tx_validation(
+                    message="Valor (amount) inválido",
+                    details="amount deve ser um número positivo (até 2 casas decimais).",
+                    code=CODE_TX_VALIDATION_AMOUNT,
+                )
+            update_data["amount"] = am
+
         ledger = LedgerRepository(db)
         old_amount = db_transaction.amount
         old_type = db_transaction.type

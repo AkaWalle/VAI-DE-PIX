@@ -1,8 +1,9 @@
+from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime, date
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, model_validator, field_validator
 
 from database import get_db
 from models import Transaction, User, Account
@@ -12,6 +13,7 @@ from services.transaction_service import TransactionService
 from middleware.idempotency import IdempotencyContext, get_idempotency_context_transactions
 from core.database_utils import atomic_transaction
 from core.request_context import set_idempotency_key
+from core.amount_parser import serialize_money
 
 router = APIRouter()
 
@@ -47,14 +49,30 @@ class TransactionResponse(BaseModel):
     account_id: str
     category_id: str
     type: str
-    amount: float
+    amount: float  # mantido: backward compatibility (frontend consome como number)
+    amount_str: Optional[str] = None  # enterprise: valor como string "1234.56" (evita float no JSON)
     description: str
     tags: Optional[List[str]]
     created_at: datetime
     updated_at: Optional[datetime]
 
+    @field_validator("amount", mode="before")
+    @classmethod
+    def amount_to_float(cls, v: object) -> float:
+        """Serializa Decimal (Numeric do banco) para float na API (compatibilidade)."""
+        if isinstance(v, Decimal):
+            return round(float(v), 2)
+        return float(v) if v is not None else 0.0
+
     class Config:
         from_attributes = True
+
+
+def _transaction_to_response(t: Transaction) -> TransactionResponse:
+    """Monta TransactionResponse com amount (number) e amount_str (string)."""
+    r = TransactionResponse.model_validate(t)
+    r.amount_str = serialize_money(t.amount)
+    return r
 
 @router.get("/", response_model=List[TransactionResponse])
 async def get_transactions(
@@ -82,7 +100,7 @@ async def get_transactions(
         tag_ids=None,
         search=None,
     )
-    return transactions
+    return [_transaction_to_response(t) for t in transactions]
 
 @router.post("/", response_model=TransactionResponse)
 async def create_transaction(
@@ -138,9 +156,9 @@ async def create_transaction(
                 user_id=current_user.id,
                 db=db,
             )
-        payload = TransactionResponse.model_validate(db_transaction).model_dump(mode="json")
-        idem.save_success(200, payload)
-        return db_transaction
+        resp = _transaction_to_response(db_transaction)
+        idem.save_success(200, resp.model_dump(mode="json"))
+        return resp
     except HTTPException:
         idem.save_failed()
         raise
@@ -166,7 +184,7 @@ async def get_transaction(
             detail="Transação não encontrada"
         )
     
-    return transaction
+    return _transaction_to_response(transaction)
 
 @router.put("/{transaction_id}", response_model=TransactionResponse)
 async def update_transaction(
@@ -208,7 +226,7 @@ async def update_transaction(
         )
 
     with atomic_transaction(db):
-        return TransactionService.update_transaction(
+        updated = TransactionService.update_transaction(
             db_transaction=db_transaction,
             update_data=update_data,
             old_account=old_account,
@@ -216,6 +234,7 @@ async def update_transaction(
             user_id=current_user.id,
             db=db,
         )
+        return _transaction_to_response(updated)
 
 @router.delete("/{transaction_id}")
 async def delete_transaction(

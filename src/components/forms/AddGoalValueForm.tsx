@@ -4,13 +4,15 @@ import { goalsService } from "@/services/goals.service";
 import { FormDialog } from "@/components/ui/form-dialog";
 import { ActionButton } from "@/components/ui/action-button";
 import { Input } from "@/components/ui/input";
+import { MoneyInput } from "@/components/ui/money-input";
 import { Label } from "@/components/ui/label";
+import { toApiAmount } from "@/utils/currency";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { PlusCircle } from "lucide-react";
 
 interface AddValueFormData {
-  amount: string;
+  amount: number;
   description: string;
   date: string;
 }
@@ -32,7 +34,7 @@ export function AddGoalValueForm({
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [formData, setFormData] = useState<AddValueFormData>({
-    amount: "",
+    amount: 0,
     description: "",
     date: new Date().toISOString().split("T")[0],
   });
@@ -56,17 +58,8 @@ export function AddGoalValueForm({
 
     try {
       // Validações
-      if (!formData.amount) {
-        toast({
-          title: "Valor obrigatório",
-          description: "Por favor, insira o valor a ser adicionado.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const amount = parseFloat(formData.amount.replace(",", "."));
-      if (isNaN(amount) || amount <= 0) {
+      const amount = toApiAmount(formData.amount);
+      if (amount <= 0) {
         toast({
           title: "Valor inválido",
           description: "Por favor, insira um valor válido maior que zero.",
@@ -97,7 +90,7 @@ export function AddGoalValueForm({
 
       // Reset form
       setFormData({
-        amount: "",
+        amount: 0,
         description: "",
         date: new Date().toISOString().split("T")[0],
       });
@@ -114,7 +107,10 @@ export function AddGoalValueForm({
     }
   };
 
-  const updateFormData = (field: keyof AddValueFormData, value: string) => {
+  const updateFormData = (
+    field: keyof AddValueFormData,
+    value: string | number,
+  ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -133,12 +129,10 @@ export function AddGoalValueForm({
     >
       <div className="space-y-2">
         <Label htmlFor="amount">Valor a Adicionar *</Label>
-        <Input
+        <MoneyInput
           id="amount"
-          type="text"
-          placeholder="0,00"
           value={formData.amount}
-          onChange={(e) => updateFormData("amount", e.target.value)}
+          onChange={(v) => updateFormData("amount", v)}
           className="text-right"
         />
       </div>

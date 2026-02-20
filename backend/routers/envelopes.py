@@ -8,6 +8,7 @@ from database import get_db
 from models import Envelope, User
 from auth_utils import get_current_user
 from core.database_utils import atomic_transaction
+from core.amount_parser import serialize_money
 
 router = APIRouter()
 
@@ -30,6 +31,8 @@ class EnvelopeResponse(BaseModel):
     name: str
     balance: float
     target_amount: Optional[float]
+    balance_str: Optional[str] = None  # enterprise: "1234.56"
+    target_amount_str: Optional[str] = None
     color: str
     description: Optional[str]
     progress_percentage: Optional[float]
@@ -37,6 +40,13 @@ class EnvelopeResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+def _envelope_to_response(e: Envelope) -> EnvelopeResponse:
+    r = EnvelopeResponse.model_validate(e)
+    r.balance_str = serialize_money(e.balance)
+    r.target_amount_str = serialize_money(e.target_amount) if e.target_amount is not None else None
+    return r
 
 @router.get("/", response_model=List[EnvelopeResponse])
 async def get_envelopes(
@@ -52,8 +62,7 @@ async def get_envelopes(
             envelope.progress_percentage = min((envelope.balance / envelope.target_amount) * 100, 100)
         else:
             envelope.progress_percentage = None
-    
-    return envelopes
+    return [_envelope_to_response(e) for e in envelopes]
 
 @router.post("/", response_model=EnvelopeResponse)
 async def create_envelope(
@@ -74,7 +83,7 @@ async def create_envelope(
         db_envelope.progress_percentage = min((db_envelope.balance / db_envelope.target_amount) * 100, 100)
     else:
         db_envelope.progress_percentage = None
-    return db_envelope
+    return _envelope_to_response(db_envelope)
 
 @router.put("/{envelope_id}", response_model=EnvelopeResponse)
 async def update_envelope(
@@ -102,7 +111,11 @@ async def update_envelope(
     with atomic_transaction(db):
         db.add(db_envelope)
     db.refresh(db_envelope)
-    return db_envelope
+    if db_envelope.target_amount:
+        db_envelope.progress_percentage = min((db_envelope.balance / db_envelope.target_amount) * 100, 100)
+    else:
+        db_envelope.progress_percentage = None
+    return _envelope_to_response(db_envelope)
 
 @router.delete("/{envelope_id}")
 async def delete_envelope(
