@@ -1,21 +1,23 @@
 import { httpClient, apiHelpers } from "@/lib/http-client";
 import { API_ENDPOINTS } from "@/lib/api";
 
+/** balance e target_amount em centavos (integer). */
 export interface EnvelopeApi {
   id: string;
   name: string;
-  balance: number;
-  target_amount: number | null;
+  balance: number; // centavos
+  target_amount: number | null; // centavos
   color: string;
   description: string | null;
   progress_percentage: number | null;
   created_at?: string;
 }
 
+/** balance e target_amount em centavos (integer). Nunca string. */
 export interface EnvelopeCreateApi {
   name: string;
-  balance?: number;
-  target_amount?: number | null;
+  balance?: number; // centavos
+  target_amount?: number | null; // centavos
   color: string;
   description?: string | null;
 }

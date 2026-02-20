@@ -16,14 +16,14 @@ class TestEnvelopeRepository:
         # Criar alguns envelopes
         envelope1 = Envelope(
             name="Envelope 1",
-            balance=500.0,
-            target_amount=1000.0,
+            balance=50000,  # R$ 500,00 em centavos
+            target_amount=100000,  # R$ 1.000,00 em centavos
             color="#ef4444",
             user_id=test_user.id
         )
         envelope2 = Envelope(
             name="Envelope 2",
-            balance=200.0,
+            balance=20000,  # R$ 200,00 em centavos
             target_amount=None,
             color="#22c55e",
             user_id=test_user.id
@@ -43,8 +43,8 @@ class TestEnvelopeRepository:
         """Testa busca de envelope específico do usuário."""
         envelope = Envelope(
             name="Test Envelope",
-            balance=100.0,
-            target_amount=500.0,
+            balance=10000,  # R$ 100,00 em centavos
+            target_amount=50000,  # R$ 500,00 em centavos
             color="#3b82f6",
             user_id=test_user.id
         )
@@ -66,8 +66,8 @@ class TestEnvelopeUtils:
         """Testa atualização de progress_percentage."""
         envelope = Envelope(
             name="Test Envelope",
-            balance=250.0,
-            target_amount=1000.0,
+            balance=25000,  # R$ 250,00 em centavos
+            target_amount=100000,  # R$ 1.000,00 em centavos
             color="#3b82f6",
             user_id=test_user.id
         )
@@ -84,7 +84,7 @@ class TestEnvelopeUtils:
         """Testa que envelope sem target_amount tem progress_percentage None."""
         envelope = Envelope(
             name="Test Envelope",
-            balance=100.0,
+            balance=10000,  # R$ 100,00 em centavos
             target_amount=None,
             color="#3b82f6",
             user_id=test_user.id
