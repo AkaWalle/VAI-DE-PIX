@@ -1,18 +1,28 @@
 import type { AxiosError } from "axios";
 import { httpClient, apiHelpers } from "@/lib/http-client";
 import { API_ENDPOINTS } from "@/lib/api";
+import type { Account as StoreAccount } from "@/stores/financial-store";
+
+export type AccountTypeApi =
+  | "checking"
+  | "savings"
+  | "investment"
+  | "credit"
+  | "cash"
+  | "refeicao"
+  | "alimentacao";
 
 export interface Account {
   id: string;
   name: string;
-  type: "checking" | "savings" | "investment" | "credit" | "cash";
+  type: AccountTypeApi;
   balance: number;
   created_at?: string;
 }
 
 export interface AccountCreate {
   name: string;
-  type: "checking" | "savings" | "investment" | "credit" | "cash";
+  type: AccountTypeApi;
   balance?: number;
 }
 
@@ -65,7 +75,7 @@ export const accountsService = {
     }
   },
 
-  // Delete account
+  // Delete account (soft delete no backend)
   async deleteAccount(id: string): Promise<void> {
     try {
       const url = API_ENDPOINTS.accounts.delete(id);
@@ -75,5 +85,25 @@ export const accountsService = {
     } catch (error: unknown) {
       throw new Error(apiHelpers.handleError(error as AxiosError));
     }
+  },
+
+  /** Mapeia lista da API para o formato do store (para atualizar lista após delete/load). */
+  mapApiAccountsToStore(accounts: Account[]): StoreAccount[] {
+    return accounts.map((acc) => {
+      let type: StoreAccount["type"] = "bank";
+      if (acc.type === "cash") type = "cash";
+      else if (acc.type === "credit") type = "card";
+      else if (acc.type === "refeicao") type = "refeicao";
+      else if (acc.type === "alimentacao") type = "alimentacao";
+      else if (["checking", "savings", "investment"].includes(acc.type)) type = "bank";
+      return {
+        id: acc.id,
+        name: acc.name,
+        type,
+        balance: acc.balance,
+        currency: "BRL",
+        color: "#3b82f6",
+      };
+    });
   },
 };

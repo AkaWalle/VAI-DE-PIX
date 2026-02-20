@@ -1,0 +1,35 @@
+flowchart TD
+  subgraph RefreshSuccess["Refresh Success"]
+    A[refreshAccessTokenInternal OK] --> B[tokenManager.set]
+    B --> C[notifyTokenRefreshSuccess]
+    C --> D[lastTokenRefreshSuccessTimestamp = now]
+    D --> E[for each listener: cb]
+    E --> F[Listener: reconnectIfConnected]
+  end
+
+  subgraph Registration["Registration"]
+    G[activityFeedRealtime init] --> H[setupTokenRefreshReconnect client]
+    H --> I[registerTokenRefreshListener client]
+    I --> J[onTokenRefreshSuccess -> wsClient.reconnectIfConnected]
+    J --> K[listeners.push]
+  end
+
+  subgraph Reconnect["WS Reconnect"]
+    F --> L{ws.readyState === OPEN?}
+    L -->|Não| M[Return]
+    L -->|Sim| N[ws.close]
+    N --> O[ws = new WebSocket url]
+    O --> P[Re-auth com token atual]
+    P --> Q[onopen/onmessage]
+  end
+
+  subgraph TokenDrift["Token Drift Detection"]
+    Q --> R[WS fechou logo após refresh?]
+    R --> S[WS_TOKEN_DRIFT log]
+    S --> T[Observação apenas]
+  end
+
+  subgraph Snapshot["Timestamp"]
+    D --> U[getLastTokenRefreshSuccessTimestamp]
+    U --> V[Drift detector pode comparar]
+  end

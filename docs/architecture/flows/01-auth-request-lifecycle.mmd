@@ -1,0 +1,37 @@
+flowchart TD
+  subgraph Request["Request"]
+    A[HTTP Request] --> B[Request Interceptor]
+    B --> C{Token presente?}
+    C -->|Sim| D[Inject Authorization Bearer]
+    C -->|Não + URL protegida| E[incrementRequestWithoutToken]
+    D --> F[Send Request]
+    E --> F
+  end
+  subgraph Response["Response"]
+    F --> G{Status?}
+    G -->|2xx| H[redirectCount = 0]
+    H --> I[Return Response]
+    G -->|401| J{__retriedByRefresh >= 1?}
+    J -->|Sim| K[clearAllTokens + redirect /auth]
+    J -->|Não| L[runRefreshWithLock]
+    L --> M{Refresh OK?}
+    M -->|Sim| N[incrementRequestRetryAfterRefresh]
+    N --> O[__retriedByRefresh += 1]
+    O --> P[httpClient.request config]
+    P --> F
+    M -->|Não| Q[SYNC_FAIL_401 log]
+    Q --> K
+    G -->|403| K
+  end
+  subgraph ClearSession["Clear Session"]
+    K --> R[exportAuthMetricsToBackend true]
+    R --> S[incrementSessionVersion]
+    S --> T[resetRefreshLock]
+    T --> U[clearAllTokensStoragesOnly]
+    U --> V{path startsWith /auth?}
+    V -->|Não| W[redirectCount++]
+    W --> X{redirectCount > 5?}
+    X -->|Não| Y[window.location.href = /auth]
+    X -->|Sim| Z[reset redirectCount]
+    V -->|Sim| I
+  end

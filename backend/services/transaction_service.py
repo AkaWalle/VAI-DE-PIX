@@ -269,6 +269,7 @@ class TransactionService:
                 description=transaction_data["description"],
                 user_id=user_id,
                 transfer_transaction_id=None,
+                shared_expense_id=transaction_data.get("shared_expense_id"),
             )
             db.add(db_transaction)
             db.flush()

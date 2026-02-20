@@ -1,0 +1,44 @@
+flowchart TD
+  subgraph TabA["Aba A"]
+    A1[runRefreshWithLock] --> A2[tryAcquireCrossTabLock]
+    A2 --> A3{readLock: outra aba + TTL válido?}
+    A3 -->|Sim| A4[Return false]
+    A4 --> A5[waitForRefreshResultFromOtherTab]
+    A5 --> A6[BroadcastChannel onmessage refresh_done]
+    A6 --> A7[resolve msg.success]
+    A7 --> A8[Return sem executar refresh]
+    A3 -->|Não| A9[writeLock tabId + ts]
+    A9 --> A10[Re-read lock: weWon?]
+    A10 -->|Não| A11[clearLock]
+    A10 -->|Sim| A12[Líder: broadcastRefreshStarted]
+    A12 --> A13[refreshAccessTokenInternal]
+  end
+
+  subgraph TabB["Aba B"]
+    B1[runRefreshWithLock] --> B2[tryAcquireCrossTabLock]
+    B2 --> B2a{Lock de A ativo?}
+    B2a -->|Sim| B3[Return false]
+    B3 --> B4[waitForRefreshResultFromOtherTab]
+    B4 --> B4a[setTimeout 14s]
+    B4a --> B5[onmessage: refresh_done from A]
+    B5 --> B6[clearTimeout removeListener]
+    B6 --> B7[resolve msg.success]
+    B7 --> B8[Return resultado da aba A]
+  end
+
+  subgraph Leader["Aba Líder"]
+    A13 --> L1[POST /auth/refresh]
+    L1 --> L2[tokenManager.set / fail]
+    L2 --> L3[finally: broadcastRefreshDone success]
+    L3 --> L4[releaseCrossTabLock]
+    L4 --> L5[clearLock se tabId === getTabId]
+  end
+
+  subgraph Storage["localStorage"]
+    S1[(vdp_refresh_lock)]
+    S2[TTL 15s]
+  end
+
+  A9 --> S1
+  L4 --> S1
+  S1 --> S2

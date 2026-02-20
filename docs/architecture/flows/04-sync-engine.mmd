@@ -1,0 +1,41 @@
+flowchart TD
+  subgraph Entry["Entry"]
+    A[syncSharedExpensesFromBackend] --> B{isAuthReady?}
+    B -->|Não| C[SYNC_BLOCKED_AUTH_NOT_READY]
+    C --> D[Return false]
+    B -->|Sim| E[ensureValidSession]
+  end
+  subgraph EnsureSession["ensureValidSession"]
+    E --> F{hasValidAccessToken?}
+    F -->|Sim| G[Return true]
+    F -->|Não| H{hasAnySessionToken?}
+    H -->|Não| I[Return false]
+    H -->|Sim| J[safeRefreshAccessToken]
+    J --> K[runRefreshWithLock]
+    K --> L{Refreshed?}
+    L -->|Sim| G
+    L -->|Não| I
+  end
+  subgraph API["API Call"]
+    G --> M[SYNC_START]
+    M --> N[attempt = 1..SYNC_MAX_RETRIES 2]
+    N --> O[sharedExpenseApi.getReadModel]
+    O --> P{Success?}
+    P -->|Sim| Q[applyReadModelToStore]
+    Q --> R[setSharedExpenses]
+    R --> S[SYNC_SUCCESS]
+    S --> T[Return true]
+    P -->|Não| U{response.status === 401?}
+    U -->|Sim| V[SYNC_FAIL_401]
+    U -->|Não| W[SYNC_FAIL]
+    V --> X{attempt < 2?}
+    W --> X
+    X -->|Sim| Y[delay SYNC_RETRY_DELAY_MS 2s]
+    Y --> N
+    X -->|Não| D
+  end
+  subgraph Interceptor["HTTP Interceptor"]
+    O -.->|401| Z[Interceptor runRefreshWithLock]
+    Z --> AA[Retry request]
+    AA --> O
+  end

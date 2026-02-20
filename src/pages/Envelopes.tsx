@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useFinancialStore } from "@/stores/financial-store";
 import { envelopesService } from "@/services/envelopes.service";
 import {
@@ -13,6 +14,7 @@ import { ActionButton } from "@/components/ui/action-button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EnvelopeForm } from "@/components/forms/EnvelopeForm";
 import { EnvelopeValueForm } from "@/components/forms/EnvelopeValueForm";
+import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { formatCurrencyFromCents } from "@/utils/currency";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -24,8 +26,46 @@ import {
 } from "lucide-react";
 
 export default function Envelopes() {
-  const { envelopes, deleteEnvelope } = useFinancialStore();
+  const { envelopes, deleteEnvelope, transferBetweenEnvelopes } = useFinancialStore();
   const { toast } = useToast();
+
+  const [transferFromId, setTransferFromId] = useState("");
+  const [transferToId, setTransferToId] = useState("");
+  const [transferAmountCents, setTransferAmountCents] = useState(0);
+
+  const handleTransfer = () => {
+    if (!transferFromId || !transferToId || transferFromId === transferToId) {
+      toast({
+        title: "Selecione as caixinhas",
+        description: "Escolha caixinhas diferentes para origem e destino.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (transferAmountCents <= 0) {
+      toast({
+        title: "Valor inválido",
+        description: "Informe um valor maior que zero.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const from = envelopes.find((e) => e.id === transferFromId);
+    if (from && transferAmountCents > from.balance) {
+      toast({
+        title: "Saldo insuficiente",
+        description: `Saldo em "${from.name}" é ${formatCurrencyFromCents(from.balance)}.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    transferBetweenEnvelopes(transferFromId, transferToId, transferAmountCents);
+    toast({
+      title: "Transferência feita!",
+      description: `${formatCurrencyFromCents(transferAmountCents)} transferido.`,
+    });
+    setTransferAmountCents(0);
+  };
 
   const handleDeleteEnvelope = async (envelopeId: string, envelopeName: string) => {
     try {
@@ -303,7 +343,11 @@ export default function Envelopes() {
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <label className="text-sm font-medium">De:</label>
-                <select className="w-full p-2 border border-input rounded-md bg-background">
+                <select
+                  className="w-full p-2 border border-input rounded-md bg-background"
+                  value={transferFromId}
+                  onChange={(e) => setTransferFromId(e.target.value)}
+                >
                   <option value="">Selecione uma caixinha</option>
                   {envelopes.map((env) => (
                     <option key={env.id} value={env.id}>
@@ -314,7 +358,11 @@ export default function Envelopes() {
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Para:</label>
-                <select className="w-full p-2 border border-input rounded-md bg-background">
+                <select
+                  className="w-full p-2 border border-input rounded-md bg-background"
+                  value={transferToId}
+                  onChange={(e) => setTransferToId(e.target.value)}
+                >
                   <option value="">Selecione uma caixinha</option>
                   {envelopes.map((env) => (
                     <option key={env.id} value={env.id}>
@@ -325,12 +373,14 @@ export default function Envelopes() {
               </div>
             </div>
             <div className="mt-4 flex gap-2">
-              <input
-                type="number"
-                placeholder="Valor da transferência"
-                className="flex-1 p-2 border border-input rounded-md bg-background"
+              <CurrencyInput
+                value={transferAmountCents}
+                onChange={setTransferAmountCents}
+                className="flex-1"
               />
-              <ActionButton icon={ArrowLeftRight}>Transferir</ActionButton>
+              <ActionButton icon={ArrowLeftRight} onClick={handleTransfer}>
+                Transferir
+              </ActionButton>
             </div>
           </CardContent>
         </Card>

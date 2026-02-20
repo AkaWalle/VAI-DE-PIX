@@ -27,7 +27,7 @@ export interface Transaction {
 export interface Account {
   id: string;
   name: string;
-  type: "bank" | "cash" | "card";
+  type: "bank" | "cash" | "card" | "refeicao" | "alimentacao";
   balance: number;
   currency: "BRL";
   color: string;

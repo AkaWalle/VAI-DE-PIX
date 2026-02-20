@@ -1,16 +1,15 @@
 import { useState } from "react";
-import { NumericFormat } from "react-number-format";
 import { useFinancialStore } from "@/stores/financial-store";
 import { envelopesService } from "@/services/envelopes.service";
 import { FormDialog } from "@/components/ui/form-dialog";
 import { ActionButton } from "@/components/ui/action-button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { Label } from "@/components/ui/label";
 import { formatCurrencyFromCents } from "@/utils/currency";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { PlusCircle, MinusCircle } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 interface ValueFormData {
   type: "add" | "withdraw";
@@ -26,9 +25,6 @@ interface EnvelopeValueFormProps {
   type: "add" | "withdraw";
   trigger?: React.ReactNode;
 }
-
-const inputBaseClass =
-  "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm";
 
 export function EnvelopeValueForm({
   envelopeId,
@@ -143,23 +139,10 @@ export function EnvelopeValueForm({
     >
       <div className="space-y-2">
         <Label htmlFor="amount">Valor *</Label>
-        <NumericFormat
+        <CurrencyInput
           id="amount"
-          value={formData.amount / 100}
-          thousandSeparator="."
-          decimalSeparator=","
-          prefix="R$ "
-          decimalScale={2}
-          fixedDecimalScale
-          allowNegative={false}
-          onValueChange={(values) => {
-            updateFormData(
-              "amount",
-              values.floatValue != null ? Math.round(values.floatValue * 100) : 0
-            );
-          }}
-          className={cn(inputBaseClass, "text-right")}
-          placeholder="0,00"
+          value={formData.amount}
+          onChange={(v) => updateFormData("amount", v)}
         />
         {isWithdraw && (
           <p className="text-xs text-muted-foreground">

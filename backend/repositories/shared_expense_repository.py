@@ -15,13 +15,20 @@ class SharedExpenseRepository(BaseRepository[SharedExpense]):
     def __init__(self, db: Session):
         super().__init__(db, SharedExpense)
 
-    def create_expense(self, created_by: str, amount: float, description: str) -> SharedExpense:
+    def create_expense(
+        self,
+        created_by: str,
+        amount: float,
+        description: str,
+        split_type: str = "equal",
+    ) -> SharedExpense:
         """Cria uma despesa compartilhada."""
         expense = SharedExpense(
             created_by=created_by,
             amount=amount,
             description=description,
             status="active",
+            split_type=split_type,
         )
         self.db.add(expense)
         self.db.flush()

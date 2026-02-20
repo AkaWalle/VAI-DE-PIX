@@ -4,15 +4,15 @@ import { goalsService } from "@/services/goals.service";
 import { FormDialog } from "@/components/ui/form-dialog";
 import { ActionButton } from "@/components/ui/action-button";
 import { Input } from "@/components/ui/input";
-import { MoneyInput } from "@/components/ui/money-input";
+import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { Label } from "@/components/ui/label";
-import { toApiAmount } from "@/utils/currency";
+import { formatCurrencyFromCents } from "@/utils/currency";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { PlusCircle } from "lucide-react";
 
 interface AddValueFormData {
-  amount: number;
+  amountCents: number;
   description: string;
   date: string;
 }
@@ -34,7 +34,7 @@ export function AddGoalValueForm({
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [formData, setFormData] = useState<AddValueFormData>({
-    amount: 0,
+    amountCents: 0,
     description: "",
     date: new Date().toISOString().split("T")[0],
   });
@@ -58,8 +58,9 @@ export function AddGoalValueForm({
 
     try {
       // Validações
-      const amount = toApiAmount(formData.amount);
-      if (amount <= 0) {
+      // API de metas ainda espera valor em reais (float)
+      const amountReais = formData.amountCents / 100;
+      if (amountReais <= 0) {
         toast({
           title: "Valor inválido",
           description: "Por favor, insira um valor válido maior que zero.",
@@ -78,19 +79,19 @@ export function AddGoalValueForm({
       }
 
       // Salvar na API e atualizar o store
-      const result = await goalsService.addValueToGoal(goalId, amount);
+      const result = await goalsService.addValueToGoal(goalId, amountReais);
       updateGoal(goalId, {
         currentAmount: result.new_amount,
       });
 
       toast({
         title: "Valor adicionado!",
-        description: `${amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} adicionado à meta "${goalName}".`,
+        description: `${formatCurrencyFromCents(formData.amountCents)} adicionado à meta "${goalName}".`,
       });
 
       // Reset form
       setFormData({
-        amount: 0,
+        amountCents: 0,
         description: "",
         date: new Date().toISOString().split("T")[0],
       });
@@ -129,11 +130,10 @@ export function AddGoalValueForm({
     >
       <div className="space-y-2">
         <Label htmlFor="amount">Valor a Adicionar *</Label>
-        <MoneyInput
+        <CurrencyInput
           id="amount"
-          value={formData.amount}
-          onChange={(v) => updateFormData("amount", v)}
-          className="text-right"
+          value={formData.amountCents}
+          onChange={(v) => updateFormData("amountCents", v)}
         />
       </div>
 
