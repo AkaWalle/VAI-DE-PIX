@@ -4,6 +4,8 @@ import {
   transactionsService,
   TransactionCreate,
 } from "@/services/transactions.service";
+import { sharedExpenseApi } from "@/services/sharedExpenseApi";
+import { syncSharedExpensesFromBackend } from "@/lib/shared-expenses-sync-engine";
 import { FormDialog } from "@/components/ui/form-dialog";
 import { ActionButton } from "@/components/ui/action-button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +21,12 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Plus } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+
+/** Validação simples de e-mail (formato básico). */
+function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+}
 
 interface TransactionFormData {
   type: "income" | "expense";
@@ -28,6 +36,8 @@ interface TransactionFormData {
   account: string;
   date: string;
   tags: string;
+  isSharedExpense: boolean;
+  sharedWithEmail: string;
 }
 
 interface TransactionFormProps {
@@ -48,6 +58,8 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
     account: "",
     date: new Date().toISOString().split("T")[0],
     tags: "",
+    isSharedExpense: false,
+    sharedWithEmail: "",
   });
 
   const defaultTrigger = (
@@ -71,6 +83,49 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
         return;
       }
 
+      // Despesa compartilhada: tipo deve ser expense e e-mail obrigatório/válido
+      if (formData.isSharedExpense) {
+        if (formData.type !== "expense") {
+          toast({
+            title: "Inválido",
+            description: "Despesa compartilhada só é permitida para tipo Despesa.",
+            variant: "destructive",
+          });
+          return;
+        }
+        const email = formData.sharedWithEmail.trim();
+        if (!email) {
+          toast({
+            title: "E-mail obrigatório",
+            description: "Informe o e-mail de quem divide a despesa.",
+            variant: "destructive",
+          });
+          return;
+        }
+        if (!isValidEmail(email)) {
+          toast({
+            title: "E-mail inválido",
+            description: "Informe um e-mail válido para quem divide a despesa.",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+
+      let sharedExpenseId: string | undefined;
+
+      if (formData.isSharedExpense) {
+        // 1. Criar despesa compartilhada (divisão igual, 2 pessoas)
+        const shared = await sharedExpenseApi.createSharedExpense({
+          total_cents: amountCents,
+          description: formData.description,
+          invited_email: formData.sharedWithEmail.trim(),
+        });
+        sharedExpenseId = shared.id;
+        // 2. Atualizar lista de despesas no store
+        await syncSharedExpensesFromBackend();
+      }
+
       const transactionData: TransactionCreate = {
         date: new Date(formData.date).toISOString(),
         account_id: formData.account,
@@ -82,13 +137,15 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
           ? formData.tags.split(",").map((tag) => tag.trim())
           : [],
       };
+      if (sharedExpenseId) {
+        transactionData.shared_expense_id = sharedExpenseId;
+      }
 
-      // Salvar na API
+      // Salvar transação na API
       const savedTransaction =
         await transactionsService.createTransaction(transactionData);
 
       // Converter formato da API para formato do store
-      // API retorna account_id e category_id, mas store espera account e category
       const respAmount = typeof (savedTransaction as { amount?: number }).amount === "number"
         ? (savedTransaction as { amount: number }).amount
         : 0;
@@ -111,7 +168,9 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
 
       toast({
         title: "Transação criada!",
-        description: `${formData.type === "income" ? "Receita" : "Despesa"} de ${formatCurrencyFromCents(amountCents)} adicionada com sucesso.`,
+        description: formData.isSharedExpense
+          ? `Despesa compartilhada de ${formatCurrencyFromCents(amountCents)} adicionada. Aparece em Transações e Despesas Compartilhadas.`
+          : `${formData.type === "income" ? "Receita" : "Despesa"} de ${formatCurrencyFromCents(amountCents)} adicionada com sucesso.`,
       });
 
       // Reset form
@@ -123,6 +182,8 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
         account: "",
         date: new Date().toISOString().split("T")[0],
         tags: "",
+        isSharedExpense: false,
+        sharedWithEmail: "",
       });
 
       setIsOpen(false);
@@ -139,9 +200,16 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
 
   const updateFormData = (
     field: keyof TransactionFormData,
-    value: string | number,
+    value: string | number | boolean,
   ) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev) => {
+      const next = { ...prev, [field]: value };
+      // Ao mudar tipo para receita, desligar despesa compartilhada
+      if (field === "type" && value === "income") {
+        next.isSharedExpense = false;
+      }
+      return next;
+    });
   };
 
   return (
@@ -194,6 +262,41 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
           onChange={(e) => updateFormData("description", e.target.value)}
         />
       </div>
+
+      {/* Toggle despesa compartilhada: só para tipo Despesa */}
+      {formData.type === "expense" && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between rounded-lg border p-4">
+            <div className="space-y-0.5">
+              <Label htmlFor="isSharedExpense">É uma despesa compartilhada?</Label>
+              <p className="text-xs text-muted-foreground">
+                Divide com outra pessoa (divisão igual). A despesa aparecerá em Transações e em Despesas Compartilhadas.
+              </p>
+            </div>
+            <Switch
+              id="isSharedExpense"
+              checked={formData.isSharedExpense}
+              onCheckedChange={(checked) =>
+                updateFormData("isSharedExpense", checked)
+              }
+            />
+          </div>
+          {formData.isSharedExpense && (
+            <div className="space-y-2">
+              <Label htmlFor="sharedWithEmail">E-mail de quem divide *</Label>
+              <Input
+                id="sharedWithEmail"
+                type="email"
+                placeholder="email@exemplo.com"
+                value={formData.sharedWithEmail}
+                onChange={(e) =>
+                  updateFormData("sharedWithEmail", e.target.value)
+                }
+              />
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
