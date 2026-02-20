@@ -6,10 +6,7 @@ import { categoriesService } from "@/services/categories.service";
 import { accountsService } from "@/services/accounts.service";
 import { goalsService } from "@/services/goals.service";
 import { envelopesService } from "@/services/envelopes.service";
-import {
-  isSharedExpensesGodModeEnabled,
-  syncSharedExpensesFromBackend,
-} from "@/lib/shared-expenses-sync-engine";
+import { syncSharedExpensesFromBackend } from "@/lib/shared-expenses-sync-engine";
 import { waitUntilAuthReady } from "@/lib/auth-runtime-guard";
 
 /**
@@ -71,10 +68,11 @@ export function useLoadData() {
         if (loadedAccounts && loadedAccounts.length > 0) {
           setAccounts(
             loadedAccounts.map((acc) => {
-              // Mapear tipos do backend para tipos do frontend
-              let frontendType: "bank" | "cash" | "card" = "bank";
+              let frontendType: "bank" | "cash" | "card" | "refeicao" | "alimentacao" = "bank";
               if (acc.type === "cash") frontendType = "cash";
               else if (acc.type === "credit") frontendType = "card";
+              else if (acc.type === "refeicao") frontendType = "refeicao";
+              else if (acc.type === "alimentacao") frontendType = "alimentacao";
               else if (
                 acc.type === "checking" ||
                 acc.type === "savings" ||
@@ -88,7 +86,7 @@ export function useLoadData() {
                 type: frontendType,
                 balance: acc.balance,
                 currency: "BRL" as const,
-                color: "#3b82f6", // Cor padrão
+                color: "#3b82f6",
               };
             }),
           );
@@ -168,10 +166,8 @@ export function useLoadData() {
           console.warn("⚠️ Erro ao carregar caixinhas:", err);
         }
 
-        // GOD MODE: sync despesas compartilhadas do backend (read-model)
-        if (isSharedExpensesGodModeEnabled()) {
-          await syncSharedExpensesFromBackend();
-        }
+        // Sync despesas compartilhadas do backend (criador + participante com share aceito)
+        await syncSharedExpensesFromBackend();
 
         console.log("✅ Dados carregados com sucesso!");
       } catch (error: unknown) {
@@ -295,9 +291,7 @@ export function useLoadData() {
               );
             }
 
-            if (isSharedExpensesGodModeEnabled()) {
-              await syncSharedExpensesFromBackend();
-            }
+            await syncSharedExpensesFromBackend();
           } catch (error) {
             console.error("Erro ao recarregar:", error);
           }

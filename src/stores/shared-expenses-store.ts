@@ -6,10 +6,7 @@ import {
 } from "@/services/sharedExpenseApi";
 import { apiHelpers } from "@/lib/http-client";
 import axios, { AxiosError } from "axios";
-import {
-  isSharedExpensesGodModeEnabled,
-  syncSharedExpensesFromBackend,
-} from "@/lib/shared-expenses-sync-engine";
+import { syncSharedExpensesFromBackend } from "@/lib/shared-expenses-sync-engine";
 
 export interface SharedExpensesState {
   pendingShares: PendingShareItem[];
@@ -54,9 +51,7 @@ export const useSharedExpensesStore = create<SharedExpensesStore>((set, get) => 
         pendingShares: state.pendingShares.filter((s) => s.id !== shareId),
         respondingShareId: null,
       }));
-      if (isSharedExpensesGodModeEnabled()) {
-        await syncSharedExpensesFromBackend();
-      }
+      await syncSharedExpensesFromBackend();
     } catch (err) {
       const message =
         axios.isAxiosError(err) ? apiHelpers.handleError(err as AxiosError) : "Erro ao responder.";
@@ -69,9 +64,7 @@ export const useSharedExpensesStore = create<SharedExpensesStore>((set, get) => 
     set({ error: null });
     try {
       await sharedExpenseApi.createSharedExpense(payload);
-      if (isSharedExpensesGodModeEnabled()) {
-        await syncSharedExpensesFromBackend();
-      }
+      await syncSharedExpensesFromBackend();
     } catch (err) {
       const message =
         axios.isAxiosError(err) ? apiHelpers.handleError(err as AxiosError) : "Erro ao criar despesa.";
