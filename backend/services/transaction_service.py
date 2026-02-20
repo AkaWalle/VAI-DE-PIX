@@ -249,6 +249,10 @@ class TransactionService:
             },
         )
 
+        # Caller pode enviar só amount_cents (int); preencher amount (Decimal) antes de qualquer validação que leia amount.
+        if "amount_cents" in transaction_data and transaction_data.get("amount") is None:
+            transaction_data["amount"] = from_cents(transaction_data["amount_cents"])
+
         # Validação de ownership
         validate_ownership(account.user_id, user_id, "conta")
 
