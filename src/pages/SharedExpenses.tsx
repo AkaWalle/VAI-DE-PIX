@@ -24,6 +24,8 @@ import {
   Edit,
   Trash2,
   Share2,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -47,6 +49,16 @@ export default function SharedExpenses() {
   const { toast } = useToast();
   const [showForm, setShowForm] = useState(false);
   const [editingExpense, setEditingExpense] = useState<string | null>(null);
+  const [expandedParticipantsIds, setExpandedParticipantsIds] = useState<Set<string>>(new Set());
+
+  const toggleParticipants = (expenseId: string) => {
+    setExpandedParticipantsIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(expenseId)) next.delete(expenseId);
+      else next.add(expenseId);
+      return next;
+    });
+  };
 
   const getStatusConfig = (status: string) => {
     switch (status) {
@@ -250,36 +262,37 @@ export default function SharedExpenses() {
             return (
               <Card
                 key={expense.id}
-                className="bg-gradient-card shadow-card-custom"
+                className="bg-gradient-card shadow-card-custom p-4 sm:p-6"
               >
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-xl font-semibold">
+                <CardHeader className="p-0 pb-3 sm:pb-4">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="space-y-1 min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="text-lg sm:text-xl font-semibold truncate">
                           {expense.title}
                         </h3>
                         <Badge
                           variant={statusConfig.variant}
-                          className="text-xs"
+                          className="text-xs shrink-0"
                         >
                           <StatusIcon className="h-3 w-3 mr-1" />
                           {statusConfig.label}
                         </Badge>
                       </div>
                       {expense.description && (
-                        <p className="text-muted-foreground">
+                        <p className="text-muted-foreground text-xs sm:text-sm line-clamp-1">
                           {expense.description}
                         </p>
                       )}
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 sm:gap-2 shrink-0">
                       <ActionButton
                         variant="outline"
                         size="sm"
                         icon={Edit}
                         onClick={() => setEditingExpense(expense.id)}
+                        className="h-8 px-2 text-xs sm:h-9 sm:px-3 sm:text-sm"
                       >
                         Editar
                       </ActionButton>
@@ -289,6 +302,7 @@ export default function SharedExpenses() {
                             variant="outline"
                             size="sm"
                             icon={Trash2}
+                            className="h-8 px-2 text-xs sm:h-9 sm:px-3 sm:text-sm"
                           >
                             Excluir
                           </ActionButton>
@@ -316,78 +330,91 @@ export default function SharedExpenses() {
                   </div>
                 </CardHeader>
 
-                <CardContent className="space-y-4">
+                <CardContent className="p-0 space-y-3 sm:space-y-4">
                   {/* Expense Details */}
-                  <div className="grid gap-4 md:grid-cols-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4">
                     <div className="flex items-center gap-2">
-                      <DollarSign className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">Valor Total:</span>
-                      <span className="font-semibold">
+                      <DollarSign className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground shrink-0" />
+                      <span className="text-xs sm:text-sm font-medium">Valor Total:</span>
+                      <span className="text-xs sm:text-sm font-semibold">
                         {formatCurrency(expense.totalAmount)}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">
-                        Participantes:
-                      </span>
-                      <span className="font-semibold">
+                      <Users className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground shrink-0" />
+                      <span className="text-xs sm:text-sm font-medium">Participantes:</span>
+                      <span className="text-xs sm:text-sm font-semibold">
                         {expense.participants.length}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">Data:</span>
-                      <span className="font-semibold">
+                      <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground shrink-0" />
+                      <span className="text-xs sm:text-sm font-medium">Data:</span>
+                      <span className="text-xs sm:text-sm font-semibold">
                         {formatDate(expense.date)}
                       </span>
                     </div>
                   </div>
 
                   {/* Progress Bar */}
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
+                  <div className="space-y-1 sm:space-y-2">
+                    <div className="flex justify-between text-xs">
                       <span>Progresso do Pagamento</span>
                       <span>
-                        {formatCurrency(totalPaid)} /{" "}
-                        {formatCurrency(totalAmount)}
+                        {formatCurrency(totalPaid)} / {formatCurrency(totalAmount)}
                       </span>
                     </div>
-                    <div className="w-full bg-muted rounded-full h-2">
+                    <div className="w-full bg-muted rounded-full h-1.5 sm:h-2">
                       <div
-                        className="bg-primary h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${(totalPaid / totalAmount) * 100}%` }}
+                        className="bg-primary h-1.5 sm:h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${totalAmount ? (totalPaid / totalAmount) * 100 : 0}%` }}
                       />
                     </div>
                   </div>
 
-                  {/* Participants */}
-                  <div className="space-y-3">
-                    <h4 className="font-medium">Participantes:</h4>
-                    <div className="grid gap-2">
+                  {/* Participants: colapsável no mobile, sempre visível no desktop */}
+                  <div className="space-y-2 sm:space-y-3">
+                    <button
+                      type="button"
+                      onClick={() => toggleParticipants(expense.id)}
+                      className="flex items-center gap-2 text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground sm:hidden"
+                    >
+                      {expandedParticipantsIds.has(expense.id) ? (
+                        <ChevronUp className="h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4" />
+                      )}
+                      Ver participantes ({expense.participants.length})
+                    </button>
+                    <h4 className="font-medium text-sm hidden sm:block">Participantes:</h4>
+                    <div
+                      className={`grid gap-2 ${
+                        expandedParticipantsIds.has(expense.id) ? "block" : "hidden sm:grid"
+                      }`}
+                    >
                       {expense.participants.map((participant) => (
                         <div
                           key={participant.userId}
-                          className="flex items-center justify-between p-3 border rounded-lg"
+                          className="flex items-center justify-between p-2 sm:p-3 border rounded-lg"
                         >
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                              <span className="text-sm font-medium text-primary">
+                          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                            <div className="w-6 h-6 sm:w-8 sm:h-8 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
+                              <span className="text-xs sm:text-sm font-medium text-primary">
                                 {participant.userName.charAt(0).toUpperCase()}
                               </span>
                             </div>
-                            <div>
-                              <p className="font-medium">
+                            <div className="min-w-0">
+                              <p className="font-medium text-xs sm:text-sm truncate">
                                 {participant.userName}
                               </p>
-                              <p className="text-sm text-muted-foreground">
+                              <p className="text-xs text-muted-foreground truncate">
                                 {participant.userEmail}
                               </p>
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-3">
-                            <span className="font-semibold">
+                          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                            <span className="font-semibold text-xs sm:text-sm">
                               {formatCurrency(participant.amount)}
                             </span>
                             {participant.paid ? (
@@ -405,6 +432,7 @@ export default function SharedExpenses() {
                                     participant.userId,
                                   )
                                 }
+                                className="h-8 text-xs sm:h-9 sm:text-sm"
                               >
                                 Marcar como Pago
                               </Button>
@@ -417,10 +445,10 @@ export default function SharedExpenses() {
 
                   {/* Actions */}
                   {expense.status === "pending" && isFullyPaid && (
-                    <div className="pt-4 border-t">
+                    <div className="pt-3 sm:pt-4 border-t">
                       <Button
                         onClick={() => handleSettleExpense(expense.id)}
-                        className="w-full"
+                        className="w-full h-9 text-sm"
                       >
                         <CheckCircle className="h-4 w-4 mr-2" />
                         Quitar Despesa
