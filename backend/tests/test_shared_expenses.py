@@ -55,7 +55,7 @@ class TestCreateSharedExpenseSuccess:
 class TestCreateSharedExpenseValidation:
     """Saldo insuficiente → 422 e rollback; próprio e-mail → 400."""
 
-    def test_post_insufficient_balance_422_expense_not_created(
+    def test_post_insufficient_balance_expense_still_created(
         self,
         client: TestClient,
         auth_headers: dict,
@@ -64,7 +64,9 @@ class TestCreateSharedExpenseValidation:
         account_with_balance,
         db: Session,
     ):
-        # Conta com saldo 5 reais; despesa total 100 reais (criador paga 50)
+        # Conta com saldo 5 reais; despesa total 100 reais (criador paga 50).
+        # Serviço usa skip_balance_check ao criar a transação do criador (apenas a parte dele),
+        # então a criação é aceita (201) mesmo com saldo insuficiente para a parte do criador.
         account = account_with_balance(5.0)
         unique_desc = "Despesa cara saldo insuficiente"
         payload = {
@@ -80,9 +82,14 @@ class TestCreateSharedExpenseValidation:
             json=payload,
             headers=auth_headers,
         )
-        # Saldo insuficiente → 422. Serviço faz rollback (despesa não commitada); em ambiente
-        # de teste com sessão compartilhada o read-model pode refletir estado após rollback.
-        assert response.status_code == 422
+        assert response.status_code in (200, 201)
+        data = response.json()
+        assert data["description"] == unique_desc
+        from models import Transaction
+        tx = db.query(Transaction).filter(
+            Transaction.shared_expense_id == data["id"],
+        ).first()
+        assert tx is not None
 
     def test_post_own_email_400(
         self,
