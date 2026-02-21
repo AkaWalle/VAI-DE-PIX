@@ -1,16 +1,37 @@
 """
-Configuração compartilhada para testes pytest
+Configuração compartilhada para testes pytest.
+Garante que todos os modelos estão registrados em Base antes de create_all.
 """
 import os
+import uuid
 import pytest
+from decimal import Decimal
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from fastapi.testclient import TestClient
 
 from database import Base, get_db
-from models import User, Account, Category, Transaction, Notification, LedgerEntry
+from models import (
+    User,
+    Account,
+    Category,
+    Transaction,
+    Notification,
+    LedgerEntry,
+    SharedExpense,
+    ExpenseShare,
+    ExpenseShareEvent,
+    ActivityFeedItem,
+    Tag,
+    TransactionTag,
+    UserSession,
+    IdempotencyKey,
+)
 from auth_utils import get_password_hash
 from main import app
+
+# Garantir que todos os modelos estão carregados (tabelas criadas no create_all)
+import models  # noqa: F401
 
 # Banco de dados em memória para testes (SQLite)
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
@@ -67,6 +88,7 @@ def postgres_db(postgres_engine, postgres_session_factory):
 @pytest.fixture(scope="function")
 def db():
     """Cria um banco de dados limpo para cada teste."""
+    Base.metadata.drop_all(bind=engine)  # estado limpo antes de create_all (evita "table already exists" e UNIQUE)
     Base.metadata.create_all(bind=engine)
     db = TestingSessionLocal()
     try:
@@ -176,8 +198,77 @@ def auth_headers(client, test_user):
             "/api/auth/login",
             json={"email": test_user.email, "password": "test123"}
         )
-    
+
     assert response.status_code == 200, f"Login falhou: {response.json()}"
     token = response.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture
+def second_user(db):
+    """Segundo usuário para testes de despesa compartilhada (convidado / outro usuário)."""
+    user = User(
+        name="Second User",
+        email="second@example.com",
+        hashed_password=get_password_hash("test123"),
+        is_active=True,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+@pytest.fixture
+def auth_headers_second_user(client, second_user):
+    """Headers de autenticação para o segundo usuário (registro + login)."""
+    client.post(
+        "/api/auth/register",
+        json={
+            "name": second_user.name,
+            "email": second_user.email,
+            "password": "test123",
+        },
+    )
+    response = client.post(
+        "/api/auth/login",
+        json={"email": second_user.email, "password": "test123"},
+    )
+    assert response.status_code == 200, f"Login segundo usuário falhou: {response.json()}"
+    token = response.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture
+def account_with_balance(db, test_user):
+    """
+    Conta com saldo definido via ledger (reais).
+    Retorna conta com saldo 100.00 para testes de validação de saldo.
+    """
+
+    def _make(balance_reais: float):
+        account = Account(
+            name=f"Conta saldo {balance_reais}",
+            type="checking",
+            balance=Decimal(str(balance_reais)),
+            user_id=test_user.id,
+        )
+        db.add(account)
+        db.commit()
+        db.refresh(account)
+        # Ledger: credit exige amount > 0 (CHECK). Saldo 0 = sem entrada; get_balance_from_ledger retorna 0.
+        if balance_reais > 0:
+            entry = LedgerEntry(
+                user_id=test_user.id,
+                account_id=account.id,
+                transaction_id=None,
+                amount=Decimal(str(balance_reais)),
+                entry_type="credit",
+            )
+            db.add(entry)
+            db.commit()
+            db.refresh(account)
+        return account
+
+    return _make
 
