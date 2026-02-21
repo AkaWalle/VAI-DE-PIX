@@ -13,9 +13,12 @@ import {
   TrendingUp,
   Zap,
   Settings,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Separator } from "@/components/ui/separator";
+import { useAuthStore } from "@/stores/auth-store-index";
 
 const mainNavItems = [
   { to: "/", label: "Início", icon: LayoutDashboard },
@@ -38,6 +41,7 @@ export function BottomNav() {
   const [moreOpen, setMoreOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const { logout } = useAuthStore();
 
   const isMoreActive = moreMenuItems.some((item) => {
     if (item.to === "/") return location.pathname === "/";
@@ -47,6 +51,11 @@ export function BottomNav() {
   const handleMoreItemClick = (to: string) => {
     navigate(to);
     setMoreOpen(false);
+  };
+
+  const handleLogout = () => {
+    setMoreOpen(false);
+    logout();
   };
 
   return (
@@ -125,6 +134,16 @@ export function BottomNav() {
               );
             })}
           </nav>
+          <Separator className="my-4" />
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="flex items-center gap-3 rounded-lg px-4 py-3 min-h-[44px] touch-manipulation text-left text-destructive hover:bg-destructive/10 transition-colors w-full"
+            aria-label="Sair"
+          >
+            <LogOut className="h-5 w-5 shrink-0" aria-hidden />
+            <span>Sair</span>
+          </button>
         </SheetContent>
       </Sheet>
     </>
