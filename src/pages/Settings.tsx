@@ -338,6 +338,7 @@ export default function Settings() {
             loading={isLoading}
             loadingText="Salvando..."
             icon={Save}
+            className="h-9 px-3 text-sm"
           >
             Salvar Alterações
           </ActionButton>
@@ -410,7 +411,7 @@ export default function Settings() {
               </p>
             </div>
             <Select value={theme} onValueChange={setTheme}>
-              <SelectTrigger className="w-40">
+              <SelectTrigger className="h-9 w-40">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -503,8 +504,12 @@ export default function Settings() {
                     />
                   </div>
                 </div>
-                <div className="flex gap-2 mt-4">
-                  <Button onClick={handleAddAccount} size="sm">
+                <div className="flex flex-wrap items-center gap-2 mt-4">
+                  <Button
+                    onClick={handleAddAccount}
+                    size="sm"
+                    className="h-9 px-4 text-sm"
+                  >
                     <Plus className="h-4 w-4 mr-2" />
                     Adicionar
                   </Button>
@@ -512,6 +517,7 @@ export default function Settings() {
                     variant="outline"
                     size="sm"
                     onClick={() => setShowNewAccount(false)}
+                    className="h-9 px-3 text-sm"
                   >
                     Cancelar
                   </Button>
@@ -598,6 +604,7 @@ export default function Settings() {
               variant="outline"
               size="sm"
               onClick={() => setShowNewCategory(!showNewCategory)}
+              className="h-9 px-3 text-sm"
             >
               <Plus className="h-4 w-4 mr-2" />
               Nova Categoria
@@ -659,8 +666,12 @@ export default function Settings() {
                     </div>
                   </div>
                 </div>
-                <div className="flex gap-2 mt-4">
-                  <Button onClick={handleAddCategory} size="sm">
+                <div className="flex flex-wrap items-center gap-2 mt-4">
+                  <Button
+                    onClick={handleAddCategory}
+                    size="sm"
+                    className="h-9 px-4 text-sm"
+                  >
                     <Plus className="h-4 w-4 mr-2" />
                     Adicionar
                   </Button>
@@ -668,6 +679,7 @@ export default function Settings() {
                     variant="outline"
                     size="sm"
                     onClick={() => setShowNewCategory(false)}
+                    className="h-9 px-3 text-sm"
                   >
                     Cancelar
                   </Button>
@@ -731,6 +743,7 @@ export default function Settings() {
               loading={isLoading}
               loadingText="Exportando..."
               icon={Download}
+              className="h-9 px-3 text-sm"
             >
               Fazer Backup
             </ActionButton>
@@ -747,7 +760,11 @@ export default function Settings() {
             </div>
             <ConfirmDialog
               trigger={
-                <Button variant="destructive" size="sm">
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="h-9 px-3 text-sm"
+                >
                   <Trash2 className="h-4 w-4 mr-2" />
                   Limpar Dados
                 </Button>

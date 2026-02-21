@@ -284,12 +284,12 @@ export default function Goals() {
                   )}
 
                   {/* Actions */}
-                  <div className="flex gap-2 pt-2">
+                  <div className="flex flex-wrap items-center gap-2 pt-2">
                     <ActionButton
                       variant="outline"
                       size="sm"
                       icon={Edit}
-                      className="flex-1"
+                      className="h-9 px-3 text-sm flex-1 sm:flex-initial"
                     >
                       Editar
                     </ActionButton>
@@ -299,7 +299,7 @@ export default function Goals() {
                         <ActionButton
                           variant="outline"
                           size="sm"
-                          className="px-2"
+                          className="h-9 px-3 text-sm"
                         >
                           <Trash2 className="h-4 w-4" />
                         </ActionButton>
