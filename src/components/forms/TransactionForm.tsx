@@ -248,7 +248,7 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
       onOpenChange={setIsOpen}
       submitLabel="Criar Transação"
     >
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="type">Tipo *</Label>
           <Select
@@ -323,7 +323,7 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="category">Categoria *</Label>
           <Select

@@ -133,7 +133,7 @@ export default function SharedExpenses() {
       {/* Header - botão em destaque e área de toque adequada no mobile */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
             Despesas Compartilhadas
           </h1>
           <p className="text-muted-foreground">

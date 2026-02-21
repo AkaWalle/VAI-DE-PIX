@@ -115,7 +115,7 @@ export default function Goals() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
             Metas Financeiras
           </h1>
           <p className="text-muted-foreground">

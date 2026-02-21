@@ -133,10 +133,10 @@ export default function Auth() {
 
         <div className="max-w-lg space-y-8 relative z-10">
           <div className="space-y-6">
-            <h2 className="text-4xl font-black leading-tight text-white drop-shadow-lg tracking-tight">
+            <h2 className="text-2xl sm:text-4xl font-black leading-tight text-white drop-shadow-lg tracking-tight">
               Domine suas finanças com inteligência
             </h2>
-            <p className="text-2xl text-white/95 drop-shadow-md font-medium leading-relaxed">
+            <p className="text-xl sm:text-2xl text-white/95 drop-shadow-md font-medium leading-relaxed">
               Sistema completo de gestão financeira pessoal com análises
               inteligentes e automações.
             </p>
@@ -145,19 +145,19 @@ export default function Auth() {
           <div className="space-y-6">
             <div className="flex items-center gap-4">
               <TrendingUp className="h-6 w-6 text-white drop-shadow-md flex-shrink-0" />
-              <span className="text-xl text-white drop-shadow-md font-medium">
+              <span className="text-base sm:text-xl text-white drop-shadow-md font-medium">
                 Relatórios detalhados para decisões melhores
               </span>
             </div>
             <div className="flex items-center gap-4">
               <Shield className="h-6 w-6 text-white drop-shadow-md flex-shrink-0" />
-              <span className="text-xl text-white drop-shadow-md font-medium">
+              <span className="text-base sm:text-xl text-white drop-shadow-md font-medium">
                 Dados 100% seguros e criptografados
               </span>
             </div>
             <div className="flex items-center gap-4">
               <Zap className="h-6 w-6 text-white drop-shadow-md flex-shrink-0" />
-              <span className="text-xl text-white drop-shadow-md font-medium">
+              <span className="text-base sm:text-xl text-white drop-shadow-md font-medium">
                 Automação para ganhar tempo no dia a dia
               </span>
             </div>
@@ -172,7 +172,7 @@ export default function Auth() {
           <div className="text-center">
             <div className="flex items-center justify-center gap-3 mb-4">
               <CircleDollarSign className="h-10 w-10 text-primary" />
-              <h1 className="text-3xl font-extrabold tracking-wide">
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-wide">
                 VAI DE PIX
               </h1>
             </div>
@@ -188,7 +188,7 @@ export default function Auth() {
             <TabsContent value="login">
               <Card>
                 <CardHeader className="space-y-2 text-center">
-                  <CardTitle className="text-3xl font-bold">
+                  <CardTitle className="text-2xl sm:text-3xl font-bold">
                     Bem-vindo de volta
                   </CardTitle>
                   <CardDescription className="text-base">
@@ -265,7 +265,7 @@ export default function Auth() {
             <TabsContent value="register">
               <Card>
                 <CardHeader className="space-y-2 text-center">
-                  <CardTitle className="text-3xl font-bold">
+                  <CardTitle className="text-2xl sm:text-3xl font-bold">
                     Criar nova conta
                   </CardTitle>
                   <CardDescription className="text-base">

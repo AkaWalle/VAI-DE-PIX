@@ -22,6 +22,7 @@ import {
   Lightbulb,
   AlertTriangle,
 } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   fetchInsights,
   postInsightFeedback,
@@ -192,6 +193,10 @@ export default function Dashboard() {
   const categoryVariation = insights?.category_monthly_variation ?? [];
   const goalsAtRisk = insights?.goals_at_risk?.filter((g) => g.at_risk) ?? [];
 
+  const isMobile = useIsMobile();
+  const chartHeight = isMobile ? 192 : 256;
+  const chartFontSize = isMobile ? 10 : 12;
+
   // Banner: notificações de insights não lidas (C2)
   const [unreadInsightCount, setUnreadInsightCount] = useState(0);
   useEffect(() => {
@@ -202,11 +207,11 @@ export default function Dashboard() {
   }, []);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Dashboard</h1>
+        <p className="text-xs sm:text-sm text-muted-foreground">
           Visão geral da sua situação financeira
         </p>
       </div>
@@ -224,7 +229,7 @@ export default function Dashboard() {
       )}
 
       {/* Financial Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-2 lg:grid-cols-4">
         <FinancialCard
           title="Saldo Total"
           value={formatCurrency(totalBalance)}
@@ -264,19 +269,17 @@ export default function Dashboard() {
 
       {/* Insights Section */}
       {(categoryVariation.length > 0 || goalsAtRisk.length > 0) && !insightsLoading && (
-        <div id="insights" className="grid gap-6 md:grid-cols-2">
+        <div id="insights" className="grid gap-3 sm:gap-6 md:grid-cols-2">
           {categoryVariation.length > 0 && (
             <Card className="bg-gradient-card shadow-card-custom">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Lightbulb className="h-5 w-5 text-primary" />
+              <CardHeader className="p-3 sm:p-6">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <Lightbulb className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                   Variação por categoria
                 </CardTitle>
-                <CardDescription>
-                  Este mês vs mês anterior (despesas). Explicável e sem IA opaca.
-                </CardDescription>
+                <CardDescription className="text-xs sm:text-sm">Este mês vs mês anterior (despesas). Explicável e sem IA opaca.</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="p-3 sm:p-6 pt-0 space-y-3">
                 {categoryVariation.slice(0, 5).map((item) => (
                   <div
                     key={item.category_id}
@@ -307,16 +310,14 @@ export default function Dashboard() {
           )}
           {goalsAtRisk.length > 0 && (
             <Card className="bg-gradient-card shadow-card-custom">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5 text-warning" />
+              <CardHeader className="p-3 sm:p-6">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-warning" />
                   Metas em risco
                 </CardTitle>
-                <CardDescription>
-                  Metas que podem não ser atingidas no prazo. Critério explicável.
-                </CardDescription>
+                <CardDescription className="text-xs sm:text-sm">Metas que podem não ser atingidas no prazo. Critério explicável.</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="p-3 sm:p-6 pt-0 space-y-3">
                 {goalsAtRisk.slice(0, 5).map((item, index) => (
                   <div
                     key={item.goal_id}
@@ -342,7 +343,7 @@ export default function Dashboard() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="h-7 text-xs"
+                          className="h-7 min-h-[44px] min-w-[44px] touch-manipulation text-xs sm:min-h-0 sm:min-w-0"
                           disabled={feedbackLoading === item.insight_hash}
                           onClick={() =>
                             handleInsightFeedback(
@@ -357,7 +358,7 @@ export default function Dashboard() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="h-7 text-xs text-muted-foreground"
+                          className="h-7 min-h-[44px] min-w-[44px] touch-manipulation text-xs text-muted-foreground sm:min-h-0 sm:min-w-0"
                           disabled={feedbackLoading === item.insight_hash}
                           onClick={() =>
                             handleInsightFeedback(
@@ -380,23 +381,25 @@ export default function Dashboard() {
       )}
 
       {/* Charts Section */}
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-3 sm:gap-6 md:grid-cols-2">
         {/* Cashflow Chart */}
         <Card className="bg-gradient-card shadow-card-custom">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-primary" />
+          <CardHeader className="p-3 sm:p-6">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
               Fluxo de Caixa (6 meses)
             </CardTitle>
-            <CardDescription>Evolução de receitas e despesas</CardDescription>
+            <CardDescription className="text-xs sm:text-sm">Evolução de receitas e despesas</CardDescription>
           </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={cashflowData}>
-                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                <YAxis
-                  tick={{ fontSize: 12 }}
+          <CardContent className="p-3 sm:p-6 pt-0">
+            <div className="overflow-x-auto -mx-1">
+              <div className="min-w-[280px]" style={{ height: chartHeight }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={cashflowData}>
+                    <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                    <XAxis dataKey="month" tick={{ fontSize: chartFontSize }} />
+                    <YAxis
+                      tick={{ fontSize: chartFontSize }}
                   tickFormatter={(value) =>
                     formatCurrency(value, { abbreviated: true })
                   }
@@ -457,26 +460,29 @@ export default function Dashboard() {
                   fill="hsl(var(--expense))"
                   fillOpacity={0.6}
                 />
-              </AreaChart>
-            </ResponsiveContainer>
+                </AreaChart>
+              </ResponsiveContainer>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
         {/* Category Spending Chart */}
         <Card className="bg-gradient-card shadow-card-custom">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5 text-primary" />
+          <CardHeader className="p-3 sm:p-6">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
               Gastos por Categoria
             </CardTitle>
-            <CardDescription>Distribuição dos gastos deste mês</CardDescription>
+            <CardDescription className="text-xs sm:text-sm">Distribuição dos gastos deste mês</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 sm:p-6 pt-0">
             {categoryData.length > 0 ? (
-              <div className="flex flex-col lg:flex-row gap-6">
+              <div className="flex flex-col lg:flex-row gap-3 sm:gap-6">
                 {/* Gráfico */}
-                <div className="flex-1 min-w-0">
-                  <ResponsiveContainer width="100%" height={300}>
+                <div className="flex-1 min-w-0 overflow-x-auto">
+                  <div style={{ height: chartHeight }} className="min-w-[240px]">
+                    <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
                         data={categoryData}
@@ -497,6 +503,7 @@ export default function Dashboard() {
                       </Pie>
                     </PieChart>
                   </ResponsiveContainer>
+                  </div>
                 </div>
 
                 {/* Legenda */}
@@ -554,19 +561,17 @@ export default function Dashboard() {
       </div>
 
       {/* Goals and Recent Activity */}
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-3 sm:gap-6 lg:grid-cols-3">
         {/* Goals Progress */}
         <Card className="lg:col-span-2 bg-gradient-card shadow-card-custom">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Target className="h-5 w-5 text-primary" />
+          <CardHeader className="p-3 sm:p-6">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <Target className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
               Progresso das Metas
             </CardTitle>
-            <CardDescription>
-              Acompanhe o progresso dos seus objetivos
-            </CardDescription>
+            <CardDescription className="text-xs sm:text-sm">Acompanhe o progresso dos seus objetivos</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="p-3 sm:p-6 pt-0 space-y-4">
             {goalProgress.map((goal) => (
               <div key={goal.id} className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
@@ -612,11 +617,11 @@ export default function Dashboard() {
 
         {/* Recent Transactions */}
         <Card className="bg-gradient-card shadow-card-custom">
-          <CardHeader>
-            <CardTitle>Transações Recentes</CardTitle>
-            <CardDescription>Últimas movimentações</CardDescription>
+          <CardHeader className="p-3 sm:p-6">
+            <CardTitle className="text-base sm:text-lg">Transações Recentes</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">Últimas movimentações</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="p-3 sm:p-6 pt-0 space-y-3">
             {transactions.slice(0, 5).map((transaction) => {
               const category = categories.find(
                 (c) => c.id === transaction.category,
