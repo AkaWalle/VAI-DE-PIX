@@ -315,7 +315,7 @@ export default function Transactions() {
             Gerencie suas receitas e despesas
           </p>
         </div>
-        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap items-center">
           <BankImportDialog
             trigger={
               <ActionButton
@@ -463,7 +463,7 @@ export default function Transactions() {
               variant="outline"
               size="sm"
               onClick={clearFilters}
-              className="flex items-center gap-2"
+              className="h-9 px-3 text-sm flex items-center gap-2"
             >
               <X className="h-4 w-4" />
               Limpar Filtros
@@ -483,11 +483,12 @@ export default function Transactions() {
                   className="pl-9"
                 />
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Button
                   variant={selectedType === "all" ? "default" : "outline"}
                   size="sm"
                   onClick={() => setSelectedType("all")}
+                  className="h-9 px-3 text-sm"
                 >
                   Todas
                 </Button>
@@ -495,6 +496,7 @@ export default function Transactions() {
                   variant={selectedType === "income" ? "default" : "outline"}
                   size="sm"
                   onClick={() => setSelectedType("income")}
+                  className="h-9 px-3 text-sm"
                 >
                   Receitas
                 </Button>
@@ -502,6 +504,7 @@ export default function Transactions() {
                   variant={selectedType === "expense" ? "default" : "outline"}
                   size="sm"
                   onClick={() => setSelectedType("expense")}
+                  className="h-9 px-3 text-sm"
                 >
                   Despesas
                 </Button>
@@ -515,11 +518,12 @@ export default function Transactions() {
                 <span className="text-sm font-medium">Filtro por Data:</span>
               </div>
 
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Button
                   variant={dateFilter === "all" ? "default" : "outline"}
                   size="sm"
                   onClick={() => setDateFilter("all")}
+                  className="h-9 px-3 text-sm"
                 >
                   Todas as Datas
                 </Button>
@@ -527,6 +531,7 @@ export default function Transactions() {
                   variant={dateFilter === "specific" ? "default" : "outline"}
                   size="sm"
                   onClick={() => setDateFilter("specific")}
+                  className="h-9 px-3 text-sm"
                 >
                   Data Específica
                 </Button>
@@ -534,6 +539,7 @@ export default function Transactions() {
                   variant={dateFilter === "month" ? "default" : "outline"}
                   size="sm"
                   onClick={() => setDateFilter("month")}
+                  className="h-9 px-3 text-sm"
                 >
                   Por Mês
                 </Button>
@@ -541,6 +547,7 @@ export default function Transactions() {
                   variant={dateFilter === "year" ? "default" : "outline"}
                   size="sm"
                   onClick={() => setDateFilter("year")}
+                  className="h-9 px-3 text-sm"
                 >
                   Por Ano
                 </Button>

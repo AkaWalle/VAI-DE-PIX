@@ -218,7 +218,9 @@ class TransactionService:
         transaction_data: dict,
         account: Account,
         user_id: str,
-        db: Session
+        db: Session,
+        *,
+        skip_balance_check: bool = False,
     ) -> Transaction:
         """
         Cria uma nova transação e atualiza o saldo da conta atomicamente.
@@ -228,6 +230,7 @@ class TransactionService:
             account: Conta onde a transação será aplicada
             user_id: ID do usuário dono da transação
             db: Sessão do banco de dados
+            skip_balance_check: Se True, não valida saldo para despesa (ex.: despesa compartilhada).
         
         Returns:
             Transação criada
@@ -278,7 +281,7 @@ class TransactionService:
             lock_account(account.id, db)
             _lock_accounts_for_update([account.id], db)
             amount = transaction_data["amount"]
-            if transaction_type == "expense":
+            if transaction_type == "expense" and not skip_balance_check:
                 current_balance = get_balance_from_ledger(account.id, db)
                 # Garantir comparação em reais (Decimal): amount deve vir de _validate_transaction_payload (from_cents).
                 amount_reais = amount if isinstance(amount, Decimal) else Decimal(str(amount))

@@ -140,12 +140,12 @@ export default function SharedExpenses() {
             Gerencie despesas divididas entre múltiplas pessoas
           </p>
         </div>
-        <div className="flex gap-2 w-full sm:w-auto">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           <ActionButton
             variant="default"
             icon={Plus}
             onClick={() => setShowForm(true)}
-            className="min-h-[44px] px-6 flex-1 sm:flex-initial touch-manipulation"
+            className="h-9 px-4 text-sm"
           >
             Nova Despesa
           </ActionButton>

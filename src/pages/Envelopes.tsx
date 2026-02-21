@@ -101,8 +101,12 @@ export default function Envelopes() {
             Sistema de envelopes para organizar seu orçamento
           </p>
         </div>
-        <div className="flex gap-2">
-          <ActionButton variant="outline" icon={ArrowLeftRight}>
+        <div className="flex flex-wrap items-center gap-2">
+          <ActionButton
+            variant="outline"
+            icon={ArrowLeftRight}
+            className="h-9 px-3 text-sm"
+          >
             Transferir
           </ActionButton>
           <EnvelopeForm />
@@ -289,7 +293,7 @@ export default function Envelopes() {
                   </div>
 
                   {/* Actions */}
-                  <div className="flex gap-2 pt-2">
+                  <div className="flex flex-wrap items-center gap-2 pt-2">
                     <EnvelopeValueForm
                       envelopeId={envelope.id}
                       envelopeName={envelope.name}
@@ -307,7 +311,7 @@ export default function Envelopes() {
                         <ActionButton
                           variant="outline"
                           size="sm"
-                          className="px-2"
+                          className="h-9 px-3 text-sm"
                         >
                           <Trash2 className="h-4 w-4" />
                         </ActionButton>
@@ -372,13 +376,17 @@ export default function Envelopes() {
                 </select>
               </div>
             </div>
-            <div className="mt-4 flex gap-2">
+            <div className="mt-4 flex flex-wrap items-center gap-2">
               <CurrencyInput
                 value={transferAmountCents}
                 onChange={setTransferAmountCents}
                 className="flex-1"
               />
-              <ActionButton icon={ArrowLeftRight} onClick={handleTransfer}>
+              <ActionButton
+                icon={ArrowLeftRight}
+                onClick={handleTransfer}
+                className="h-9 px-3 text-sm"
+              >
                 Transferir
               </ActionButton>
             </div>

@@ -285,6 +285,7 @@ def create_shared_expense(
             account=account,
             user_id=creator_id,
             db=db,
+            skip_balance_check=True,
         )
         logger.info(
             "shared_expense_created",

@@ -397,10 +397,15 @@ export default function Automations() {
             Configure regras automáticas para seus dados financeiros
           </p>
         </div>
-        <Button onClick={() => setShowNewRule(!showNewRule)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Nova Automação
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            onClick={() => setShowNewRule(!showNewRule)}
+            className="h-9 px-4 text-sm"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Nova Automação
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -621,14 +626,19 @@ export default function Automations() {
               </div>
             )}
 
-            <div className="flex gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Button
                 onClick={editingRuleId ? handleUpdateRule : handleCreateRule}
+                className="h-9 px-4 text-sm"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 {editingRuleId ? "Salvar Alterações" : "Criar Automação"}
               </Button>
-              <Button variant="outline" onClick={handleCancelEdit}>
+              <Button
+                variant="outline"
+                onClick={handleCancelEdit}
+                className="h-9 px-3 text-sm"
+              >
                 Cancelar
               </Button>
             </div>
@@ -712,13 +722,18 @@ export default function Automations() {
                         variant="outline"
                         size="sm"
                         onClick={() => handleEditRule(rule.id)}
+                        className="h-9 px-3 text-sm"
                       >
                         <Settings className="h-4 w-4" />
                       </Button>
 
                       <ConfirmDialog
                         trigger={
-                          <Button variant="outline" size="sm">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-9 px-3 text-sm"
+                          >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         }
@@ -747,7 +762,10 @@ export default function Automations() {
               Crie regras automáticas para facilitar o gerenciamento das suas
               finanças
             </p>
-            <Button onClick={() => setShowNewRule(true)}>
+            <Button
+              onClick={() => setShowNewRule(true)}
+              className="h-9 px-4 text-sm"
+            >
               <Plus className="h-4 w-4 mr-2" />
               Criar Primeira Automação
             </Button>

@@ -145,9 +145,9 @@ export default function Reports() {
             Análises detalhadas e exportações dos seus dados financeiros
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="h-9 w-40">
               <SelectValue placeholder="Período" />
             </SelectTrigger>
             <SelectContent>
@@ -161,6 +161,7 @@ export default function Reports() {
             loading={isExporting}
             loadingText="Exportando..."
             onClick={handleExportReport}
+            className="h-9 px-3 text-sm"
           >
             Exportar Relatório
           </ActionButton>

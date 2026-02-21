@@ -339,11 +339,11 @@ export default function Dashboard() {
                       {item.days_left} dias restantes
                     </div>
                     {item.insight_hash && (
-                      <div className="mt-2 flex gap-2">
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="h-7 min-h-[44px] min-w-[44px] touch-manipulation text-xs sm:min-h-0 sm:min-w-0"
+                          className="h-9 px-3 text-sm"
                           disabled={feedbackLoading === item.insight_hash}
                           onClick={() =>
                             handleInsightFeedback(
@@ -358,7 +358,7 @@ export default function Dashboard() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="h-7 min-h-[44px] min-w-[44px] touch-manipulation text-xs text-muted-foreground sm:min-h-0 sm:min-w-0"
+                          className="h-9 px-3 text-sm text-muted-foreground"
                           disabled={feedbackLoading === item.insight_hash}
                           onClick={() =>
                             handleInsightFeedback(
