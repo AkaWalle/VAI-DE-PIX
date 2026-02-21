@@ -66,7 +66,13 @@ def create_shared_expense(
 
     shares_to_create: List[Tuple[str, str, Any, int | None]] = []
     assert isinstance(total_cents, int), "total_cents must be int before create_expense"
-    creator_id = creator_user.id
+    # Garantir que created_by seja sempre o ID do usuário autenticado (evita 403 no DELETE)
+    creator_id = str(creator_user.id)
+    logger.info(
+        "creating shared_expense | created_by=%s creator_user.id=%s",
+        creator_id,
+        getattr(creator_user, "id", None),
+    )
 
     if participants_schema and len(participants_schema) > 0:
         # Novo fluxo: participants com split_type (user_id ou email por participante)
@@ -140,7 +146,7 @@ def create_shared_expense(
         base_amount = total_cents // 2
         rest = total_cents % 2
         shares_to_create = [
-            (creator_user.id, "accepted", None, base_amount + rest),
+            (creator_id, "accepted", None, base_amount + rest),
             (invited_user.id, "pending", None, base_amount),
         ]
 
@@ -159,7 +165,7 @@ def create_shared_expense(
     try:
         amount_decimal = from_cents(total_cents)
         expense = expense_repo.create_expense(
-            created_by=creator_user.id,
+            created_by=creator_id,
             amount=float(amount_decimal),
             description=description,
             split_type=split_type,
@@ -176,7 +182,7 @@ def create_shared_expense(
                 amount_cents=amount_cents,
             )
             created_shares.append(share)
-            audit_event = create_audit_event(db, share_id=share.id, action="created", performed_by=creator_user.id)
+            audit_event = create_audit_event(db, share_id=share.id, action="created", performed_by=creator_id)
             feed_items.extend(create_from_share_event(db, audit_event))
             if status == "pending":
                 amount_display = float(amount_decimal)
@@ -218,12 +224,12 @@ def create_shared_expense(
         if account_id:
             account = db.query(Account).filter(
                 Account.id == account_id,
-                Account.user_id == creator_user.id,
+                Account.user_id == creator_id,
                 Account.is_active.is_(True),
             ).first()
         if not account:
             account = db.query(Account).filter(
-                Account.user_id == creator_user.id,
+                Account.user_id == creator_id,
                 Account.is_active.is_(True),
             ).order_by(Account.created_at.asc()).first()
         if not account:
@@ -234,12 +240,12 @@ def create_shared_expense(
         if category_id:
             category = db.query(Category).filter(
                 Category.id == category_id,
-                Category.user_id == creator_user.id,
+                Category.user_id == creator_id,
                 Category.type == "expense",
             ).first()
         if not category:
             category = db.query(Category).filter(
-                Category.user_id == creator_user.id,
+                Category.user_id == creator_id,
                 Category.type == "expense",
             ).order_by(Category.created_at.asc()).first()
         if not category:
@@ -252,7 +258,7 @@ def create_shared_expense(
         )
         # Transação do criador: debitar apenas a parte dele (share), não o total — evita 422 por saldo insuficiente.
         creator_share = next(
-            (s for s in created_shares if str(s.user_id) == str(creator_user.id)),
+            (s for s in created_shares if str(s.user_id) == str(creator_id)),
             None,
         )
         if creator_share is not None and creator_share.amount is not None:
@@ -277,7 +283,7 @@ def create_shared_expense(
         TransactionService.create_transaction(
             transaction_data=transaction_data,
             account=account,
-            user_id=creator_user.id,
+            user_id=creator_id,
             db=db,
         )
         logger.info(
