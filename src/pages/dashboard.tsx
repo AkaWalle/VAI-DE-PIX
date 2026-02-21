@@ -397,13 +397,18 @@ export default function Dashboard() {
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={cashflowData}>
                     <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                    <XAxis dataKey="month" tick={{ fontSize: chartFontSize }} />
-                    <YAxis
+                    <XAxis
+                      dataKey="month"
                       tick={{ fontSize: chartFontSize }}
-                  tickFormatter={(value) =>
-                    formatCurrency(value, { abbreviated: true })
-                  }
-                />
+                      interval={isMobile ? 2 : 0}
+                    />
+                    <YAxis
+                      width={isMobile ? 55 : 70}
+                      tick={{ fontSize: chartFontSize }}
+                      tickFormatter={(value) =>
+                        formatCurrency(value, { abbreviated: true })
+                      }
+                    />
                 <Tooltip
                   formatter={(value, name) => [
                     formatCurrency(Number(value)),
@@ -426,17 +431,20 @@ export default function Dashboard() {
                     opacity: 1,
                     backdropFilter: "none",
                     zIndex: 1000,
+                    fontSize: isMobile ? 11 : undefined,
                   }}
                   labelStyle={{
                     color: "hsl(var(--card-foreground))",
                     marginBottom: 4,
                     fontWeight: 500,
+                    fontSize: isMobile ? 11 : undefined,
                   }}
                   itemStyle={{
                     color: "hsl(var(--card-foreground))",
                     padding: 0,
                     lineHeight: 1.2,
                     fontWeight: 600,
+                    fontSize: isMobile ? 11 : undefined,
                   }}
                   wrapperStyle={{
                     outline: "none",
@@ -479,18 +487,22 @@ export default function Dashboard() {
           <CardContent className="p-3 sm:p-6 pt-0">
             {categoryData.length > 0 ? (
               <div className="flex flex-col lg:flex-row gap-3 sm:gap-6">
-                {/* Gráfico */}
-                <div className="flex-1 min-w-0 overflow-x-auto">
-                  <div style={{ height: chartHeight }} className="min-w-[240px]">
+                {/* Gráfico: legenda abaixo no mobile (vertical), pizza menor no mobile */}
+                <div className="flex-1 min-w-0 overflow-x-auto min-w-[280px]">
+                  <div style={{ height: chartHeight }} className="min-w-[280px]">
                     <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
                         data={categoryData}
                         cx="50%"
                         cy="50%"
-                        labelLine={false}
-                        label={false}
-                        outerRadius={100}
+                        labelLine={!isMobile}
+                        label={({ name, percent }) =>
+                          isMobile && percent < 0.05
+                            ? null
+                            : `${name} ${(percent * 100).toFixed(0)}%`
+                        }
+                        outerRadius={isMobile ? 90 : 120}
                         fill="#8884d8"
                         dataKey="value"
                       >
@@ -506,40 +518,45 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                {/* Legenda */}
+                {/* Legenda: abaixo do gráfico, layout vertical, text-xs no mobile */}
                 <div className="flex flex-col justify-center gap-3 w-full lg:w-auto lg:min-w-[200px]">
-                  <h4 className="text-sm font-semibold text-muted-foreground mb-2">
+                  <h4 className="text-xs sm:text-sm font-semibold text-muted-foreground mb-2">
                     Legenda
                   </h4>
-                  {categoryData.map((entry, index) => {
-                    const percentage = (
-                      (entry.value /
-                        categoryData.reduce(
-                          (sum, item) => sum + item.value,
-                          0,
-                        )) *
-                      100
-                    ).toFixed(1);
-                    return (
-                      <div key={index} className="flex items-center gap-3">
+                  <div className="flex flex-col gap-2">
+                    {categoryData.map((entry, index) => {
+                      const percentage = (
+                        (entry.value /
+                          categoryData.reduce(
+                            (sum, item) => sum + item.value,
+                            0,
+                          )) *
+                        100
+                      ).toFixed(1);
+                      return (
                         <div
-                          className="w-4 h-4 rounded-full flex-shrink-0"
-                          style={{
-                            backgroundColor:
-                              entry.color || COLORS[index % COLORS.length],
-                          }}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium truncate">
-                            {entry.name}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {formatCurrency(entry.value)} ({percentage}%)
+                          key={index}
+                          className="flex items-center gap-3 text-xs sm:text-sm"
+                        >
+                          <div
+                            className="w-4 h-4 rounded-full flex-shrink-0"
+                            style={{
+                              backgroundColor:
+                                entry.color || COLORS[index % COLORS.length],
+                            }}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium truncate">
+                              {entry.name}
+                            </div>
+                            <div className="text-muted-foreground">
+                              {formatCurrency(entry.value)} ({percentage}%)
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             ) : (
