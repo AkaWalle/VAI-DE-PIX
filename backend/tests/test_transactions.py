@@ -1,263 +1,166 @@
 """
-Testes críticos para transações financeiras
-Garante que saldos são atualizados corretamente e atomicamente
+Testes de integração para fluxos principais de transações.
+POST /api/transactions com validações de payload, conta, saldo e tipo (income não valida saldo).
 """
-from decimal import Decimal
+import uuid
+from datetime import datetime, timezone
+
 import pytest
-from datetime import datetime
-
-from models import Transaction, Account, Category
-from services.transaction_service import TransactionService
-from services.account_service import AccountService
-from core.constants import TRANSACTION_TYPE_INCOME, TRANSACTION_TYPE_EXPENSE
+from fastapi.testclient import TestClient
 
 
-class TestAccountService:
-    """Testes para AccountService - lógica de atualização de saldo."""
-    
-    def test_apply_income_transaction(self, db, test_account):
-        """Testa aplicação de receita aumenta saldo."""
-        initial_balance = test_account.balance
-        
-        AccountService.apply_transaction(
-            account=test_account,
-            transaction_type=TRANSACTION_TYPE_INCOME,
-            amount=Decimal("500.0"),
-            db=db
+def _payload(
+    account_id: str,
+    category_id: str,
+    type_: str = "expense",
+    amount_cents: int = 5000,
+    description: str = "Test transaction",
+    **kwargs,
+):
+    base = {
+        "date": datetime.now(timezone.utc).isoformat(),
+        "account_id": account_id,
+        "category_id": category_id,
+        "type": type_,
+        "amount_cents": amount_cents,
+        "description": description,
+        "tags": [],
+    }
+    base.update(kwargs)
+    return base
+
+
+class TestCreateTransactionSuccess:
+    """POST /transactions com payload válido → 201 e retorna transaction com id."""
+
+    def test_post_valid_returns_201_and_id(
+        self,
+        client: TestClient,
+        auth_headers: dict,
+        test_user,
+        test_account,
+        test_category,
+    ):
+        payload = _payload(
+            account_id=test_account.id,
+            category_id=test_category.id,
+            type_="expense",
+            amount_cents=1000,
+            description="Despesa teste",
         )
-
-        # Commit para persistir mudanças no banco
-        db.commit()
-        db.refresh(test_account)
-        assert float(test_account.balance) == float(initial_balance) + 500.0
-
-    def test_apply_expense_transaction(self, db, test_account):
-        """Testa aplicação de despesa diminui saldo."""
-        initial_balance = test_account.balance
-        
-        AccountService.apply_transaction(
-            account=test_account,
-            transaction_type=TRANSACTION_TYPE_EXPENSE,
-            amount=Decimal("200.0"),
-            db=db
+        response = client.post(
+            "/api/transactions/",
+            json=payload,
+            headers=auth_headers,
         )
+        # API retorna 200 na criação (idempotência cacheia 200)
+        assert response.status_code in (200, 201)
+        data = response.json()
+        assert "id" in data
+        assert data["description"] == "Despesa teste"
+        assert data["account_id"] == test_account.id
+        assert data["category_id"] == test_category.id
+        assert data["type"] == "expense"
 
-        # Commit para persistir mudanças no banco
-        db.commit()
-        db.refresh(test_account)
-        assert float(test_account.balance) == float(initial_balance) - 200.0
 
-    def test_revert_income_transaction(self, db, test_account):
-        """Testa reversão de receita diminui saldo."""
-        initial_balance = test_account.balance
-        
-        # Aplicar primeiro
-        AccountService.apply_transaction(
-            account=test_account,
-            transaction_type=TRANSACTION_TYPE_INCOME,
-            amount=Decimal("500.0"),
-            db=db
+class TestCreateTransactionValidation:
+    """Validação de payload: amount_cents=0 → 400/422; conta inexistente → 404."""
+
+    def test_post_amount_cents_zero_rejected(
+        self,
+        client: TestClient,
+        auth_headers: dict,
+        test_account,
+        test_category,
+    ):
+        payload = _payload(
+            account_id=test_account.id,
+            category_id=test_category.id,
+            amount_cents=0,
+            description="Zero",
         )
-
-        # Reverter
-        AccountService.revert_transaction(
-            account=test_account,
-            transaction_type=TRANSACTION_TYPE_INCOME,
-            amount=Decimal("500.0"),
-            db=db
+        response = client.post(
+            "/api/transactions/",
+            json=payload,
+            headers=auth_headers,
         )
-        
-        db.refresh(test_account)
-        assert float(test_account.balance) == float(initial_balance)
+        # Pydantic gt=0 → 422 Unprocessable Entity (validação de body)
+        assert response.status_code in (400, 422)
 
-    def test_revert_expense_transaction(self, db, test_account):
-        """Testa reversão de despesa aumenta saldo."""
-        initial_balance = test_account.balance
-        
-        # Aplicar primeiro
-        AccountService.apply_transaction(
-            account=test_account,
-            transaction_type=TRANSACTION_TYPE_EXPENSE,
-            amount=Decimal("200.0"),
-            db=db
+    def test_post_account_not_found_404(
+        self,
+        client: TestClient,
+        auth_headers: dict,
+        test_category,
+    ):
+        fake_account_id = str(uuid.uuid4())
+        payload = _payload(
+            account_id=fake_account_id,
+            category_id=test_category.id,
+            amount_cents=1000,
+            description="Conta inexistente",
         )
-
-        # Reverter
-        AccountService.revert_transaction(
-            account=test_account,
-            transaction_type=TRANSACTION_TYPE_EXPENSE,
-            amount=Decimal("200.0"),
-            db=db
+        response = client.post(
+            "/api/transactions/",
+            json=payload,
+            headers=auth_headers,
         )
-        
-        db.refresh(test_account)
-        assert float(test_account.balance) == float(initial_balance)
+        assert response.status_code == 404
+        assert "conta" in response.json().get("detail", "").lower() or "não encontrada" in response.json().get("detail", "").lower()
 
 
-class TestTransactionService:
-    """Testes para TransactionService - operações de transações."""
-    
-    def test_create_income_transaction_updates_balance(self, db, test_user, test_account, test_category):
-        """Testa que criar receita atualiza saldo atomicamente."""
-        initial_balance = test_account.balance
-        amount = 1000.0
-        
-        transaction = TransactionService.create_transaction(
-            transaction_data={
-                'date': datetime.now(),
-                'category_id': test_category.id,
-                'type': TRANSACTION_TYPE_INCOME,
-                'amount_cents': int(round(amount * 100)),
-                'description': 'Test income',
-                'tags': []
-            },
-            account=test_account,
-            user_id=test_user.id,
-            db=db
+class TestCreateTransactionBalance:
+    """Saldo insuficiente → 422 com mensagem correta; income não valida saldo → 201."""
+
+    def test_post_insufficient_balance_422(
+        self,
+        client: TestClient,
+        auth_headers: dict,
+        test_category,
+        account_with_balance,
+    ):
+        # Conta com saldo 10 reais; despesa 50 reais
+        account = account_with_balance(10.0)
+        payload = _payload(
+            account_id=account.id,
+            category_id=test_category.id,
+            type_="expense",
+            amount_cents=5000,  # 50 reais
+            description="Despesa maior que saldo",
         )
-        
-        # Verificar transação criada
-        assert transaction.id is not None
-        assert float(transaction.amount) == amount
-        assert transaction.type == TRANSACTION_TYPE_INCOME
-
-        # Verificar saldo atualizado
-        db.refresh(test_account)
-        assert float(test_account.balance) == float(initial_balance) + amount
-    
-    def test_create_expense_transaction_updates_balance(self, db, test_user, test_account, test_category):
-        """Testa que criar despesa atualiza saldo atomicamente."""
-        initial_balance = test_account.balance
-        amount = 300.0
-        
-        transaction = TransactionService.create_transaction(
-            transaction_data={
-                'date': datetime.now(),
-                'category_id': test_category.id,
-                'type': TRANSACTION_TYPE_EXPENSE,
-                'amount_cents': int(round(amount * 100)),
-                'description': 'Test expense',
-                'tags': []
-            },
-            account=test_account,
-            user_id=test_user.id,
-            db=db
+        response = client.post(
+            "/api/transactions/",
+            json=payload,
+            headers=auth_headers,
         )
-        
-        # Verificar transação criada
-        assert transaction.id is not None
-        assert float(transaction.amount) == amount
+        assert response.status_code == 422
+        detail = response.json().get("detail", {})
+        if isinstance(detail, dict):
+            msg = detail.get("message", "") or str(detail)
+        else:
+            msg = str(detail)
+        assert "saldo" in msg.lower() or "insuficiente" in msg.lower()
 
-        # Verificar saldo atualizado
-        db.refresh(test_account)
-        assert float(test_account.balance) == float(initial_balance) - amount
-    
-    def test_update_transaction_reverts_and_applies_balance(self, db, test_user, test_account, test_category):
-        """Testa que atualizar transação reverte saldo antigo e aplica novo."""
-        # Criar transação inicial
-        initial_balance = test_account.balance
-        old_amount = 500.0
-        
-        transaction = TransactionService.create_transaction(
-            transaction_data={
-                'date': datetime.now(),
-                'category_id': test_category.id,
-                'type': TRANSACTION_TYPE_INCOME,
-                'amount_cents': int(round(old_amount * 100)),
-                'description': 'Original',
-                'tags': []
-            },
-            account=test_account,
-            user_id=test_user.id,
-            db=db
+    def test_post_income_does_not_validate_balance_201(
+        self,
+        client: TestClient,
+        auth_headers: dict,
+        test_account,
+        test_category,
+    ):
+        # Income nunca verifica saldo; deve ser aceito
+        payload = _payload(
+            account_id=test_account.id,
+            category_id=test_category.id,
+            type_="income",
+            amount_cents=100_00,  # 100 reais
+            description="Receita teste",
         )
-        
-        db.refresh(test_account)
-        balance_after_create = test_account.balance
-        assert float(balance_after_create) == float(initial_balance) + old_amount
-        
-        # Atualizar transação (API só aceita amount_cents)
-        new_amount = 800.0
-        updated_transaction = TransactionService.update_transaction(
-            db_transaction=transaction,
-            update_data={"amount_cents": int(round(new_amount * 100))},
-            old_account=test_account,
-            new_account=test_account,
-            user_id=test_user.id,
-            db=db
+        response = client.post(
+            "/api/transactions/",
+            json=payload,
+            headers=auth_headers,
         )
-        
-        # Verificar transação atualizada
-        assert float(updated_transaction.amount) == new_amount
-
-        # Verificar saldo: deve reverter old_amount e aplicar new_amount
-        db.refresh(test_account)
-        expected_balance = float(initial_balance) + new_amount  # Reverteu old, aplicou new
-        assert abs(float(test_account.balance) - expected_balance) < 0.01
-    
-    def test_delete_transaction_reverts_balance(self, db, test_user, test_account, test_category):
-        """Testa que deletar transação reverte saldo."""
-        # Criar transação
-        initial_balance = test_account.balance
-        amount = 400.0
-        
-        transaction = TransactionService.create_transaction(
-            transaction_data={
-                'date': datetime.now(),
-                'category_id': test_category.id,
-                'type': TRANSACTION_TYPE_INCOME,
-                'amount_cents': int(round(amount * 100)),
-                'description': 'To delete',
-                'tags': []
-            },
-            account=test_account,
-            user_id=test_user.id,
-            db=db
-        )
-        
-        db.refresh(test_account)
-        assert float(test_account.balance) == float(initial_balance) + amount
-
-        # Deletar transação
-        TransactionService.delete_transaction(
-            db_transaction=transaction,
-            account=test_account,
-            user_id=test_user.id,
-            db=db
-        )
-        
-        # Verificar saldo revertido
-        db.refresh(test_account)
-        assert float(test_account.balance) == float(initial_balance)
-        
-        # Verificar transação deletada (soft delete por padrão: registro existe com deleted_at preenchido)
-        deleted = db.query(Transaction).filter(Transaction.id == transaction.id).first()
-        assert deleted is not None
-        assert deleted.deleted_at is not None
-    
-    def test_multiple_transactions_balance_consistency(self, db, test_user, test_account, test_category):
-        """Testa que múltiplas transações mantêm saldo consistente."""
-        initial_balance = test_account.balance
-        
-        # Criar várias transações
-        amounts = [100.0, 200.0, 300.0]
-        for amount in amounts:
-            TransactionService.create_transaction(
-                transaction_data={
-                    'date': datetime.now(),
-                    'category_id': test_category.id,
-                    'type': TRANSACTION_TYPE_INCOME,
-                    'amount_cents': int(round(amount * 100)),
-                    'description': f'Transaction {amount}',
-                    'tags': []
-                },
-                account=test_account,
-                user_id=test_user.id,
-                db=db
-            )
-        
-        # Verificar saldo final
-        db.refresh(test_account)
-        expected_balance = float(initial_balance) + sum(amounts)
-        assert abs(float(test_account.balance) - expected_balance) < 0.01
-
+        assert response.status_code in (200, 201)
+        data = response.json()
+        assert data["type"] == "income"

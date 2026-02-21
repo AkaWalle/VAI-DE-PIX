@@ -280,10 +280,19 @@ class TransactionService:
             amount = transaction_data["amount"]
             if transaction_type == "expense":
                 current_balance = get_balance_from_ledger(account.id, db)
-                if current_balance < Decimal(str(amount)):
+                # Garantir comparação em reais (Decimal): amount deve vir de _validate_transaction_payload (from_cents).
+                amount_reais = amount if isinstance(amount, Decimal) else Decimal(str(amount))
+                if current_balance < amount_reais:
+                    logger.info(
+                        "tx_business_fail | rule=insufficient_balance account_id=%s account_balance=%s amount_reais=%s amount_type=%s",
+                        account.id,
+                        current_balance,
+                        amount_reais,
+                        type(amount).__name__,
+                    )
                     _raise_tx_business(
                         message="Saldo insuficiente para esta despesa.",
-                        details=f"Saldo atual: {current_balance}; valor da despesa: {amount}.",
+                        details=f"Saldo atual: {current_balance}; valor da despesa: {amount_reais}.",
                         code=CODE_TX_INSUFFICIENT_BALANCE,
                     )
             db_transaction = Transaction(
