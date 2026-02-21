@@ -496,12 +496,8 @@ export default function Dashboard() {
                         data={categoryData}
                         cx="50%"
                         cy="50%"
-                        labelLine={!isMobile}
-                        label={({ name, percent }) =>
-                          isMobile && percent < 0.05
-                            ? null
-                            : `${name} ${(percent * 100).toFixed(0)}%`
-                        }
+                        label={false}
+                        labelLine={false}
                         outerRadius={isMobile ? 90 : 120}
                         fill="#8884d8"
                         dataKey="value"
