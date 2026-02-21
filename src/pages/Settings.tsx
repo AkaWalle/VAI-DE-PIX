@@ -292,7 +292,7 @@ export default function Settings() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-foreground">Configurações</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Configurações</h1>
         <p className="text-muted-foreground">
           Gerencie suas preferências e configurações do sistema
         </p>

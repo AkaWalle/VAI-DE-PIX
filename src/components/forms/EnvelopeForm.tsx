@@ -155,7 +155,7 @@ export function EnvelopeForm({ trigger }: EnvelopeFormProps) {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="balance">Saldo Inicial</Label>
           <CurrencyInput
@@ -179,7 +179,7 @@ export function EnvelopeForm({ trigger }: EnvelopeFormProps) {
 
       <div className="space-y-2">
         <Label htmlFor="color">Cor da Caixinha</Label>
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {colorOptions.map((option) => (
             <button
               key={option.value}

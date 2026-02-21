@@ -50,7 +50,7 @@ export function IconPicker({ value, onChange, label }: IconPickerProps) {
             <Label className="text-sm font-semibold">Selecione um ícone</Label>
               
             {/* Grid de ícones - limpo e organizado */}
-            <div className="grid grid-cols-8 gap-2 max-h-64 overflow-y-auto pr-2">
+            <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 max-h-64 overflow-y-auto pr-2">
               {commonIcons.map((icon) => (
                 <button
                   key={icon}

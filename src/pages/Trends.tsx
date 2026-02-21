@@ -175,7 +175,7 @@ export default function Trends() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-foreground">Tendências</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Tendências</h1>
         <p className="text-muted-foreground">
           Análise de padrões e tendências dos seus gastos
         </p>

@@ -157,7 +157,7 @@ export function GoalForm({ trigger }: GoalFormProps) {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="targetAmount">Valor da Meta *</Label>
           <CurrencyInput
@@ -178,7 +178,7 @@ export function GoalForm({ trigger }: GoalFormProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="category">Categoria</Label>
           <Select

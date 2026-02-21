@@ -70,20 +70,20 @@ export function FinancialCard({
         className,
       )}
     >
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-card-foreground/80">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-6 pb-2">
+        <CardTitle className="text-xs sm:text-sm font-medium text-card-foreground/80">
           {title}
         </CardTitle>
-        {Icon && <Icon className={cn("h-4 w-4", getIconClasses())} />}
+        {Icon && <Icon className={cn("h-4 w-4 sm:h-5 sm:w-5 shrink-0", getIconClasses())} />}
       </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold text-card-foreground">
+      <CardContent className="p-3 sm:p-6 pt-0">
+        <div className="text-lg sm:text-2xl font-bold text-card-foreground">
           {typeof value === "number" ? value.toLocaleString("pt-BR") : value}
         </div>
         {(description || trend) && (
           <div className="flex items-center justify-between mt-2">
             {description && (
-              <CardDescription className="text-xs">
+              <CardDescription className="text-xs sm:text-sm">
                 {description}
               </CardDescription>
             )}

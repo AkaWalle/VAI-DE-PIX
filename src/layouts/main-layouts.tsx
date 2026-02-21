@@ -1,6 +1,7 @@
 import { Outlet } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import { BottomNav } from "@/components/layout/BottomNav";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Button } from "@/components/ui/button";
 import { Moon, Sun } from "lucide-react";
@@ -16,7 +17,7 @@ function ThemeToggle() {
       variant="ghost"
       size="sm"
       onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-      className="h-9 w-9"
+      className="h-9 w-9 min-h-[44px] min-w-[44px]"
     >
       <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
       <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
@@ -55,12 +56,13 @@ export function MainLayout() {
             </header>
 
             {/* Main Content */}
-            <main className="flex-1 p-4 sm:p-6 overflow-x-hidden">
+            <main className="flex-1 px-3 sm:px-6 pt-4 sm:pt-6 pb-16 md:pb-6 overflow-x-hidden">
               <div className="w-full max-w-full">
                 <Outlet />
               </div>
             </main>
           </div>
+          <BottomNav />
         </div>
       </SidebarProvider>
     </ThemeProvider>
