@@ -36,13 +36,15 @@ export function MainLayout() {
         <div className="min-h-screen flex w-full bg-background overflow-hidden">
           <AppSidebar />
 
-          <div className="flex-1 flex flex-col min-w-0">
-            {/* Header */}
+          <div className="flex-1 flex flex-col min-w-0 w-full md:w-auto">
+            {/* Header: no mobile só logo + notificação/tema; no desktop inclui trigger da sidebar */}
             <header className="sticky top-0 z-40 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
               <div className="flex h-14 items-center justify-between px-4">
                 <div className="flex items-center gap-2 min-w-0">
-                  <SidebarTrigger className="-ml-1 flex-shrink-0" />
-                  <div className="h-4 w-px bg-border flex-shrink-0" />
+                  <div className="hidden md:flex items-center gap-2 min-w-0 flex-shrink-0">
+                    <SidebarTrigger className="-ml-1" />
+                    <div className="h-4 w-px bg-border flex-shrink-0" />
+                  </div>
                   <h2 className="text-lg font-semibold text-foreground truncate">
                     VAI DE PIX
                   </h2>
@@ -56,7 +58,7 @@ export function MainLayout() {
             </header>
 
             {/* Main Content */}
-            <main className="flex-1 px-3 sm:px-6 pt-4 sm:pt-6 pb-16 md:pb-6 overflow-x-hidden">
+            <main className="flex-1 w-full md:w-auto px-3 sm:px-6 pt-4 sm:pt-6 pb-20 md:pb-6 overflow-x-hidden overflow-y-auto">
               <div className="w-full max-w-full">
                 <Outlet />
               </div>
