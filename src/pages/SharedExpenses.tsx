@@ -153,56 +153,56 @@ export default function SharedExpenses() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card className="bg-gradient-card shadow-card-custom">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <Card className="bg-gradient-card shadow-card-custom p-3 sm:p-6">
+          <CardHeader className="pb-2 p-0">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-2">
               <Share2 className="h-4 w-4" />
               Total de Despesas
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{sharedExpenses.length}</div>
+          <CardContent className="p-0 pt-1">
+            <div className="text-lg sm:text-2xl font-bold">{sharedExpenses.length}</div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-card shadow-card-custom border-green-500/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+        <Card className="bg-gradient-card shadow-card-custom border-green-500/20 p-3 sm:p-6">
+          <CardHeader className="pb-2 p-0">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-2">
               <CheckCircle className="h-4 w-4 text-green-500" />
               Quitadas
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-500">
+          <CardContent className="p-0 pt-1">
+            <div className="text-lg sm:text-2xl font-bold text-green-500">
               {sharedExpenses.filter((e) => e.status === "settled").length}
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-card shadow-card-custom border-yellow-500/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+        <Card className="bg-gradient-card shadow-card-custom border-yellow-500/20 p-3 sm:p-6">
+          <CardHeader className="pb-2 p-0">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-2">
               <Clock className="h-4 w-4 text-yellow-500" />
               Pendentes
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-500">
+          <CardContent className="p-0 pt-1">
+            <div className="text-lg sm:text-2xl font-bold text-yellow-500">
               {sharedExpenses.filter((e) => e.status === "pending").length}
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-card shadow-card-custom border-blue-500/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+        <Card className="bg-gradient-card shadow-card-custom border-blue-500/20 p-3 sm:p-6">
+          <CardHeader className="pb-2 p-0">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-2">
               <DollarSign className="h-4 w-4 text-blue-500" />
               Valor Total
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-500">
+          <CardContent className="p-0 pt-1">
+            <div className="text-lg sm:text-2xl font-bold text-blue-500">
               {formatCurrency(
                 sharedExpenses.reduce(
                   (sum, expense) => sum + expense.totalAmount,

@@ -110,15 +110,15 @@ export default function Envelopes() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="bg-gradient-card shadow-card-custom">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <Card className="bg-gradient-card shadow-card-custom p-3 sm:p-6">
+          <CardHeader className="pb-2 p-0">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
               Total Alocado
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
+          <CardContent className="p-0 pt-1">
+            <div className="text-lg sm:text-2xl font-bold">
               {formatCurrencyFromCents(totalBalance)}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -127,14 +127,14 @@ export default function Envelopes() {
           </CardContent>
         </Card>
 
-        <Card className="bg-primary/5 border-primary/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-primary">
+        <Card className="bg-primary/5 border-primary/20 p-3 sm:p-6">
+          <CardHeader className="pb-2 p-0">
+            <CardTitle className="text-xs sm:text-sm font-medium text-primary">
               Meta Total
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
+          <CardContent className="p-0 pt-1">
+            <div className="text-lg sm:text-2xl font-bold">
               {formatCurrencyFromCents(totalTarget)}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -143,14 +143,14 @@ export default function Envelopes() {
           </CardContent>
         </Card>
 
-        <Card className="bg-success/5 border-success/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-success">
+        <Card className="bg-success/5 border-success/20 p-3 sm:p-6">
+          <CardHeader className="pb-2 p-0">
+            <CardTitle className="text-xs sm:text-sm font-medium text-success">
               Progresso Geral
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
+          <CardContent className="p-0 pt-1">
+            <div className="text-lg sm:text-2xl font-bold">
               {totalTarget > 0
                 ? ((totalBalance / totalTarget) * 100).toFixed(1)
                 : "0"}
