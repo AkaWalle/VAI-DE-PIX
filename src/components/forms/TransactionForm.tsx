@@ -22,6 +22,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Plus } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { automationsService } from "@/services/automations.service";
 
 /** Validação simples de e-mail (formato básico). */
 function isValidEmail(email: string): boolean {
@@ -45,7 +46,7 @@ interface TransactionFormProps {
 }
 
 export function TransactionForm({ trigger }: TransactionFormProps) {
-  const { addTransaction, categories, accounts } = useFinancialStore();
+  const { addTransaction, transactions, categories, accounts } = useFinancialStore();
   const { toast } = useToast();
 
   const [isLoading, setIsLoading] = useState(false);
@@ -172,6 +173,89 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
           ? `Despesa compartilhada de ${formatCurrencyFromCents(amountCents)} adicionada. Aparece em Transações e Despesas Compartilhadas.`
           : `${formData.type === "income" ? "Receita" : "Despesa"} de ${formatCurrencyFromCents(amountCents)} adicionada com sucesso.`,
       });
+
+      // Verificar limite de categoria (apenas para despesas)
+      if (formData.type === "expense" && formData.category) {
+        try {
+          const rules = await automationsService.getAutomations();
+          const categoryLimits = rules.filter(
+            (r) => r.type === "category_limit" && r.conditions?.category_id === formData.category,
+          );
+          const now = new Date();
+          const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+          const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+          const monthSumFromStore = transactions
+            .filter(
+              (t) =>
+                t.type === "expense" &&
+                t.category === formData.category &&
+                new Date(t.date) >= startOfMonth &&
+                new Date(t.date) <= endOfMonth,
+            )
+            .reduce((s, t) => s + Math.abs(t.amount), 0);
+          // Incluir a transação recém-criada (store pode ainda não ter atualizado)
+          const monthSumCents = Math.round(monthSumFromStore * 100) + amountCents;
+          for (const rule of categoryLimits) {
+            const limitCents = Number(rule.conditions?.amount_cents ?? rule.conditions?.amount ?? 0) || 0;
+            if (limitCents > 0 && monthSumCents > limitCents) {
+              const cat = categories.find((c) => c.id === formData.category);
+              toast({
+                title: "Limite de categoria ultrapassado",
+                description: `A categoria "${cat?.name ?? "Despesa"}" passou do limite mensal de ${formatCurrencyFromCents(limitCents)}. Gasto no mês: ${formatCurrencyFromCents(monthSumCents)}.`,
+                variant: "destructive",
+              });
+              break;
+            }
+          }
+        } catch {
+          // Não falhar o fluxo por causa da verificação de limite
+        }
+      }
+
+      // Alerta de gasto incomum: valor > 2x a média dos últimos 3 meses na categoria
+      if (formData.type === "expense" && formData.category && amountCents > 0) {
+        try {
+          const now = new Date();
+          const amountsByMonth: Record<string, number> = {};
+          for (let m = 0; m < 3; m++) {
+            const d = new Date(now.getFullYear(), now.getMonth() - m, 1);
+            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+            amountsByMonth[key] = 0;
+          }
+          transactions
+            .filter(
+              (t) =>
+                t.type === "expense" &&
+                t.category === formData.category &&
+                t.date,
+            )
+            .forEach((t) => {
+              const dt = new Date(t.date);
+              const key = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
+              if (key in amountsByMonth)
+                amountsByMonth[key] += Math.abs(t.amount);
+            });
+          const totalThreeMonths = Object.values(amountsByMonth).reduce(
+            (a, b) => a + b,
+            0,
+          );
+          const avgMonthly = totalThreeMonths / 3;
+          const currentAmountReais = amountCents / 100;
+          if (
+            avgMonthly > 0 &&
+            currentAmountReais > 2 * avgMonthly
+          ) {
+            const cat = categories.find((c) => c.id === formData.category);
+            toast({
+              title: "Gasto incomum",
+              description: `${formatCurrencyFromCents(amountCents)} é mais de 2x sua média em ${cat?.name ?? "esta categoria"} (média ~${formatCurrencyFromCents(Math.round(avgMonthly * 100))}/mês).`,
+              variant: "destructive",
+            });
+          }
+        } catch {
+          // Não bloquear criação
+        }
+      }
 
       // Reset form
       setFormData({

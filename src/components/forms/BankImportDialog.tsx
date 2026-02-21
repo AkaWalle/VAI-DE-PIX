@@ -1,5 +1,9 @@
 import { useState, useRef } from "react";
-import { useFinancialStore } from "@/stores/financial-store";
+import {
+  useFinancialStore,
+  type SharedExpense,
+  type SharedExpenseParticipant,
+} from "@/stores/financial-store";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,11 +35,19 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Upload,
   FileText,
   X,
   Download,
 } from "lucide-react";
+import { formatCurrencyFromCents } from "@/utils/currency";
 
 interface ImportedTransaction {
   date: string;
@@ -51,8 +63,73 @@ interface BankImportDialogProps {
   trigger?: React.ReactNode;
 }
 
+/** Sugere categoria com base em transações com descrição similar (match parcial). Retorna id da categoria mais frequente ou undefined. */
+function suggestCategory(
+  description: string,
+  type: "income" | "expense",
+  historicalTransactions: { description: string; category: string; type: string }[],
+  categoryIds: string[],
+): string | undefined {
+  const norm = description.toLowerCase().trim();
+  if (!norm) return undefined;
+  const words = norm.split(/\s+/).filter((w) => w.length >= 2);
+  const sameType = historicalTransactions.filter((t) => t.type === type);
+  const countByCategory: Record<string, number> = {};
+
+  for (const t of sameType) {
+    const tNorm = t.description.toLowerCase().trim();
+    const tWords = tNorm.split(/\s+/).filter((w) => w.length >= 2);
+    const match =
+      norm.includes(tNorm) ||
+      tNorm.includes(norm) ||
+      (words.length > 0 && tWords.some((w) => words.includes(w))) ||
+      (tWords.length > 0 && words.some((w) => tWords.includes(w)));
+    if (match && t.category) {
+      countByCategory[t.category] = (countByCategory[t.category] ?? 0) + 1;
+    }
+  }
+
+  let bestId: string | undefined;
+  let bestCount = 0;
+  for (const [catId, count] of Object.entries(countByCategory)) {
+    if (categoryIds.includes(catId) && count > bestCount) {
+      bestCount = count;
+      bestId = catId;
+    }
+  }
+  return bestId;
+}
+
+/** Encontra despesa compartilhada pendente com participante não pago cujo valor bate com o PIX (valor + opcional descrição). */
+function findPixMatch(
+  amountReais: number,
+  _description: string,
+  sharedExpenses: SharedExpense[],
+): { expense: SharedExpense; participant: SharedExpenseParticipant } | null {
+  const absAmount = Math.abs(amountReais);
+  for (const expense of sharedExpenses) {
+    if (expense.status === "cancelled") continue;
+    for (const participant of expense.participants) {
+      if (participant.paid) continue;
+      const participantAmount = Math.abs(participant.amount ?? 0);
+      if (Math.abs(participantAmount - absAmount) < 0.02) {
+        return { expense, participant };
+      }
+    }
+  }
+  return null;
+}
+
 export function BankImportDialog({ trigger }: BankImportDialogProps) {
-  const { addTransaction, accounts, categories } = useFinancialStore();
+  const {
+    addTransaction,
+    accounts,
+    categories,
+    transactions,
+    sharedExpenses,
+    markParticipantAsPaid,
+    settleSharedExpense,
+  } = useFinancialStore();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -71,6 +148,10 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
   >([]);
   const [showPreview, setShowPreview] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [pendingPixMatches, setPendingPixMatches] = useState<
+    { amount: number; description: string; expense: SharedExpense; participant: SharedExpenseParticipant }[]
+  >([]);
+  const [showPixModal, setShowPixModal] = useState(false);
 
   // Templates de mapeamento para diferentes tipos de relatório
   const fieldMappings = {
@@ -470,12 +551,29 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
       }
 
       // Mapear transações
-      const transactions = rows
+      const mapped = rows
         .map((row) => mapTransaction(row, finalType))
         .filter((t): t is ImportedTransaction => t !== null);
 
+      // Sugestão de categoria por descrição similar (editável depois)
+      const withSuggestions = mapped.map((t) => ({
+        ...t,
+        category:
+          t.category ||
+          suggestCategory(
+            t.description,
+            t.type,
+            transactions.map((h) => ({
+              description: h.description,
+              category: h.category,
+              type: h.type,
+            })),
+            categories.filter((c) => c.type === t.type).map((c) => c.id),
+          ),
+      }));
+
       setImportProgress(100);
-      setParsedTransactions(transactions);
+      setParsedTransactions(withSuggestions);
       setShowPreview(true);
 
       toast({
@@ -508,8 +606,8 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
         // Usar primeira conta disponível se não especificada
         const accountId = transaction.account || accounts[0]?.id || "1";
 
-        // Tentar mapear categoria automaticamente
-        let categoryId = transaction.category;
+        // Usar categoria sugerida/editada ou fallback por descrição
+        let categoryId = transaction.category?.trim() || undefined;
         if (!categoryId) {
           const description = transaction.description.toLowerCase();
           const category = categories.find(
@@ -543,12 +641,22 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
         description: `${imported} transações importadas com sucesso.`,
       });
 
-      // Resetar estado
+      // Sugestão de quitação por PIX: receitas que batem com despesa compartilhada pendente
+      const pixMatches: { amount: number; description: string; expense: SharedExpense; participant: SharedExpenseParticipant }[] = [];
+      for (const tx of parsedTransactions) {
+        if (tx.type !== "income") continue;
+        const match = findPixMatch(Math.abs(tx.amount), tx.description, sharedExpenses);
+        if (match) pixMatches.push({ amount: Math.abs(tx.amount), description: tx.description, expense: match.expense, participant: match.participant });
+      }
+      setPendingPixMatches(pixMatches);
+      setShowPixModal(pixMatches.length > 0);
+
+      // Resetar estado (mantemos dialog aberto se houver modais PIX)
       setSelectedFile(null);
       setParsedTransactions([]);
       setShowPreview(false);
       setShowConfirmDialog(false);
-      setIsOpen(false);
+      if (pixMatches.length === 0) setIsOpen(false);
     } catch {
       toast({
         title: "Erro na importação",
@@ -567,6 +675,8 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
     setDetectedType(null);
     setReportType("auto");
     setImportProgress(0);
+    setPendingPixMatches([]);
+    setShowPixModal(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -704,9 +814,9 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
                       .map((transaction, index) => (
                         <div
                           key={index}
-                          className="flex items-center justify-between p-2 border rounded"
+                          className="flex items-center gap-2 p-2 border rounded flex-wrap"
                         >
-                          <div className="flex-1">
+                          <div className="flex-1 min-w-0">
                             <div className="font-medium text-sm">
                               {transaction.description}
                             </div>
@@ -718,7 +828,7 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
                             </div>
                           </div>
                           <div
-                            className={`font-semibold text-sm ${
+                            className={`font-semibold text-sm shrink-0 ${
                               transaction.type === "income"
                                 ? "text-green-600"
                                 : "text-red-600"
@@ -726,11 +836,44 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
                           >
                             R$ {Math.abs(transaction.amount).toFixed(2)}
                           </div>
+                          <div className="w-[180px] shrink-0">
+                            <Select
+                              value={transaction.category || ""}
+                              onValueChange={(value) =>
+                                setParsedTransactions((prev) =>
+                                  prev.map((t, i) =>
+                                    i === index
+                                      ? { ...t, category: value }
+                                      : t,
+                                  ),
+                                )
+                              }
+                            >
+                              <SelectTrigger className="h-8 text-xs">
+                                <SelectValue placeholder="Categoria (sugestão)" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {categories
+                                  .filter((c) => c.type === transaction.type)
+                                  .map((c) => (
+                                    <SelectItem
+                                      key={c.id}
+                                      value={c.id}
+                                      className="text-xs"
+                                    >
+                                      {c.icon} {c.name}
+                                    </SelectItem>
+                                  ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
                         </div>
                       ))}
                     {parsedTransactions.length > 10 && (
                       <div className="text-center text-sm text-muted-foreground py-2">
                         ... e mais {parsedTransactions.length - 10} transações
+                        (categoria sugerida aplicada; edite as primeiras e
+                        importe)
                       </div>
                     )}
                   </div>
@@ -773,6 +916,59 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
               Sim, Importar
             </AlertDialogAction>
           </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Modal: PIX parece ser quitação de despesa compartilhada — sempre pedir confirmação */}
+      <AlertDialog open={showPixModal} onOpenChange={(open) => { if (!open) { setPendingPixMatches([]); setIsOpen(false); } setShowPixModal(open); }}>
+        <AlertDialogContent>
+          {pendingPixMatches[0] && (
+            <>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Quitar despesa compartilhada?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Este PIX de {formatCurrencyFromCents(Math.round(pendingPixMatches[0].amount * 100))} parece ser
+                  referente à despesa &quot;{pendingPixMatches[0].expense.title || pendingPixMatches[0].expense.description}&quot;.
+                  Deseja marcar {pendingPixMatches[0].participant.userName} como pago?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel
+                  onClick={() => {
+                    setPendingPixMatches((prev) => {
+                      const next = prev.slice(1);
+                      if (next.length === 0) {
+                        setShowPixModal(false);
+                        setIsOpen(false);
+                      }
+                      return next;
+                    });
+                  }}
+                >
+                  Não
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    const { expense, participant } = pendingPixMatches[0];
+                    markParticipantAsPaid(expense.id, participant.userId);
+                    const updated = useFinancialStore.getState().sharedExpenses.find((e) => e.id === expense.id);
+                    if (updated?.participants.every((p) => p.paid)) settleSharedExpense(expense.id);
+                    toast({ title: "Marcado como pago", description: `${participant.userName} foi marcado como pago nesta despesa.` });
+                    setPendingPixMatches((prev) => {
+                      const next = prev.slice(1);
+                      if (next.length === 0) {
+                        setShowPixModal(false);
+                        setIsOpen(false);
+                      }
+                      return next;
+                    });
+                  }}
+                >
+                  Sim, marcar como pago
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </>
+          )}
         </AlertDialogContent>
       </AlertDialog>
     </>

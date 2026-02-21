@@ -38,6 +38,11 @@ class AutomationType(str, Enum):
     BUDGET_ALERT = "budget_alert"
     GOAL_REMINDER = "goal_reminder"
     WEBHOOK = "webhook"
+    LOW_BALANCE_ALERT = "low_balance_alert"
+    CATEGORY_LIMIT = "category_limit"
+    WEEKLY_REPORT = "weekly_report"
+    ROUND_UP = "round_up"
+    PAYMENT_REMINDER = "payment_reminder"
 
 # User Schemas
 class UserBase(BaseModel):
@@ -116,7 +121,7 @@ class CategoryResponse(CategoryBase):
     class Config:
         from_attributes = True
 
-# Transaction Schemas
+# Transaction Schemas (genéricos; a API POST/GET /transactions usa os schemas em routers/transactions.py com amount_cents e shared_expense_id)
 class TransactionBase(BaseModel):
     date: datetime
     account_id: str

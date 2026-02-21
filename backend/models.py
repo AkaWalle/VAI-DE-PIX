@@ -235,13 +235,14 @@ class AutomationRule(Base):
     user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
+    deleted_at = Column(DateTime(timezone=True), nullable=True)  # soft delete (migração final_pre_launch_critical_fixes)
     
     # Relationships
     user = relationship("User", back_populates="automation_rules")
     
     # Constraints and Indexes
     __table_args__ = (
-        CheckConstraint("type IN ('recurring_transaction', 'budget_alert', 'goal_reminder', 'webhook')", name="check_automation_type"),
+        CheckConstraint("type IN ('recurring_transaction', 'budget_alert', 'goal_reminder', 'webhook', 'low_balance_alert', 'category_limit', 'weekly_report', 'round_up', 'payment_reminder')", name="check_automation_type"),
         CheckConstraint("length(name) >= 1", name="check_automation_name_length"),
         Index('idx_automation_user_active', 'user_id', 'is_active'),
         Index('idx_automation_user_type', 'user_id', 'type'),

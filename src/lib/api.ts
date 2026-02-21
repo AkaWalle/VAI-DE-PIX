@@ -143,6 +143,14 @@ export const API_ENDPOINTS = {
     markRead: (id: string) => `/activity-feed/${id}/read`,
     markAllRead: "/activity-feed/read-all",
   },
+
+  automations: {
+    list: "/automations",
+    get: (id: string) => `/automations/${id}`,
+    create: "/automations",
+    update: (id: string) => `/automations/${id}`,
+    delete: (id: string) => `/automations/${id}`,
+  },
 } as const;
 
 // Cliente HTTP central (com interceptor JWT) — usar para todas as requisições autenticadas

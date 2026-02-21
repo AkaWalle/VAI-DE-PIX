@@ -16,6 +16,8 @@ from services.transaction_service import TransactionService
 from middleware.idempotency import IdempotencyContext, get_idempotency_context_transactions
 from core.database_utils import atomic_transaction
 from core.request_context import set_idempotency_key
+from services.automation_checks import check_low_balance_after_transaction
+from services.round_up_service import apply_round_up_after_expense
 from core.amount_parser import serialize_money
 
 router = APIRouter()
@@ -173,6 +175,15 @@ async def create_transaction(
                 user_id=current_user.id,
                 db=db,
             )
+        try:
+            check_low_balance_after_transaction(db, transaction.account_id, current_user.id)
+        except Exception:
+            pass
+        if transaction.type == "expense":
+            try:
+                apply_round_up_after_expense(db, current_user.id, transaction.amount_cents)
+            except Exception:
+                pass
         resp = _transaction_to_response(db_transaction)
         idem.save_success(200, resp.model_dump(mode="json"))
         return resp
