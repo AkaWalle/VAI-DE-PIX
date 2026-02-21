@@ -80,9 +80,18 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
         "descricao",
         "description",
         "historico",
+        "histórico",
         "descricao_detalhada",
       ],
-      amount: ["valor", "amount", "valor_transacao", "valor_movimento"],
+      amount: [
+        "valor",
+        "amount",
+        "valor_transacao",
+        "valor_movimento",
+        "crédito",
+        "débito",
+        "valor (brl)",
+      ],
       type: ["tipo", "type", "natureza", "debito_credito"],
     },
     card: {
@@ -96,13 +105,21 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
   const detectReportType = (headers: string[]): "extract" | "card" | null => {
     const headerText = headers.join(" ").toLowerCase();
 
-    // Indicadores de extrato bancário
+    // Indicadores de extrato bancário (incl. Itaú, Inter, Mercado Pago)
     const extractIndicators = [
       "saldo",
       "saldo_anterior",
       "data_movimento",
       "historico",
+      "histórico",
       "valor_movimento",
+      "data",
+      "crédito",
+      "débito",
+      "descrição",
+      "valor",
+      "tipo",
+      "valor (brl)",
     ];
     // Indicadores de cartão de crédito
     const cardIndicators = [
@@ -131,9 +148,16 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
     const lines = csvText.split("\n").filter((line) => line.trim());
     if (lines.length < 2) return [];
 
-    const headers = lines[0].split(",").map((h) => h.trim().replace(/"/g, ""));
+    const firstLine = lines[0];
+    const separator = firstLine.includes(";") ? ";" : ",";
+
+    const headers = firstLine
+      .split(separator)
+      .map((h) => h.trim().replace(/^"|"$/g, ""));
     const rows = lines.slice(1).map((line) => {
-      const values = line.split(",").map((v) => v.trim().replace(/"/g, ""));
+      const values = line
+        .split(separator)
+        .map((v) => v.trim().replace(/^"|"$/g, ""));
       const row: Record<string, string> = {};
       headers.forEach((header, index) => {
         row[header] = values[index] ?? "";
@@ -142,6 +166,16 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
     });
 
     return rows;
+  };
+
+  const parseAmountFromCell = (value: string): number => {
+    if (!value || value.trim() === "") return 0;
+    const s = value.toString().trim().replace(/\s/g, "");
+    const normalized = s.includes(",")
+      ? s.replace(/\./g, "").replace(",", ".")
+      : s;
+    const n = parseFloat(normalized);
+    return Number.isFinite(n) ? n : 0;
   };
 
   const mapTransaction = (
@@ -164,15 +198,31 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
 
     const dateField = findField("date");
     const descriptionField = findField("description");
-    const amountField = findField("amount");
+    let amountField = findField("amount");
     const typeField = findField("type");
 
-    if (!dateField || !descriptionField || !amountField) {
+    // Itaú: valor = Crédito - Débito (colunas separadas)
+    const creditoKey = Object.keys(row).find(
+      (k) => k.toLowerCase() === "crédito" || k.toLowerCase() === "credito",
+    );
+    const debitoKey = Object.keys(row).find(
+      (k) => k.toLowerCase() === "débito" || k.toLowerCase() === "debito",
+    );
+    const useItauCreditoDebito =
+      type === "extract" && creditoKey && debitoKey;
+
+    if (!dateField || !descriptionField) {
+      return null;
+    }
+    if (!useItauCreditoDebito && !amountField) {
       return null;
     }
 
     // Verificar se os campos existem no row
-    if (!row[dateField] || !row[descriptionField] || !row[amountField]) {
+    if (!row[dateField] || !row[descriptionField]) {
+      return null;
+    }
+    if (!useItauCreditoDebito && amountField && !row[amountField]) {
       return null;
     }
 
@@ -244,13 +294,13 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
 
     // Parse do valor
     let amount = 0;
-    if (row[amountField]) {
-      const amountStr = row[amountField]
-        .toString()
-        .replace(/[^\d,-]/g, "")
-        .replace(",", ".");
-      amount = parseFloat(amountStr);
-      if (isNaN(amount)) amount = 0;
+    if (useItauCreditoDebito && creditoKey && debitoKey) {
+      const credito = parseAmountFromCell(row[creditoKey] ?? "");
+      const debito = parseAmountFromCell(row[debitoKey] ?? "");
+      amount = credito - debito;
+    } else if (amountField && row[amountField]) {
+      // Inter e outros: valor pode vir com sinal no CSV (parseAmountFromCell preserva o sinal)
+      amount = parseAmountFromCell(row[amountField]);
     }
 
     // Determinar tipo (receita/despesa)
@@ -259,20 +309,19 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
       const typeValue = row[typeField].toLowerCase();
       if (
         typeValue.includes("credito") ||
+        typeValue.includes("crédito") ||
         typeValue.includes("receita") ||
-        typeValue.includes("entrada")
+        typeValue.includes("entrada") ||
+        typeValue.includes("credit")
       ) {
         transactionType = "income";
       }
     } else if (type === "extract") {
-      // Para extratos, valores negativos são despesas, positivos são receitas
       transactionType = amount < 0 ? "expense" : "income";
     } else {
-      // Para cartão, geralmente são despesas
       transactionType = "expense";
     }
 
-    // Garantir que o valor seja positivo
     amount = Math.abs(amount);
 
     return {

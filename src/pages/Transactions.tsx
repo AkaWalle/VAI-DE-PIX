@@ -315,10 +315,15 @@ export default function Transactions() {
             Gerencie suas receitas e despesas
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
           <BankImportDialog
             trigger={
-              <ActionButton variant="outline" size="sm" icon={Download}>
+              <ActionButton
+                variant="outline"
+                size="sm"
+                icon={Download}
+                className="h-9 px-3 text-sm"
+              >
                 Importar Relatório
               </ActionButton>
             }
@@ -330,6 +335,7 @@ export default function Transactions() {
             loading={isExporting}
             loadingText="Exportando..."
             onClick={handleExport}
+            className="h-9 px-3 text-sm"
           >
             Exportar
           </ActionButton>
@@ -341,7 +347,7 @@ export default function Transactions() {
                 variant="outline"
                 size="sm"
                 onClick={() => handleSelectAll(!isAllSelected)}
-                className="flex items-center gap-2"
+                className="h-9 px-3 text-sm flex items-center gap-2"
               >
                 {isAllSelected ? (
                   <CheckSquare className="h-4 w-4" />
@@ -360,6 +366,7 @@ export default function Transactions() {
                       icon={Trash2}
                       loading={isDeleting}
                       loadingText="Apagando..."
+                      className="h-9 px-3 text-sm"
                     >
                       Apagar Selecionadas ({selectedTransactions.size})
                     </ActionButton>
@@ -402,7 +409,7 @@ export default function Transactions() {
                   icon={Trash2}
                   loading={isDeleting}
                   loadingText="Apagando..."
-                  className="text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
+                  className="h-9 px-3 text-sm text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
                 >
                   Apagar Todas
                 </ActionButton>
@@ -430,7 +437,17 @@ export default function Transactions() {
             </AlertDialog>
           )}
 
-          <TransactionForm />
+          <TransactionForm
+            trigger={
+              <ActionButton
+                icon={Plus}
+                variant="default"
+                className="h-9 px-3 text-sm"
+              >
+                Nova Transação
+              </ActionButton>
+            }
+          />
         </div>
       </div>
 
