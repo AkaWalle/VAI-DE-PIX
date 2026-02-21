@@ -178,6 +178,52 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
     return Number.isFinite(n) ? n : 0;
   };
 
+  /** Classificação por palavras-chave na descrição. Retorna indefinido se nenhuma regra bater. */
+  const classifyByDescription = (
+    description: string,
+  ): "income" | "expense" | "indefinido" => {
+    const d = description.toLowerCase().trim();
+    const receitaKeywords = [
+      "salário",
+      "salario",
+      "recebido",
+      "recebemos",
+      "crédito",
+      "credito",
+      "rendimento",
+      "ted receb",
+      "doc receb",
+      "pix receb",
+      "depósito",
+      "deposito",
+      "reembolso",
+      "cashback",
+      "estorno",
+    ];
+    const despesaKeywords = [
+      "compra",
+      "pagto",
+      "pagamento",
+      "débito",
+      "debito",
+      "enviado",
+      "transferência enviada",
+      "pix enviado",
+      "saque",
+      "tarifa",
+      "mensalidade",
+      "fatura",
+      "boleto",
+      "qr code",
+      "uber",
+      "ifood",
+      "amazon",
+    ];
+    if (receitaKeywords.some((k) => d.includes(k))) return "income";
+    if (despesaKeywords.some((k) => d.includes(k))) return "expense";
+    return "indefinido";
+  };
+
   const mapTransaction = (
     row: Record<string, string>,
     type: "extract" | "card",
@@ -294,18 +340,56 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
 
     // Parse do valor
     let amount = 0;
+    let credito = 0;
+    let debito = 0;
     if (useItauCreditoDebito && creditoKey && debitoKey) {
-      const credito = parseAmountFromCell(row[creditoKey] ?? "");
-      const debito = parseAmountFromCell(row[debitoKey] ?? "");
+      credito = parseAmountFromCell(row[creditoKey] ?? "");
+      debito = parseAmountFromCell(row[debitoKey] ?? "");
       amount = credito - debito;
     } else if (amountField && row[amountField]) {
-      // Inter e outros: valor pode vir com sinal no CSV (parseAmountFromCell preserva o sinal)
       amount = parseAmountFromCell(row[amountField]);
     }
 
-    // Determinar tipo (receita/despesa)
+    const description = row[descriptionField] || "Transação importada";
+
+    // Classificação receita/despesa: prioridade 1) TIPO (reconhecido), 2) sinal do valor, 3) descrição, 4) expense
     let transactionType: "income" | "expense" = "expense";
-    if (typeField && row[typeField]) {
+
+    const isMercadoPago =
+      amountField &&
+      amountField.toLowerCase().includes("valor (brl)") &&
+      typeField;
+
+    if (useItauCreditoDebito) {
+      // Itaú: Crédito/Débito
+      if (credito > 0 && debito === 0) transactionType = "income";
+      else if (debito > 0 && credito === 0) transactionType = "expense";
+      else {
+        const byDesc = classifyByDescription(description);
+        transactionType = byDesc === "indefinido" ? "expense" : byDesc;
+      }
+    } else if (isMercadoPago && typeField && row[typeField]) {
+      const tipoVal = row[typeField].toLowerCase().trim();
+      if (
+        ["pix_received", "yield", "credito", "credit"].some((k) =>
+          tipoVal.includes(k),
+        )
+      ) {
+        transactionType = "income";
+      } else if (
+        ["pix_sent", "qr_payment", "debito", "debit"].some((k) =>
+          tipoVal.includes(k),
+        )
+      ) {
+        transactionType = "expense";
+      } else {
+        if (amount !== 0) transactionType = amount > 0 ? "income" : "expense";
+        else {
+          const byDesc = classifyByDescription(description);
+          transactionType = byDesc === "indefinido" ? "expense" : byDesc;
+        }
+      }
+    } else if (typeField && row[typeField]) {
       const typeValue = row[typeField].toLowerCase();
       if (
         typeValue.includes("credito") ||
@@ -315,18 +399,34 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
         typeValue.includes("credit")
       ) {
         transactionType = "income";
+      } else if (
+        typeValue.includes("debito") ||
+        typeValue.includes("débito") ||
+        typeValue.includes("despesa") ||
+        typeValue.includes("debit")
+      ) {
+        transactionType = "expense";
+      } else {
+        if (amount !== 0) transactionType = amount > 0 ? "income" : "expense";
+        else {
+          const byDesc = classifyByDescription(description);
+          transactionType = byDesc === "indefinido" ? "expense" : byDesc;
+        }
       }
-    } else if (type === "extract") {
-      transactionType = amount < 0 ? "expense" : "income";
     } else {
-      transactionType = "expense";
+      if (amount !== 0) {
+        transactionType = amount > 0 ? "income" : "expense";
+      } else {
+        const byDesc = classifyByDescription(description);
+        transactionType = byDesc === "indefinido" ? "expense" : byDesc;
+      }
     }
 
     amount = Math.abs(amount);
 
     return {
       date,
-      description: row[descriptionField] || "Transação importada",
+      description,
       amount: transactionType === "expense" ? -amount : amount,
       type: transactionType,
       rawData: row,
