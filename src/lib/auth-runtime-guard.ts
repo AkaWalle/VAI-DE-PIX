@@ -9,8 +9,6 @@ import { hasSessionToken } from "@/lib/auth-session";
 import { tokenManager } from "@/lib/token-manager";
 import { runRefreshWithLock } from "@/lib/refresh-lock-manager";
 
-const AUTH_LOG_PREFIX = "[AuthGuard]";
-
 /** Máximo de espera por auth ready (ms) para evitar espera infinita */
 const WAIT_AUTH_READY_TIMEOUT_MS = 15_000;
 const WAIT_AUTH_POLL_MS = 100;
@@ -49,9 +47,6 @@ export function waitUntilAuthReady(): Promise<boolean> {
 
   return new Promise((resolve) => {
     if (isAuthReady()) {
-      if (typeof window !== "undefined") {
-        console.log(`${AUTH_LOG_PREFIX} AUTH_READY (already)`);
-      }
       resolve(true);
       return;
     }
@@ -60,17 +55,11 @@ export function waitUntilAuthReady(): Promise<boolean> {
     const t = setInterval(() => {
       if (isAuthReady()) {
         clearInterval(t);
-        if (typeof window !== "undefined") {
-          console.log(`${AUTH_LOG_PREFIX} AUTH_READY (after wait)`);
-        }
         resolve(true);
         return;
       }
       if (Date.now() >= deadline) {
         clearInterval(t);
-        if (typeof window !== "undefined") {
-          console.warn(`${AUTH_LOG_PREFIX} AUTH_READY timeout`);
-        }
         resolve(false);
       }
     }, WAIT_AUTH_POLL_MS);

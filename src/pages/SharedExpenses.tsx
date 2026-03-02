@@ -26,7 +26,15 @@ import {
   Share2,
   ChevronDown,
   ChevronUp,
+  MoreVertical,
+  Check,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,7 +44,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { SharedExpenseForm } from "@/components/forms/SharedExpenseForm";
 
@@ -49,6 +56,7 @@ export default function SharedExpenses() {
   const { toast } = useToast();
   const [showForm, setShowForm] = useState(false);
   const [editingExpense, setEditingExpense] = useState<string | null>(null);
+  const [deleteConfirmExpenseId, setDeleteConfirmExpenseId] = useState<string | null>(null);
   const [expandedParticipantsIds, setExpandedParticipantsIds] = useState<Set<string>>(new Set());
 
   const toggleParticipants = (expenseId: string) => {
@@ -262,10 +270,10 @@ export default function SharedExpenses() {
             return (
               <Card
                 key={expense.id}
-                className="bg-gradient-card shadow-card-custom p-4 sm:p-6"
+                className="bg-gradient-card shadow-card-custom p-4 sm:p-6 overflow-hidden w-full"
               >
-                <CardHeader className="p-0 pb-3 sm:pb-4">
-                  <div className="flex flex-wrap items-start justify-between gap-2">
+                <CardHeader className="p-0 pb-3 sm:pb-4 w-full">
+                  <div className="flex flex-wrap items-start justify-between gap-2 w-full min-w-0">
                     <div className="space-y-1 min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <h3 className="text-lg sm:text-xl font-semibold truncate">
@@ -286,53 +294,65 @@ export default function SharedExpenses() {
                       )}
                     </div>
 
+                    {/* Mobile: menu dropdown; Desktop: botões Editar/Excluir */}
                     <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-                      <ActionButton
-                        variant="outline"
-                        size="sm"
-                        icon={Edit}
-                        onClick={() => setEditingExpense(expense.id)}
-                        className="h-8 px-2 text-xs sm:h-9 sm:px-3 sm:text-sm"
-                      >
-                        Editar
-                      </ActionButton>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <ActionButton
-                            variant="outline"
-                            size="sm"
-                            icon={Trash2}
-                            className="h-8 px-2 text-xs sm:h-9 sm:px-3 sm:text-sm"
-                          >
-                            Excluir
-                          </ActionButton>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Excluir Despesa</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Tem certeza que deseja excluir esta despesa
-                              compartilhada? Esta ação não pode ser desfeita.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleDeleteExpense(expense.id)}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      <div className="md:hidden">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8"
+                              aria-label="Abrir menu"
                             >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => setEditingExpense(expense.id)}
+                              className="cursor-pointer"
+                            >
+                              <Edit className="h-4 w-4 mr-2" />
+                              Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onSelect={() => setDeleteConfirmExpenseId(expense.id)}
+                              className="cursor-pointer text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
                               Excluir
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                      <div className="hidden md:flex items-center gap-2">
+                        <ActionButton
+                          variant="outline"
+                          size="sm"
+                          icon={Edit}
+                          onClick={() => setEditingExpense(expense.id)}
+                          className="h-9 px-3 text-sm"
+                        >
+                          Editar
+                        </ActionButton>
+                        <ActionButton
+                          variant="outline"
+                          size="sm"
+                          icon={Trash2}
+                          onClick={() => setDeleteConfirmExpenseId(expense.id)}
+                          className="h-9 px-3 text-sm"
+                        >
+                          Excluir
+                        </ActionButton>
+                      </div>
                     </div>
                   </div>
                 </CardHeader>
 
-                <CardContent className="p-0 space-y-3 sm:space-y-4">
+                <CardContent className="p-0 space-y-3 sm:space-y-4 w-full min-w-0">
                   {/* Expense Details */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4 w-full min-w-0">
                     <div className="flex items-center gap-2">
                       <DollarSign className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground shrink-0" />
                       <span className="text-xs sm:text-sm font-medium">Valor Total:</span>
@@ -388,22 +408,22 @@ export default function SharedExpenses() {
                     </button>
                     <h4 className="font-medium text-sm hidden sm:block">Participantes:</h4>
                     <div
-                      className={`grid gap-2 ${
+                      className={`grid gap-2 w-full min-w-0 ${
                         expandedParticipantsIds.has(expense.id) ? "block" : "hidden sm:grid"
                       }`}
                     >
                       {expense.participants.map((participant) => (
                         <div
                           key={participant.userId}
-                          className="flex items-center justify-between p-2 sm:p-3 border rounded-lg"
+                          className="flex items-center gap-2 p-2 sm:p-3 border rounded-lg w-full min-w-0"
                         >
-                          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                             <div className="w-6 h-6 sm:w-8 sm:h-8 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
                               <span className="text-xs sm:text-sm font-medium text-primary">
                                 {participant.userName.charAt(0).toUpperCase()}
                               </span>
                             </div>
-                            <div className="min-w-0">
+                            <div className="min-w-0 flex-1">
                               <p className="font-medium text-xs sm:text-sm truncate">
                                 {participant.userName}
                               </p>
@@ -414,11 +434,11 @@ export default function SharedExpenses() {
                           </div>
 
                           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-                            <span className="font-semibold text-xs sm:text-sm">
+                            <span className="font-semibold text-xs sm:text-sm whitespace-nowrap">
                               {formatCurrency(participant.amount)}
                             </span>
                             {participant.paid ? (
-                              <Badge variant="default" className="text-xs">
+                              <Badge variant="default" className="text-xs shrink-0">
                                 <CheckCircle className="h-3 w-3 mr-1" />
                                 Pago
                               </Badge>
@@ -426,15 +446,17 @@ export default function SharedExpenses() {
                               <Button
                                 size="sm"
                                 variant="outline"
+                                title="Marcar como Pago"
                                 onClick={() =>
                                   handleMarkAsPaid(
                                     expense.id,
                                     participant.userId,
                                   )
                                 }
-                                className="h-8 text-xs sm:h-9 sm:text-sm"
+                                className="h-8 w-8 md:h-9 md:w-auto md:px-3 shrink-0 p-0 md:p-2"
                               >
-                                Marcar como Pago
+                                <Check className="h-4 w-4 md:hidden" />
+                                <span className="hidden md:inline">Marcar como Pago</span>
                               </Button>
                             )}
                           </div>
@@ -456,6 +478,32 @@ export default function SharedExpenses() {
                     </div>
                   )}
                 </CardContent>
+                <AlertDialog
+                  open={deleteConfirmExpenseId === expense.id}
+                  onOpenChange={(open) => !open && setDeleteConfirmExpenseId(null)}
+                >
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Excluir Despesa</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Tem certeza que deseja excluir esta despesa compartilhada?
+                        Esta ação não pode ser desfeita.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => {
+                          handleDeleteExpense(expense.id);
+                          setDeleteConfirmExpenseId(null);
+                        }}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Excluir
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </Card>
             );
           })}

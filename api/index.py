@@ -149,7 +149,7 @@ try:
     from routers import auth
     print("5.2 — auth importado")
     print("5.3 — Tentando importar outros routers...")
-    from routers import transactions, goals, envelopes, categories, accounts, reports, automations, notifications, shared_expenses, activity_feed, activity_feed_ws, users
+    from routers import transactions, goals, envelopes, categories, accounts, reports, automations, notifications, shared_expenses, activity_feed, activity_feed_ws, users, insights
     print("5.4 — Todos os routers importados")
     print("5 — Routers importados com sucesso!")
 except ImportError as e:
@@ -310,6 +310,7 @@ def _include_routers(prefix: str):
     app.include_router(reports.router, prefix=f"{prefix}/reports", tags=["Reports"])
     app.include_router(automations.router, prefix=f"{prefix}/automations", tags=["Automations"])
     app.include_router(notifications.router, prefix=f"{prefix}/notifications", tags=["Notifications"])
+    app.include_router(insights.router, prefix=f"{prefix}/insights", tags=["Insights"])
     app.include_router(shared_expenses.router, prefix=f"{prefix}/shared-expenses", tags=["Shared Expenses"])
     app.include_router(activity_feed.router, prefix=f"{prefix}/activity-feed", tags=["Activity Feed"])
     app.include_router(users.router, prefix=f"{prefix}/users", tags=["Users"])

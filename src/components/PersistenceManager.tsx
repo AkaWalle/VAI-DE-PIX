@@ -9,12 +9,7 @@ export function PersistenceManager() {
   const { isDataPersisted } = usePersistence();
 
   useEffect(() => {
-    // Log para debug
-    if (isDataPersisted) {
-      console.log("✅ Dados persistidos carregados com sucesso");
-    } else {
-      console.log("ℹ️ Nenhum dado persistido encontrado");
-    }
+    // Persistência gerenciada pelo usePersistence; sem side-effect visual aqui.
   }, [isDataPersisted]);
 
   // Este componente não renderiza nada, apenas gerencia a persistência

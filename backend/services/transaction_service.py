@@ -277,6 +277,21 @@ class TransactionService:
             )
 
         # Router controla transação (atomic_transaction). Service só executa operações na sessão.
+        idempotency_key = transaction_data.get("idempotency_key")
+        if idempotency_key:
+            existing = (
+                db.query(Transaction)
+                .filter(
+                    Transaction.user_id == user_id,
+                    Transaction.idempotency_key == idempotency_key,
+                    Transaction.deleted_at.is_(None),
+                )
+                .first()
+            )
+            if existing:
+                db.refresh(existing)
+                return existing
+
         try:
             lock_account(account.id, db)
             _lock_accounts_for_update([account.id], db)
@@ -291,6 +306,7 @@ class TransactionService:
                 user_id=user_id,
                 transfer_transaction_id=None,
                 shared_expense_id=transaction_data.get("shared_expense_id"),
+                idempotency_key=idempotency_key,
             )
             db.add(db_transaction)
             db.flush()
@@ -330,6 +346,8 @@ class TransactionService:
             db.refresh(db_transaction)
             db.refresh(account)
             return db_transaction
+        except IntegrityError:
+            raise
         except HTTPException:
             raise
         except ConcurrencyConflictError as e:

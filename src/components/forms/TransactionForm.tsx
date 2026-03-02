@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useFinancialStore } from "@/stores/financial-store";
 import {
   transactionsService,
@@ -45,12 +45,19 @@ interface TransactionFormProps {
   trigger?: React.ReactNode;
 }
 
+/** Gera UUID v4 para Idempotency-Key (uma por intenção de criação; reutilizado em retries). */
+function generateIdempotencyKey(): string {
+  return crypto.randomUUID();
+}
+
 export function TransactionForm({ trigger }: TransactionFormProps) {
   const { addTransaction, transactions, categories, accounts } = useFinancialStore();
   const { toast } = useToast();
 
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const idempotencyKeyRef = useRef<string | null>(null);
+
   const [formData, setFormData] = useState<TransactionFormData>({
     type: "expense",
     amountCents: 0,
@@ -142,15 +149,21 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
         transactionData.shared_expense_id = sharedExpenseId;
       }
 
-      // Salvar transação na API
-      const savedTransaction =
-        await transactionsService.createTransaction(transactionData);
+      // Salvar transação na API (Idempotency-Key: uma por abertura do dialog, reutilizada em retries)
+      const idempotencyKey = idempotencyKeyRef.current ?? generateIdempotencyKey();
+      if (!idempotencyKeyRef.current) idempotencyKeyRef.current = idempotencyKey;
+      const savedTransaction = await transactionsService.createTransaction(
+        transactionData,
+        idempotencyKey,
+      );
 
       // Converter formato da API para formato do store
       const respAmount = typeof (savedTransaction as { amount?: number }).amount === "number"
         ? (savedTransaction as { amount: number }).amount
         : 0;
       addTransaction({
+        id: savedTransaction.id,
+        createdAt: (savedTransaction as { createdAt?: string }).createdAt ?? new Date().toISOString(),
         type: savedTransaction.type as "income" | "expense",
         amount:
           savedTransaction.type === "expense"
@@ -315,6 +328,12 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
     });
   };
 
+  const handleOpenChange = (open: boolean) => {
+    if (open) idempotencyKeyRef.current = generateIdempotencyKey();
+    else idempotencyKeyRef.current = null;
+    setIsOpen(open);
+  };
+
   return (
     <FormDialog
       trigger={trigger || defaultTrigger}
@@ -323,7 +342,7 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
       onSubmit={handleSubmit}
       isLoading={isLoading}
       open={isOpen}
-      onOpenChange={setIsOpen}
+      onOpenChange={handleOpenChange}
       submitLabel="Criar Transação"
     >
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

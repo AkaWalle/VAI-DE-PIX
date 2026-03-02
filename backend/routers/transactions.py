@@ -4,6 +4,8 @@
 from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import func, extract
+from sqlalchemy.exc import IntegrityError
 from typing import List, Optional
 from datetime import datetime, date
 from pydantic import BaseModel, Field, model_validator, field_validator
@@ -21,6 +23,11 @@ from services.round_up_service import apply_round_up_after_expense
 from core.amount_parser import serialize_money
 
 router = APIRouter()
+
+
+class TransactionDeleteBatch(BaseModel):
+    """Body para exclusão em lote de transações."""
+    ids: List[str] = Field(..., min_length=1, max_length=100, description="IDs das transações a excluir")
 
 # Pydantic models: API monetária exclusivamente em centavos (int). Sem amount, sem float.
 class TransactionCreate(BaseModel):
@@ -167,13 +174,36 @@ async def create_transaction(
             transaction_data["to_account_id"] = transaction.to_account_id
         if transaction.shared_expense_id is not None:
             transaction_data["shared_expense_id"] = transaction.shared_expense_id
+        if idem.key:
+            transaction_data["idempotency_key"] = idem.key
 
-        with atomic_transaction(db):
-            db_transaction = TransactionService.create_transaction(
-                transaction_data=transaction_data,
-                account=account,
-                user_id=current_user.id,
-                db=db,
+        try:
+            with atomic_transaction(db):
+                db_transaction = TransactionService.create_transaction(
+                    transaction_data=transaction_data,
+                    account=account,
+                    user_id=current_user.id,
+                    db=db,
+                )
+        except IntegrityError:
+            if idem.key:
+                with atomic_transaction(db):
+                    existing = (
+                        db.query(Transaction)
+                        .filter(
+                            Transaction.user_id == current_user.id,
+                            Transaction.idempotency_key == idem.key,
+                            Transaction.deleted_at.is_(None),
+                        )
+                        .first()
+                    )
+                    if existing:
+                        resp = _transaction_to_response(existing)
+                        idem.save_success(200, resp.model_dump(mode="json"))
+                        return resp
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Requisição duplicada (mesma Idempotency-Key). Use a mesma key para retry ou uma nova para outra transação.",
             )
         try:
             check_low_balance_after_transaction(db, transaction.account_id, current_user.id)
@@ -193,6 +223,118 @@ async def create_transaction(
     except Exception:
         idem.save_failed()
         raise
+
+
+@router.delete("/", status_code=status.HTTP_200_OK)
+async def delete_transactions_batch(
+    body: TransactionDeleteBatch,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Exclui várias transações em uma única requisição (hard delete).
+    Retorna ids excluídos (para o frontend atualizar o store) e falhas por id.
+    """
+    deleted_ids: List[str] = []
+    errors = []
+    with atomic_transaction(db):
+        for transaction_id in body.ids:
+            db_transaction = db.query(Transaction).filter(
+                Transaction.id == transaction_id,
+                Transaction.user_id == current_user.id,
+                Transaction.deleted_at.is_(None),
+            ).first()
+            if not db_transaction:
+                errors.append({"id": transaction_id, "reason": "not_found"})
+                continue
+            account = db.query(Account).filter(
+                Account.id == db_transaction.account_id,
+                Account.user_id == current_user.id,
+            ).first()
+            if not account:
+                errors.append({"id": transaction_id, "reason": "account_not_found"})
+                continue
+            try:
+                TransactionService.delete_transaction(
+                    db_transaction=db_transaction,
+                    account=account,
+                    user_id=current_user.id,
+                    db=db,
+                    hard=True,
+                )
+                deleted_ids.append(transaction_id)
+            except Exception:
+                errors.append({"id": transaction_id, "reason": "delete_failed"})
+    return {
+        "deleted": len(deleted_ids),
+        "deleted_ids": deleted_ids,
+        "errors": errors,
+        "message": f"{len(deleted_ids)} transação(ões) removida(s) com sucesso." if deleted_ids else "Nenhuma transação removida.",
+    }
+
+
+@router.get("/summary/monthly")
+async def get_monthly_summary(
+    year: int = Query(datetime.now().year),
+    month: int = Query(datetime.now().month, ge=1, le=12),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get monthly transaction summary. Agregação em SQL (SUM/COUNT), filtro deleted_at."""
+    base_filter = [
+        Transaction.user_id == current_user.id,
+        Transaction.deleted_at.is_(None),
+        extract("year", Transaction.date) == year,
+        extract("month", Transaction.date) == month,
+    ]
+    total_transactions = (
+        db.query(func.count(Transaction.id))
+        .filter(*base_filter)
+        .scalar() or 0
+    )
+    total_income = (
+        db.query(func.coalesce(func.sum(Transaction.amount), 0))
+        .filter(*base_filter, Transaction.type == "income")
+        .scalar() or 0
+    )
+    total_expenses = (
+        db.query(func.coalesce(func.sum(Transaction.amount), 0))
+        .filter(*base_filter, Transaction.type == "expense")
+        .scalar() or 0
+    )
+    total_income = float(total_income)
+    total_expenses = float(total_expenses)
+    net_balance = total_income - total_expenses
+
+    rows = (
+        db.query(
+            Transaction.category_id,
+            Transaction.type,
+            func.sum(Transaction.amount).label("total"),
+        )
+        .filter(*base_filter)
+        .group_by(Transaction.category_id, Transaction.type)
+        .all()
+    )
+    category_breakdown = {}
+    for cat_id, ttype, total in rows:
+        if cat_id not in category_breakdown:
+            category_breakdown[cat_id] = {"income": 0, "expense": 0}
+        if ttype == "income":
+            category_breakdown[cat_id]["income"] = float(total)
+        else:
+            category_breakdown[cat_id]["expense"] = float(total)
+
+    return {
+        "year": year,
+        "month": month,
+        "total_transactions": total_transactions,
+        "total_income": total_income,
+        "total_expenses": total_expenses,
+        "net_balance": net_balance,
+        "category_breakdown": category_breakdown,
+    }
+
 
 @router.get("/{transaction_id}", response_model=TransactionResponse)
 async def get_transaction(
@@ -299,47 +441,3 @@ async def delete_transaction(
             hard=True,
         )
     return {"message": "Transação removida com sucesso"}
-
-@router.get("/summary/monthly")
-async def get_monthly_summary(
-    year: int = Query(datetime.now().year),
-    month: int = Query(datetime.now().month, ge=1, le=12),
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Get monthly transaction summary."""
-    from sqlalchemy import func, extract
-    
-    # Get transactions for the specified month
-    transactions = db.query(Transaction).filter(
-        Transaction.user_id == current_user.id,
-        extract('year', Transaction.date) == year,
-        extract('month', Transaction.date) == month
-    ).all()
-    
-    # Calculate totals
-    total_income = sum(t.amount for t in transactions if t.type == 'income')
-    total_expenses = sum(abs(t.amount) for t in transactions if t.type == 'expense')
-    net_balance = total_income - total_expenses
-    
-    # Category breakdown
-    category_breakdown = {}
-    for transaction in transactions:
-        cat_id = transaction.category_id
-        if cat_id not in category_breakdown:
-            category_breakdown[cat_id] = {'income': 0, 'expense': 0}
-        
-        if transaction.type == 'income':
-            category_breakdown[cat_id]['income'] += transaction.amount
-        else:
-            category_breakdown[cat_id]['expense'] += abs(transaction.amount)
-    
-    return {
-        "year": year,
-        "month": month,
-        "total_transactions": len(transactions),
-        "total_income": total_income,
-        "total_expenses": total_expenses,
-        "net_balance": net_balance,
-        "category_breakdown": category_breakdown
-    }

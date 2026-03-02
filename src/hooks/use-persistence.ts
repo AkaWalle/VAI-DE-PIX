@@ -27,15 +27,12 @@ export function usePersistence() {
               !financialData ||
               !JSON.parse(financialData).state?.transactions?.length
             ) {
-              console.log(
-                "🔄 Inicializando dados financeiros para usuário existente...",
-              );
               initializeUserData(parsedAuth.state.user.id);
             }
           }
         }
-      } catch (error) {
-        console.error("❌ Erro ao verificar dados salvos:", error);
+      } catch {
+        // Ignorar erro ao ler localStorage
       }
     };
 
@@ -46,12 +43,7 @@ export function usePersistence() {
   }, [initializeUserData]);
 
   useEffect(() => {
-    // Quando o usuário faz login, garantir que os dados sejam persistidos
-    if (user && isAuthenticated) {
-      console.log(
-        "💾 Usuário autenticado, dados serão persistidos automaticamente",
-      );
-    }
+    // Quando o usuário faz login, dados são persistidos automaticamente pelos stores.
   }, [user, isAuthenticated]);
 
   return {
@@ -59,7 +51,6 @@ export function usePersistence() {
     clearAllData: () => {
       localStorage.removeItem("vai-de-pix-auth");
       localStorage.removeItem("vai-de-pix-financial");
-      console.log("🗑️ Todos os dados foram limpos do localStorage");
     },
   };
 }

@@ -27,23 +27,13 @@ export function useLoadData() {
 
       const state = useAuthStore.getState();
       if (!state.isAuthenticated || !state.user) {
-        console.log("⏸️ Usuário não autenticado, pulando carregamento de dados");
         return;
       }
 
-      console.log(
-        "✅ Usuário autenticado, iniciando carregamento de dados...",
-        state.user,
-      );
-
       const loadData = async () => {
       try {
-        console.log("🔄 Carregando dados da API...");
-
         // Carregar categorias
-        console.log("📂 Carregando categorias...");
         const loadedCategories = await categoriesService.getCategories();
-        console.log("✅ Categorias carregadas:", loadedCategories);
 
         if (loadedCategories && loadedCategories.length > 0) {
           setCategories(
@@ -55,15 +45,9 @@ export function useLoadData() {
               color: cat.color,
             })),
           );
-          console.log("✅ Categorias atualizadas no store");
-        } else {
-          console.warn("⚠️ Nenhuma categoria encontrada");
         }
-
         // Carregar contas
-        console.log("💳 Carregando contas...");
         const loadedAccounts = await accountsService.getAccounts();
-        console.log("✅ Contas carregadas:", loadedAccounts);
 
         if (loadedAccounts && loadedAccounts.length > 0) {
           setAccounts(
@@ -90,40 +74,36 @@ export function useLoadData() {
               };
             }),
           );
-          console.log("✅ Contas atualizadas no store");
-        } else {
-          console.warn("⚠️ Nenhuma conta encontrada");
         }
+        // Carregar transações do mês atual (evita mistura com mês anterior)
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+        const loadedTransactions = await transactionsService.getTransactions({
+          start_date: startOfMonth.toISOString().slice(0, 10),
+          end_date: endOfMonth.toISOString().slice(0, 10),
+          limit: 100,
+        });
 
-        // Carregar transações
-        console.log("💰 Carregando transações...");
-        const loadedTransactions = await transactionsService.getTransactions();
-        console.log("✅ Transações carregadas:", loadedTransactions.length);
-
-        if (loadedTransactions && loadedTransactions.length > 0) {
-          setTransactions(
-            loadedTransactions.map((t) => ({
-              id: t.id,
-              date: t.date,
-              account:
-                (t as { account_id?: string; account?: string }).account_id ??
-                (t as { account?: string }).account,
-              category:
-                (t as { category_id?: string; category?: string }).category_id ??
-                (t as { category?: string }).category,
-              type: t.type,
-              amount:
-                t.type === "expense" ? -Math.abs(t.amount) : Math.abs(t.amount),
-              description: t.description,
-              tags: t.tags || [],
-              createdAt: t.createdAt || new Date().toISOString(),
-            })),
-          );
-          console.log("✅ Transações atualizadas no store");
-        }
-
+        setTransactions(
+          (loadedTransactions ?? []).map((t) => ({
+            id: t.id,
+            date: t.date,
+            account:
+              (t as { account_id?: string; account?: string }).account_id ??
+              (t as { account?: string }).account,
+            category:
+              (t as { category_id?: string; category?: string }).category_id ??
+              (t as { category?: string }).category,
+            type: t.type,
+            amount:
+              t.type === "expense" ? -Math.abs(t.amount) : Math.abs(t.amount),
+            description: t.description,
+            tags: t.tags || [],
+            createdAt: t.createdAt || new Date().toISOString(),
+          })),
+        );
         // Carregar metas
-        console.log("🎯 Carregando metas...");
         try {
           const loadedGoals = await goalsService.getGoals();
           if (loadedGoals && loadedGoals.length >= 0) {
@@ -139,14 +119,11 @@ export function useLoadData() {
                 status: (g.status === "active" ? "on_track" : (g.status as Goal["status"])) ?? "on_track",
               })),
             );
-            console.log("✅ Metas atualizadas no store:", loadedGoals.length);
           }
-        } catch (err) {
-          console.warn("⚠️ Erro ao carregar metas:", err);
+        } catch {
+          // Metas opcional
         }
-
         // Carregar caixinhas (envelopes)
-        console.log("📦 Carregando caixinhas...");
         try {
           const loadedEnvelopes = await envelopesService.getEnvelopes();
           if (loadedEnvelopes && loadedEnvelopes.length >= 0) {
@@ -160,24 +137,14 @@ export function useLoadData() {
                 description: e.description ?? undefined,
               })),
             );
-            console.log("✅ Caixinhas atualizadas no store:", loadedEnvelopes.length);
           }
-        } catch (err) {
-          console.warn("⚠️ Erro ao carregar caixinhas:", err);
+        } catch {
+          // Caixinhas opcional
         }
-
         // Sync despesas compartilhadas do backend (criador + participante com share aceito)
         await syncSharedExpensesFromBackend();
-
-        console.log("✅ Dados carregados com sucesso!");
-      } catch (error: unknown) {
-        console.error("❌ Erro ao carregar dados da API:", error);
-        const err = error as { message?: string; response?: { status?: number; data?: unknown } };
-        console.error("❌ Detalhes do erro:", err.message);
-        if (err.response) {
-          console.error("❌ Status:", err.response.status);
-          console.error("❌ Dados:", err.response.data);
-        }
+      } catch {
+        // Erro ao carregar dados — silencioso no UI; store permanece anterior
       }
     };
 
@@ -196,7 +163,6 @@ export function useLoadData() {
       if (isAuthenticated && user) {
         const loadData = async () => {
           try {
-            console.log("🔄 Recarregando dados manualmente...");
             const loadedCategories = await categoriesService.getCategories();
             if (loadedCategories && loadedCategories.length > 0) {
               setCategories(
@@ -236,30 +202,35 @@ export function useLoadData() {
               );
             }
 
+            const now = new Date();
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+            const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
             const loadedTransactions =
-              await transactionsService.getTransactions();
-            if (loadedTransactions && loadedTransactions.length > 0) {
-              setTransactions(
-                loadedTransactions.map((t) => ({
-                  id: t.id,
-                  date: t.date,
-                  account:
-                    (t as { account_id?: string; account?: string }).account_id ??
-                    (t as { account?: string }).account,
-                  category:
-                    (t as { category_id?: string; category?: string }).category_id ??
-                    (t as { category?: string }).category,
-                  type: t.type,
-                  amount:
-                    t.type === "expense"
-                      ? -Math.abs(t.amount)
-                      : Math.abs(t.amount),
-                  description: t.description,
-                  tags: t.tags || [],
-                  createdAt: t.createdAt || new Date().toISOString(),
-                })),
-              );
-            }
+              await transactionsService.getTransactions({
+                start_date: startOfMonth.toISOString().slice(0, 10),
+                end_date: endOfMonth.toISOString().slice(0, 10),
+                limit: 100,
+              });
+            setTransactions(
+              (loadedTransactions ?? []).map((t) => ({
+                id: t.id,
+                date: t.date,
+                account:
+                  (t as { account_id?: string; account?: string }).account_id ??
+                  (t as { account?: string }).account,
+                category:
+                  (t as { category_id?: string; category?: string }).category_id ??
+                  (t as { category?: string }).category,
+                type: t.type,
+                amount:
+                  t.type === "expense"
+                    ? -Math.abs(t.amount)
+                    : Math.abs(t.amount),
+                description: t.description,
+                tags: t.tags || [],
+                createdAt: t.createdAt || new Date().toISOString(),
+              })),
+            );
 
             const loadedGoals = await goalsService.getGoals();
             if (loadedGoals && loadedGoals.length >= 0) {
