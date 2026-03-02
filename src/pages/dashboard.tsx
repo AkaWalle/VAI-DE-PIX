@@ -136,13 +136,16 @@ export default function Dashboard() {
 
   // Goal progress
   const goalProgress = useMemo(() => {
-    return goals.map((goal) => ({
-      ...goal,
-      progressPercentage: Math.min(
-        (goal.currentAmount / goal.targetAmount) * 100,
-        100,
-      ),
-    }));
+    return goals.map((goal) => {
+      const target = goal.targetAmount ?? 0;
+      const current = goal.currentAmount ?? 0;
+      const progressPercentage =
+        target > 0 ? Math.min((current / target) * 100, 100) : 0;
+      return {
+        ...goal,
+        progressPercentage,
+      };
+    });
   }, [goals]);
 
   // Insights (variação mensal por categoria, metas em risco)
@@ -289,15 +292,15 @@ export default function Dashboard() {
                       <span className="font-medium">{item.category_name}</span>
                       <span
                         className={
-                          item.variation_pct > 0
+                          (item.variation_pct ?? 0) > 0
                             ? "text-expense"
-                            : item.variation_pct < 0
+                            : (item.variation_pct ?? 0) < 0
                               ? "text-success"
                               : "text-muted-foreground"
                         }
                       >
-                        {item.variation_pct > 0 ? "+" : ""}
-                        {item.variation_pct.toFixed(1)}%
+                        {(item.variation_pct ?? 0) > 0 ? "+" : ""}
+                        {(item.variation_pct ?? 0).toFixed(1)}%
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground">
@@ -521,13 +524,12 @@ export default function Dashboard() {
                   </h4>
                   <div className="flex flex-col gap-2">
                     {categoryData.map((entry, index) => {
+                      const total = categoryData.reduce(
+                        (sum, item) => sum + (item.value ?? 0),
+                        0,
+                      );
                       const percentage = (
-                        (entry.value /
-                          categoryData.reduce(
-                            (sum, item) => sum + item.value,
-                            0,
-                          )) *
-                        100
+                        ((entry.value ?? 0) / (total || 1)) * 100
                       ).toFixed(1);
                       return (
                         <div
@@ -596,7 +598,7 @@ export default function Dashboard() {
                 </div>
                 <Progress value={goal.progressPercentage} className="h-2" />
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>{goal.progressPercentage.toFixed(1)}% concluído</span>
+                  <span>{(goal.progressPercentage ?? 0).toFixed(1)}% concluído</span>
                   <span
                     className={`flex items-center gap-1 ${
                       goal.status === "on_track"

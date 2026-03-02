@@ -195,7 +195,7 @@ export default function Trends() {
               <div
                 className={`text-2xl font-bold ${incomeTrend.direction === "up" ? "text-income" : incomeTrend.direction === "down" ? "text-expense" : "text-muted-foreground"}`}
               >
-                {incomeTrend.trend.toFixed(1)}%
+                {(incomeTrend?.trend ?? 0).toFixed(1)}%
               </div>
               {incomeTrend.direction === "up" && (
                 <TrendingUp className="h-5 w-5 text-income" />
@@ -230,7 +230,7 @@ export default function Trends() {
               <div
                 className={`text-2xl font-bold ${expenseTrend.direction === "up" ? "text-expense" : expenseTrend.direction === "down" ? "text-income" : "text-muted-foreground"}`}
               >
-                {expenseTrend.trend.toFixed(1)}%
+                {(expenseTrend?.trend ?? 0).toFixed(1)}%
               </div>
               {expenseTrend.direction === "up" && (
                 <TrendingUp className="h-5 w-5 text-expense" />
@@ -265,7 +265,7 @@ export default function Trends() {
               <div
                 className={`text-2xl font-bold ${balanceTrend.direction === "up" ? "text-income" : balanceTrend.direction === "down" ? "text-expense" : "text-muted-foreground"}`}
               >
-                {balanceTrend.trend.toFixed(1)}%
+                {(balanceTrend?.trend ?? 0).toFixed(1)}%
               </div>
               {balanceTrend.direction === "up" && (
                 <TrendingUp className="h-5 w-5 text-income" />
@@ -415,7 +415,7 @@ export default function Trends() {
                     {trend.direction === "stable" && (
                       <Target className="h-3 w-3 mr-1" />
                     )}
-                    {Math.abs(trend.change).toFixed(0)}%
+                    {Math.abs(trend?.change ?? 0).toFixed(0)}%
                   </Badge>
                 </div>
                 <div className="text-right">

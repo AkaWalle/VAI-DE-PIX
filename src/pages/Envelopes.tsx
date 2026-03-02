@@ -155,8 +155,8 @@ export default function Envelopes() {
           </CardHeader>
           <CardContent className="p-0 pt-1">
             <div className="text-lg sm:text-2xl font-bold">
-              {totalTarget > 0
-                ? ((totalBalance / totalTarget) * 100).toFixed(1)
+              {(totalTarget ?? 0) > 0
+                ? (((totalBalance ?? 0) / (totalTarget ?? 1)) * 100).toFixed(1)
                 : "0"}
               %
             </div>
@@ -239,7 +239,7 @@ export default function Envelopes() {
                         <span
                           className={`font-medium ${isOverTarget ? "text-warning" : ""}`}
                         >
-                          {progressPercentage.toFixed(1)}%
+                          {(progressPercentage ?? 0).toFixed(1)}%
                         </span>
                       </div>
                       <Progress

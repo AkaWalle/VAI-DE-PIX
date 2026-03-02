@@ -210,10 +210,10 @@ export default function Goals() {
           {goals.map((goal) => {
             const statusConfig = getStatusConfig(goal.status);
             const StatusIcon = statusConfig.icon;
-            const progressPercentage = Math.min(
-              (goal.currentAmount / goal.targetAmount) * 100,
-              100,
-            );
+            const target = goal.targetAmount ?? 0;
+            const current = goal.currentAmount ?? 0;
+            const progressPercentage =
+              target > 0 ? Math.min((current / target) * 100, 100) : 0;
             const remaining = Math.max(
               goal.targetAmount - goal.currentAmount,
               0,
@@ -247,7 +247,7 @@ export default function Goals() {
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Progresso</span>
                       <span className="font-medium">
-                        {progressPercentage.toFixed(1)}%
+                        {(progressPercentage ?? 0).toFixed(1)}%
                       </span>
                     </div>
                     <Progress value={progressPercentage} className="h-2" />

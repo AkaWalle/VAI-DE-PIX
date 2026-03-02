@@ -118,7 +118,7 @@ export function AddGoalValueForm({
     <FormDialog
       trigger={trigger || defaultTrigger}
       title={`Adicionar Valor - ${goalName}`}
-      description={`Valor atual: ${goal.currentAmount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} de ${goal.targetAmount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`}
+      description={`Valor atual: ${(goal.currentAmount ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} de ${(goal.targetAmount ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`}
       onSubmit={handleSubmit}
       isLoading={isLoading}
       open={isOpen}

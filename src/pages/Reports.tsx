@@ -349,13 +349,12 @@ export default function Reports() {
                   Legenda
                 </h4>
                 {categoryExpenses.slice(0, 6).map((entry, index) => {
+                  const total = categoryExpenses.reduce(
+                    (sum, item) => sum + (item.value ?? 0),
+                    0,
+                  );
                   const percentage = (
-                    (entry.value /
-                      categoryExpenses.reduce(
-                        (sum, item) => sum + item.value,
-                        0,
-                      )) *
-                    100
+                    ((entry.value ?? 0) / (total || 1)) * 100
                   ).toFixed(1);
                   return (
                     <div key={index} className="flex items-center gap-3">
@@ -412,7 +411,7 @@ export default function Reports() {
                     {formatCurrency(category.value)}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {((category.value / totalExpenses) * 100).toFixed(1)}% do
+                    {(((category.value ?? 0) / (totalExpenses || 1)) * 100).toFixed(1)}% do
                     total
                   </div>
                 </div>
