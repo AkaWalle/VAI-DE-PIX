@@ -779,7 +779,7 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <FileText className="h-4 w-4" />
                       {selectedFile.name} (
-                      {(selectedFile.size / 1024).toFixed(1)} KB)
+                      {((selectedFile?.size ?? 0) / 1024).toFixed(1)} KB)
                     </div>
                   )}
 
@@ -787,7 +787,7 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
                     <div className="space-y-2">
                       <div className="flex items-center justify-between text-sm">
                         <span>Processando arquivo...</span>
-                        <span>{importProgress.toFixed(0)}%</span>
+                        <span>{(importProgress ?? 0).toFixed(0)}%</span>
                       </div>
                       <Progress value={importProgress} className="h-2" />
                     </div>
@@ -834,7 +834,7 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
                                 : "text-red-600"
                             }`}
                           >
-                            R$ {Math.abs(transaction.amount).toFixed(2)}
+                            R$ {Math.abs(transaction.amount ?? 0).toFixed(2)}
                           </div>
                           <div className="w-[180px] shrink-0">
                             <Select

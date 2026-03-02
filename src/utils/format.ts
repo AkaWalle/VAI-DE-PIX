@@ -1,15 +1,15 @@
 // Brazilian currency and date formatting utilities
 
 export function formatCurrency(
-  amount: number,
+  amount: number | null | undefined,
   options?: {
     showSign?: boolean;
     abbreviated?: boolean;
   },
 ): string {
   const { showSign = true, abbreviated = false } = options || {};
-
-  const absAmount = Math.abs(amount);
+  const safeAmount = amount ?? 0;
+  const absAmount = Math.abs(safeAmount);
   let formattedAmount: string;
 
   if (abbreviated && absAmount >= 1000000) {
@@ -23,11 +23,11 @@ export function formatCurrency(
     }).format(absAmount);
   }
 
-  if (showSign && amount !== 0) {
-    return amount > 0 ? `+${formattedAmount}` : `-${formattedAmount}`;
+  if (showSign && safeAmount !== 0) {
+    return safeAmount > 0 ? `+${formattedAmount}` : `-${formattedAmount}`;
   }
 
-  return amount < 0 ? `-${formattedAmount}` : formattedAmount;
+  return safeAmount < 0 ? `-${formattedAmount}` : formattedAmount;
 }
 
 export function formatDate(
@@ -114,6 +114,7 @@ export function getMonthName(monthIndex: number): string {
   return months[monthIndex];
 }
 
-export function formatPercentage(value: number, decimals = 1): string {
-  return `${value.toFixed(decimals)}%`;
+export function formatPercentage(value: number | null | undefined, decimals = 1): string {
+  const safe = value != null && Number.isFinite(value) ? value : 0;
+  return `${safe.toFixed(decimals)}%`;
 }

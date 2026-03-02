@@ -78,7 +78,9 @@ export function FinancialCard({
       </CardHeader>
       <CardContent className="p-3 sm:p-6 pt-0">
         <div className="text-lg sm:text-2xl font-bold text-card-foreground">
-          {typeof value === "number" ? value.toLocaleString("pt-BR") : value}
+          {value != null && typeof value === "number"
+            ? value.toLocaleString("pt-BR")
+            : value ?? "—"}
         </div>
         {(description || trend) && (
           <div className="flex items-center justify-between mt-2">
