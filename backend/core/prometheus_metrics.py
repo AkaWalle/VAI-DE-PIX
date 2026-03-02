@@ -1,8 +1,26 @@
 """
 Métricas Prometheus para observabilidade.
 Exportadas em GET /metrics para coleta por Prometheus.
+Em ambientes sem prometheus_client (ex.: Vercel serverless), métricas são no-op.
 """
-from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+try:
+    from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+    _PROMETHEUS_AVAILABLE = True
+except ImportError:
+    _PROMETHEUS_AVAILABLE = False
+    # Stubs no-op para ambientes sem prometheus_client (ex.: Vercel)
+    class _NoOpMetric:
+        def labels(self, **kwargs):
+            return self
+        def inc(self, amount=1):
+            pass
+        def observe(self, value):
+            pass
+    Counter = lambda *a, **k: _NoOpMetric()
+    Histogram = lambda *a, **k: _NoOpMetric()
+    def generate_latest():
+        return b""
+    CONTENT_TYPE_LATEST = "text/plain"
 
 # Duração do cálculo de insights (histograma em segundos)
 insights_compute_duration_seconds = Histogram(
