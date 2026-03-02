@@ -281,23 +281,6 @@ class TransactionService:
             lock_account(account.id, db)
             _lock_accounts_for_update([account.id], db)
             amount = transaction_data["amount"]
-            if transaction_type == "expense" and not skip_balance_check:
-                current_balance = get_balance_from_ledger(account.id, db)
-                # Garantir comparação em reais (Decimal): amount deve vir de _validate_transaction_payload (from_cents).
-                amount_reais = amount if isinstance(amount, Decimal) else Decimal(str(amount))
-                if current_balance < amount_reais:
-                    logger.info(
-                        "tx_business_fail | rule=insufficient_balance account_id=%s account_balance=%s amount_reais=%s amount_type=%s",
-                        account.id,
-                        current_balance,
-                        amount_reais,
-                        type(amount).__name__,
-                    )
-                    _raise_tx_business(
-                        message="Saldo insuficiente para esta despesa.",
-                        details=f"Saldo atual: {current_balance}; valor da despesa: {amount_reais}.",
-                        code=CODE_TX_INSUFFICIENT_BALANCE,
-                    )
             db_transaction = Transaction(
                 date=transaction_data["date"],
                 account_id=account.id,
