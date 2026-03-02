@@ -134,7 +134,8 @@ class Transaction(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
     deleted_at = Column(DateTime(timezone=True), nullable=True)  # soft delete (migração final_pre_launch_critical_fixes)
-    
+    idempotency_key = Column(String(64), nullable=True, index=True)  # deduplicação: UNIQUE(user_id, idempotency_key) partial
+
     # Relationships
     user = relationship("User", back_populates="transactions")
     account = relationship("Account", back_populates="transactions")

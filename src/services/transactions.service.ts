@@ -70,9 +70,10 @@ export const transactionsService = {
     }
   },
 
-  // Create new transaction
+  // Create new transaction. idempotencyKey: UUID por intenção (reutilizar em retries).
   async createTransaction(
     transaction: TransactionCreate,
+    idempotencyKey?: string,
   ): Promise<Transaction> {
     try {
       apiHelpers.logRequest(
@@ -81,9 +82,15 @@ export const transactionsService = {
         transaction,
       );
 
+      const headers: Record<string, string> = {};
+      if (idempotencyKey) {
+        headers["Idempotency-Key"] = idempotencyKey;
+      }
+
       const response = await httpClient.post<Transaction>(
         API_ENDPOINTS.transactions.create,
         transaction,
+        { headers },
       );
 
       return apiHelpers.handleResponse(response);
@@ -109,13 +116,35 @@ export const transactionsService = {
     }
   },
 
-  // Delete transaction
+  // Delete single transaction
   async deleteTransaction(id: string): Promise<void> {
     try {
       const url = API_ENDPOINTS.transactions.delete(id);
       apiHelpers.logRequest("DELETE", url);
 
       await httpClient.delete(url);
+    } catch (error: unknown) {
+      throw new Error(apiHelpers.handleError(error as AxiosError));
+    }
+  },
+
+  // Delete multiple transactions in one request (batch). Returns { deleted, deleted_ids, errors }.
+  async deleteTransactions(
+    ids: string[],
+  ): Promise<{ deleted: number; deleted_ids: string[]; errors: Array<{ id: string; reason: string }> }> {
+    try {
+      if (ids.length === 0) {
+        return { deleted: 0, deleted_ids: [], errors: [] };
+      }
+      apiHelpers.logRequest("DELETE", API_ENDPOINTS.transactions.deleteBatch, { ids });
+
+      const response = await httpClient.delete<{
+        deleted: number;
+        deleted_ids: string[];
+        errors: Array<{ id: string; reason: string }>;
+      }>(API_ENDPOINTS.transactions.deleteBatch, { data: { ids } });
+
+      return apiHelpers.handleResponse(response);
     } catch (error: unknown) {
       throw new Error(apiHelpers.handleError(error as AxiosError));
     }

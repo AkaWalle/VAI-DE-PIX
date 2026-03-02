@@ -53,6 +53,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { transactionsService } from "@/services/transactions.service";
 
 export default function Transactions() {
   const {
@@ -61,6 +62,7 @@ export default function Transactions() {
     accounts,
     clearAllTransactions,
     deleteTransaction,
+    setTransactions,
   } = useFinancialStore();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
@@ -251,22 +253,33 @@ export default function Transactions() {
   };
 
   const handleClearAllTransactions = async () => {
+    const ids = transactions.map((t) => t.id);
+    if (ids.length === 0) return;
+
     setIsDeleting(true);
+    const previousTransactions = [...transactions];
     try {
-      // Simular delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      clearAllTransactions();
-      setSelectedTransactions(new Set());
-
-      toast({
-        title: "Transações apagadas!",
-        description: "Todas as transações foram removidas com sucesso.",
-      });
+      const result = await transactionsService.deleteTransactions(ids);
+      if (result.deleted > 0) {
+        clearAllTransactions();
+        setSelectedTransactions(new Set());
+        toast({
+          title: "Transações apagadas!",
+          description: `${result.deleted} transação(ões) removida(s) com sucesso.`,
+        });
+      }
+      if (result.errors.length > 0) {
+        toast({
+          title: "Algumas falharam",
+          description: `${result.errors.length} transação(ões) não puderam ser removidas.`,
+          variant: "destructive",
+        });
+        setTransactions(previousTransactions.filter((t) => !result.deleted_ids.includes(t.id)));
+      }
     } catch {
       toast({
         title: "Erro ao apagar",
-        description: "Ocorreu um erro ao tentar apagar as transações.",
+        description: "Não foi possível conectar ao servidor. Tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -277,29 +290,33 @@ export default function Transactions() {
   const handleDeleteSelected = async () => {
     if (selectedTransactions.size === 0) return;
 
+    const ids = Array.from(selectedTransactions);
     setIsDeleting(true);
+    const previousTransactions = [...transactions];
     try {
-      // Simular delay
-      await new Promise((resolve) => setTimeout(resolve, 800));
-
-      // Apagar transações selecionadas
-      selectedTransactions.forEach((id) => {
-        deleteTransaction(id);
-      });
-
-      const count = selectedTransactions.size;
-      setSelectedTransactions(new Set());
-
-      toast({
-        title: "Transações apagadas!",
-        description: `${count} transação${count > 1 ? "ões" : ""} removida${count > 1 ? "s" : ""} com sucesso.`,
-      });
+      const result = await transactionsService.deleteTransactions(ids);
+      if (result.deleted > 0) {
+        result.deleted_ids.forEach((id) => deleteTransaction(id));
+        setSelectedTransactions(new Set());
+        toast({
+          title: "Transações apagadas!",
+          description: `${result.deleted} transação(ões) removida(s) com sucesso.`,
+        });
+      }
+      if (result.errors.length > 0) {
+        toast({
+          title: "Algumas falharam",
+          description: `${result.errors.length} transação(ões) não puderam ser removidas.`,
+          variant: "destructive",
+        });
+      }
     } catch {
       toast({
         title: "Erro ao apagar",
-        description: "Ocorreu um erro ao tentar apagar as transações.",
+        description: "Não foi possível conectar ao servidor. Tente novamente.",
         variant: "destructive",
       });
+      setTransactions(previousTransactions);
     } finally {
       setIsDeleting(false);
     }

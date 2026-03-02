@@ -74,6 +74,7 @@ export const API_ENDPOINTS = {
     create: "/transactions",
     update: (id: string) => `/transactions/${id}`,
     delete: (id: string) => `/transactions/${id}`,
+    deleteBatch: "/transactions",
     summary: "/transactions/summary/monthly",
   },
 

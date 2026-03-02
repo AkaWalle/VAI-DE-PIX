@@ -28,17 +28,12 @@ export const categoriesService = {
       }
 
       const url = `${API_ENDPOINTS.categories.list}${params.toString() ? `?${params.toString()}` : ""}`;
-      console.log("🌐 GET categorias:", url);
       apiHelpers.logRequest("GET", url);
 
       const response = await httpClient.get<Category[]>(url);
-      console.log("📦 Resposta categorias:", response.data);
-
       return apiHelpers.handleResponse(response);
     } catch (error: unknown) {
       const err = error as AxiosError;
-      console.error("❌ Erro ao buscar categorias:", error);
-      console.error("❌ Detalhes:", err.response?.data ?? (err as Error).message);
       throw new Error(apiHelpers.handleError(err));
     }
   },
