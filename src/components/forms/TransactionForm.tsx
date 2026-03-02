@@ -277,13 +277,7 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
       const detailStr = typeof detail === "string" ? detail : detail ? JSON.stringify(detail) : "";
       const message = (err as { message?: string })?.message ?? "";
 
-      if (status === 422 && (detailStr.includes("Saldo") || detailStr.includes("insuficiente"))) {
-        toast({
-          title: "Saldo insuficiente",
-          description: "O valor da despesa é maior que o saldo disponível na conta selecionada.",
-          variant: "destructive",
-        });
-      } else if (status === 400 && (detailStr.includes("convidar a si mesmo") || detailStr.includes("você mesmo"))) {
+      if (status === 400 && (detailStr.includes("convidar a si mesmo") || detailStr.includes("você mesmo"))) {
         toast({
           title: "E-mail inválido",
           description: "Você não pode dividir uma despesa com você mesmo.",
