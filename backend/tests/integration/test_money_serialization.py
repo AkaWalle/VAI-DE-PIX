@@ -49,14 +49,21 @@ def _assert_no_more_than_two_decimals(value: float) -> None:
 
 
 @pytest.mark.parametrize(
-    "amount",
-    [0.01, 10, 10.1, 10.105, 9999999999.99],
-    ids=["0.01", "10", "10.1", "10.105_rounding", "9999999999.99"],
+    "amount_cents, expected_amount",
+    [
+        (1, 0.01),
+        (1000, 10.0),
+        (1010, 10.1),
+        (1011, 10.11),
+        (999999999999, 9999999999.99),  # 11 dígitos: Decimal(cents)/100, sem float
+    ],
+    ids=["0.01", "10", "10.1", "10.11_rounding", "9999999999.99"],
 )
-def test_transaction_amount_str_exists_and_format(client, auth_headers, test_user, test_account, test_category, amount):
-    """Transação: amount_str existe, formato ^\\d+\\.\\d{2}$ e float(amount_str)==amount."""
-    # Valores altos como receita para não falhar por saldo insuficiente
-    tx_type = "income" if amount >= 10_000 else "expense"
+def test_transaction_amount_str_exists_and_format(
+    client, auth_headers, test_user, test_account, test_category, amount_cents, expected_amount
+):
+    """Transação: amount_str existe, formato ^\\d+\\.\\d{2}$ e float(amount_str)==amount (API usa amount_cents)."""
+    tx_type = "income" if expected_amount >= 10_000 else "expense"
     cat_response = client.get("/api/categories", headers=auth_headers)
     assert cat_response.status_code == 200
     categories = cat_response.json()
@@ -79,7 +86,7 @@ def test_transaction_amount_str_exists_and_format(client, auth_headers, test_use
             "account_id": test_account.id,
             "category_id": category_id,
             "type": tx_type,
-            "amount": amount,
+            "amount_cents": amount_cents,
             "description": "QA monetary serialization",
         },
     )
@@ -93,8 +100,7 @@ def test_transaction_amount_str_exists_and_format(client, auth_headers, test_use
 
 
 def test_transaction_get_list_includes_amount_str(client, auth_headers, test_user, test_account, test_category):
-    """GET /transactions: todos os itens têm amount_str e consistência."""
-    # Criar uma transação
+    """GET /transactions: todos os itens têm amount_str e consistência (API usa amount_cents)."""
     client.post(
         "/api/transactions",
         headers=auth_headers,
@@ -103,7 +109,7 @@ def test_transaction_get_list_includes_amount_str(client, auth_headers, test_use
             "account_id": test_account.id,
             "category_id": test_category.id,
             "type": "expense",
-            "amount": 123.45,
+            "amount_cents": 12345,
             "description": "QA list",
         },
     )
@@ -118,7 +124,7 @@ def test_transaction_get_list_includes_amount_str(client, auth_headers, test_use
 
 
 def test_transaction_get_by_id_includes_amount_str(client, auth_headers, test_account, test_category):
-    """GET /transactions/{id}: amount_str presente e consistente."""
+    """GET /transactions/{id}: amount_str presente e consistente (API usa amount_cents)."""
     create = client.post(
         "/api/transactions",
         headers=auth_headers,
@@ -127,7 +133,7 @@ def test_transaction_get_by_id_includes_amount_str(client, auth_headers, test_ac
             "account_id": test_account.id,
             "category_id": test_category.id,
             "type": "income",
-            "amount": 99.99,
+            "amount_cents": 9999,
             "description": "QA get by id",
         },
     )
@@ -261,8 +267,9 @@ def test_envelope_balance_zero_cents(client, auth_headers, test_user):
 
 
 def test_transaction_large_amount_serialization(client, auth_headers, test_account, test_category):
-    """Transação com valor alto (9999999999.99): amount_str consistente."""
-    amount = 9999999999.99
+    """Transação com valor alto (9999999999.99 reais = 999999999999 centavos): amount_str com 11 dígitos."""
+    # 9999999999.99 reais = 999999999999 centavos (Decimal preserva dígitos; nunca float na conversão)
+    amount_cents = 999999999999
     response = client.post(
         "/api/transactions",
         headers=auth_headers,
@@ -271,7 +278,7 @@ def test_transaction_large_amount_serialization(client, auth_headers, test_accou
             "account_id": test_account.id,
             "category_id": test_category.id,
             "type": "income",
-            "amount": amount,
+            "amount_cents": amount_cents,
             "description": "QA large amount",
         },
     )

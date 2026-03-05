@@ -35,6 +35,14 @@ class SharedExpenseDataIntegrityError(Exception):
     pass
 
 
+def get_users_by_ids(db: Session, ids: List[str]) -> List[User]:
+    """Retorna usuários cujo id está em ids. Usado pelo router para popular performed_by_name."""
+    if not ids:
+        return []
+    repo = SharedExpenseRepository(db)
+    return repo.get_users_by_ids(ids)
+
+
 def create_shared_expense(
     db: Session,
     creator_user: User,

@@ -4,7 +4,6 @@
 from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func, extract
 from sqlalchemy.exc import IntegrityError
 from typing import List, Optional
 from datetime import datetime, date
@@ -14,7 +13,14 @@ from database import get_db
 from models import Transaction, User, Account
 from auth_utils import get_current_user
 from repositories.transaction_repository import TransactionRepository
-from services.transaction_service import TransactionService
+from services.transaction_service import (
+    TransactionService,
+    get_account_for_user,
+    get_transaction_by_id,
+    get_monthly_summary as service_get_monthly_summary,
+    get_existing_by_idempotency_key,
+    get_transaction_and_account_for_delete,
+)
 from middleware.idempotency import IdempotencyContext, get_idempotency_context_transactions
 from core.database_utils import atomic_transaction
 from core.request_context import set_idempotency_key
@@ -151,11 +157,7 @@ async def create_transaction(
         )
 
     try:
-        account = db.query(Account).filter(
-            Account.id == transaction.account_id,
-            Account.user_id == current_user.id
-        ).first()
-
+        account = get_account_for_user(db, transaction.account_id, current_user.id)
         if not account:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -187,20 +189,11 @@ async def create_transaction(
                 )
         except IntegrityError:
             if idem.key:
-                with atomic_transaction(db):
-                    existing = (
-                        db.query(Transaction)
-                        .filter(
-                            Transaction.user_id == current_user.id,
-                            Transaction.idempotency_key == idem.key,
-                            Transaction.deleted_at.is_(None),
-                        )
-                        .first()
-                    )
-                    if existing:
-                        resp = _transaction_to_response(existing)
-                        idem.save_success(200, resp.model_dump(mode="json"))
-                        return resp
+                existing = get_existing_by_idempotency_key(db, current_user.id, idem.key)
+                if existing:
+                    resp = _transaction_to_response(existing)
+                    idem.save_success(200, resp.model_dump(mode="json"))
+                    return resp
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Requisição duplicada (mesma Idempotency-Key). Use a mesma key para retry ou uma nova para outra transação.",
@@ -239,18 +232,12 @@ async def delete_transactions_batch(
     errors = []
     with atomic_transaction(db):
         for transaction_id in body.ids:
-            db_transaction = db.query(Transaction).filter(
-                Transaction.id == transaction_id,
-                Transaction.user_id == current_user.id,
-                Transaction.deleted_at.is_(None),
-            ).first()
+            db_transaction, account = get_transaction_and_account_for_delete(
+                db, transaction_id, current_user.id
+            )
             if not db_transaction:
                 errors.append({"id": transaction_id, "reason": "not_found"})
                 continue
-            account = db.query(Account).filter(
-                Account.id == db_transaction.account_id,
-                Account.user_id == current_user.id,
-            ).first()
             if not account:
                 errors.append({"id": transaction_id, "reason": "account_not_found"})
                 continue
@@ -281,58 +268,15 @@ async def get_monthly_summary(
     db: Session = Depends(get_db)
 ):
     """Get monthly transaction summary. Agregação em SQL (SUM/COUNT), filtro deleted_at."""
-    base_filter = [
-        Transaction.user_id == current_user.id,
-        Transaction.deleted_at.is_(None),
-        extract("year", Transaction.date) == year,
-        extract("month", Transaction.date) == month,
-    ]
-    total_transactions = (
-        db.query(func.count(Transaction.id))
-        .filter(*base_filter)
-        .scalar() or 0
-    )
-    total_income = (
-        db.query(func.coalesce(func.sum(Transaction.amount), 0))
-        .filter(*base_filter, Transaction.type == "income")
-        .scalar() or 0
-    )
-    total_expenses = (
-        db.query(func.coalesce(func.sum(Transaction.amount), 0))
-        .filter(*base_filter, Transaction.type == "expense")
-        .scalar() or 0
-    )
-    total_income = float(total_income)
-    total_expenses = float(total_expenses)
-    net_balance = total_income - total_expenses
-
-    rows = (
-        db.query(
-            Transaction.category_id,
-            Transaction.type,
-            func.sum(Transaction.amount).label("total"),
-        )
-        .filter(*base_filter)
-        .group_by(Transaction.category_id, Transaction.type)
-        .all()
-    )
-    category_breakdown = {}
-    for cat_id, ttype, total in rows:
-        if cat_id not in category_breakdown:
-            category_breakdown[cat_id] = {"income": 0, "expense": 0}
-        if ttype == "income":
-            category_breakdown[cat_id]["income"] = float(total)
-        else:
-            category_breakdown[cat_id]["expense"] = float(total)
-
+    data = service_get_monthly_summary(db, current_user.id, year, month)
     return {
         "year": year,
         "month": month,
-        "total_transactions": total_transactions,
-        "total_income": total_income,
-        "total_expenses": total_expenses,
-        "net_balance": net_balance,
-        "category_breakdown": category_breakdown,
+        "total_transactions": data["total_transactions"],
+        "total_income": data["total_income"],
+        "total_expenses": data["total_expenses"],
+        "net_balance": data["net_balance"],
+        "category_breakdown": data["category_breakdown"],
     }
 
 
@@ -343,17 +287,12 @@ async def get_transaction(
     db: Session = Depends(get_db)
 ):
     """Get a specific transaction."""
-    transaction = db.query(Transaction).filter(
-        Transaction.id == transaction_id,
-        Transaction.user_id == current_user.id
-    ).first()
-    
+    transaction = get_transaction_by_id(db, transaction_id, current_user.id)
     if not transaction:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Transação não encontrada"
         )
-    
     return _transaction_to_response(transaction)
 
 @router.put("/{transaction_id}", response_model=TransactionResponse)
@@ -364,19 +303,13 @@ async def update_transaction(
     db: Session = Depends(get_db)
 ):
     """Update a transaction. Ledger: reversão + nova entrada (append-only) via TransactionService."""
-    db_transaction = db.query(Transaction).filter(
-        Transaction.id == transaction_id,
-        Transaction.user_id == current_user.id,
-        Transaction.deleted_at.is_(None),
-    ).first()
-
+    db_transaction = get_transaction_by_id(db, transaction_id, current_user.id)
     if not db_transaction:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Transação não encontrada"
         )
-
-    old_account = db.query(Account).filter(Account.id == db_transaction.account_id).first()
+    old_account = get_account_for_user(db, db_transaction.account_id, current_user.id)
     if not old_account:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -384,17 +317,12 @@ async def update_transaction(
         )
     update_data = transaction_update.model_dump(exclude_unset=True)
     new_account_id = update_data.get("account_id", db_transaction.account_id)
-    new_account = db.query(Account).filter(
-        Account.id == new_account_id,
-        Account.user_id == current_user.id
-    ).first()
-
+    new_account = get_account_for_user(db, new_account_id, current_user.id)
     if not new_account:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Conta não encontrada"
         )
-
     with atomic_transaction(db):
         updated = TransactionService.update_transaction(
             db_transaction=db_transaction,
@@ -413,25 +341,19 @@ async def delete_transaction(
     db: Session = Depends(get_db)
 ):
     """Delete a transaction (hard). Ledger: reversão (append-only) via TransactionService."""
-    db_transaction = db.query(Transaction).filter(
-        Transaction.id == transaction_id,
-        Transaction.user_id == current_user.id,
-        Transaction.deleted_at.is_(None),
-    ).first()
-
+    db_transaction, account = get_transaction_and_account_for_delete(
+        db, transaction_id, current_user.id
+    )
     if not db_transaction:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Transação não encontrada"
         )
-
-    account = db.query(Account).filter(Account.id == db_transaction.account_id).first()
     if not account:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Conta da transação não encontrada"
         )
-
     with atomic_transaction(db):
         TransactionService.delete_transaction(
             db_transaction=db_transaction,

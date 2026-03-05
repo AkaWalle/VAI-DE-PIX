@@ -353,6 +353,30 @@ tipo: feat, fix, docs, style, refactor, test, chore
 escopo: frontend, backend, docs, etc.
 ```
 
+## Garantias de Produção (Refatoração Estrutural)
+
+A refatoração arquitetural (Router → Service → Repository) foi definida com as seguintes garantias:
+
+- **Nenhuma alteração de contrato de API:** endpoints, métodos HTTP, paths e query params permanecem iguais.
+- **Nenhuma alteração de banco de dados:** migrations existentes e estrutura de tabelas não são modificadas.
+- **Nenhuma alteração de comportamento funcional:** respostas, status codes, payloads e regras de negócio permanecem idênticos.
+- **Mudança exclusivamente estrutural:** apenas a responsabilidade de acesso a dados foi movida dos routers para services/repositories.
+
+**Fitness function:** o script `backend/scripts/architecture_guard.py` (comando `make check-architecture`) verifica que nenhum router acessa ORM diretamente (`db.query`, `db.add`, `db.delete`, `db.commit`, `db.rollback`). A refatoração dos routers restantes é incremental; o guard pode ser executado localmente antes de cada merge.
+
+**Routers já refatorados (Router → Service → Repository):**
+- `envelopes` — refatorado; zero breaking change.
+- `transactions` — refatorado; zero breaking change (2025-03).
+- `shared_expenses` — refatorado (SAFE REFACTOR – 2025-03). Nenhuma alteração de contrato, banco ou comportamento; apenas reorganização estrutural (queries de User movidas para SharedExpenseRepository + get_users_by_ids no service).
+
+**Estabilização de testes (FASE 1 – 2025-03):**
+- Fixtures: `test_user` e `second_user` passaram a usar email único por teste (uuid) para evitar `UNIQUE constraint (users.email)`.
+- Banco de teste: uso de SQLite em arquivo temporário por teste (em vez de `:memory:`), para que todas as conexões (incl. thread do TestClient) vejam o mesmo schema e evitem "no such table" (ex.: `notifications`).
+- Cliente de teste: `client(db)` configura idempotency com o mesmo engine do `db` do teste.
+- Testes de shared_expenses alinhados ao comportamento atual: transação do criador = parte do criador (split equal); relatório soma transações (não total da despesa). Testes unitários de integração atualizados (valor 5.0 e total 1000.0) com documentação no docstring.
+
+---
+
 ## 🔗 Links Úteis
 
 - [FastAPI Docs](https://fastapi.tiangolo.com/)
