@@ -35,12 +35,12 @@ def test_reconstruct_balance_at_t_minus_1_and_t_minus_2(
     )
     postgres_db.commit()
     try:
-        # Uma transação de receita agora
+        # Uma transação de receita agora (contrato: amount_cents obrigatório)
         tx_data = {
             "date": datetime.now(),
             "category_id": category.id,
             "type": "income",
-            "amount": 50.0,
+            "amount_cents": 5000,
             "description": "Audit income",
             "tags": [],
         }
@@ -189,7 +189,7 @@ def test_ledger_reversals_sum_to_zero_per_transaction(
             "date": datetime.now(),
             "category_id": category.id,
             "type": "expense",
-            "amount": 20.0,
+            "amount_cents": 2000,
             "description": "Reversal check",
             "tags": [],
         }

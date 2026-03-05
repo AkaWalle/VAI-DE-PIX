@@ -11,7 +11,11 @@ from sqlalchemy.orm import Session
 
 from models import Transaction, LedgerEntry, Account, User, Category
 from repositories.ledger_repository import LedgerRepository
-from core.ledger_utils import sync_account_balance_from_ledger, get_balance_from_ledger
+from core.ledger_utils import (
+    sync_account_balance_from_ledger,
+    get_balance_from_ledger,
+    ConcurrencyConflictError,
+)
 
 from tests.helpers_postgres import (
     create_test_user_account_category,
@@ -103,8 +107,16 @@ def _backfill_ledger_for_session(db: Session) -> dict:
             row[0]
             for row in db.query(LedgerEntry.account_id).distinct().all()
         )
+        max_sync_attempts = 3
         for aid in account_ids:
-            sync_account_balance_from_ledger(aid, db)
+            for attempt in range(max_sync_attempts):
+                try:
+                    sync_account_balance_from_ledger(aid, db)
+                    break
+                except ConcurrencyConflictError:
+                    if attempt == max_sync_attempts - 1:
+                        raise
+                    db.expire_all()
     return {"created": created}
 
 

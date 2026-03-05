@@ -6,6 +6,7 @@ Trilha 6: advisory locks (pg_advisory_xact_lock) + SELECT FOR UPDATE; ordem dete
 """
 from decimal import Decimal
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from datetime import datetime
 from typing import List, Optional
 
@@ -19,6 +20,8 @@ from core.ledger_utils import (
     ConcurrencyConflictError,
 )
 from repositories.ledger_repository import LedgerRepository
+from repositories.transaction_repository import TransactionRepository
+from repositories.account_repository import AccountRepository
 from core.logging_config import get_logger
 from fastapi import HTTPException, status
 from db.locks import lock_account, lock_accounts_ordered
@@ -702,4 +705,66 @@ class TransactionService:
                 status_code=status.HTTP_409_CONFLICT,
                 detail=str(e) or "Conta alterada por outra transação; refaça a operação.",
             ) from e
+
+
+# --- Funções de acesso para o router (sem ORM no router) ---
+
+
+def get_account_for_user(db: Session, account_id: str, user_id: str):
+    """Retorna Account se existir e pertencer ao user_id; senão None."""
+    repo = AccountRepository(db)
+    return repo.get_by_user_and_id(user_id, account_id)
+
+
+def get_transaction_by_id(db: Session, transaction_id: str, user_id: str):
+    """Retorna Transaction se existir e pertencer ao user_id; senão None."""
+    repo = TransactionRepository(db)
+    return repo.get_by_user_and_id(user_id, transaction_id)
+
+
+def get_monthly_summary(db: Session, user_id: str, year: int, month: int) -> dict:
+    """Retorna dict com total_transactions, total_income, total_expenses, net_balance, category_breakdown."""
+    repo = TransactionRepository(db)
+    return repo.get_monthly_summary_aggregates(user_id, year, month)
+
+
+def get_existing_by_idempotency_key(db: Session, user_id: str, idempotency_key: str):
+    """Retorna Transaction existente com mesma idempotency_key e user_id; senão None."""
+    repo = TransactionRepository(db)
+    return repo.get_by_user_and_idempotency_key(user_id, idempotency_key)
+
+
+def get_transaction_and_account_for_delete(db: Session, transaction_id: str, user_id: str):
+    """
+    Retorna (transaction, account) para exclusão, ou (None, None) se não encontrado.
+    account é a conta da transação, validada por user_id.
+    """
+    tx_repo = TransactionRepository(db)
+    acc_repo = AccountRepository(db)
+    tx = tx_repo.get_by_user_and_id(user_id, transaction_id)
+    if not tx:
+        return None, None
+    acc = acc_repo.get_by_user_and_id(user_id, tx.account_id)
+    return tx, acc
+
+
+def get_transaction_with_accounts_for_update(
+    db: Session, transaction_id: str, user_id: str, new_account_id: str
+):
+    """
+    Retorna (db_transaction, old_account, new_account) para update.
+    Se algum não existir, retorna (None, None, None).
+    """
+    tx_repo = TransactionRepository(db)
+    acc_repo = AccountRepository(db)
+    tx = tx_repo.get_by_user_and_id(user_id, transaction_id)
+    if not tx:
+        return None, None, None
+    old_acc = acc_repo.get_by_user_and_id(user_id, tx.account_id)
+    if not old_acc:
+        return None, None, None
+    new_acc = acc_repo.get_by_user_and_id(user_id, new_account_id)
+    if not new_acc:
+        return None, None, None
+    return tx, old_acc, new_acc
 

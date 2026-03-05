@@ -79,7 +79,7 @@ def test_double_spend_concurrent_only_one_transfer_succeeds(
             "date": datetime.now(),
             "category_id": category.id,
             "type": "transfer",
-            "amount": 80.0,
+            "amount_cents": 8000,
             "description": "Double-spend",
             "tags": [],
             "to_account_id": account_b.id,
@@ -122,8 +122,8 @@ def test_double_spend_concurrent_only_one_transfer_succeeds(
         assert a.balance >= 0 and b.balance >= 0
         bal_a = get_balance_from_ledger(account_a.id, postgres_db)
         bal_b = get_balance_from_ledger(account_b.id, postgres_db)
-        assert abs(float(bal_a) - a.balance) < 1e-6
-        assert abs(float(bal_b) - b.balance) < 1e-6
+        assert abs(float(bal_a) - float(a.balance)) < 1e-6
+        assert abs(float(bal_b) - float(b.balance)) < 1e-6
     finally:
         cleanup_test_user(postgres_db, user.id)
 
@@ -145,7 +145,7 @@ def test_deadlock_classic_a_to_b_and_b_to_a_no_deadlock(
         results = []
         excs = []
 
-        def transfer(from_id, to_id, amount, label):
+        def transfer(from_id, to_id, amount_cents, label):
             db = postgres_session_factory()
             try:
                 acc = db.query(Account).filter(
@@ -157,7 +157,7 @@ def test_deadlock_classic_a_to_b_and_b_to_a_no_deadlock(
                         "date": datetime.now(),
                         "category_id": category.id,
                         "type": "transfer",
-                        "amount": amount,
+                        "amount_cents": amount_cents,
                         "description": label,
                         "tags": [],
                         "to_account_id": to_id,
@@ -173,8 +173,8 @@ def test_deadlock_classic_a_to_b_and_b_to_a_no_deadlock(
                 db.close()
 
         with ThreadPoolExecutor(max_workers=2) as executor:
-            fa = executor.submit(transfer, account_a.id, account_b.id, 30.0, "A→B")
-            fb = executor.submit(transfer, account_b.id, account_a.id, 30.0, "B→A")
+            fa = executor.submit(transfer, account_a.id, account_b.id, 3000, "A→B")
+            fb = executor.submit(transfer, account_b.id, account_a.id, 3000, "B→A")
             fa.result()
             fb.result()
 
@@ -204,7 +204,7 @@ def test_lock_plus_idempotency_same_key_multiple_threads_only_one_execution(
             "account_id": account_a.id,
             "category_id": category.id,
             "type": "income",
-            "amount": 7.0,
+            "amount_cents": 700,
             "description": "Idem + lock",
             "tags": [],
         }
@@ -279,7 +279,7 @@ def test_lock_prolonged_concurrent_request_gets_409_or_waits(
                         "date": datetime.now(),
                         "category_id": category.id,
                         "type": "income",
-                        "amount": 10.0,
+                        "amount_cents": 1000,
                         "description": "Concorrente",
                         "tags": [],
                     },

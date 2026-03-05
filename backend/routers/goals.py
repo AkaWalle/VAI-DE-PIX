@@ -10,10 +10,17 @@ from pydantic import BaseModel, Field, field_validator
 from database import get_db
 from models import Goal, User
 from auth_utils import get_current_user
-from core.database_utils import atomic_transaction
 from core.amount_parser import serialize_money, from_cents
 from middleware.idempotency import IdempotencyContext, get_idempotency_context_goals
-from db.locks import lock_goal
+
+from services.goals_service import (
+    get_goals as svc_get_goals,
+    get_goal as svc_get_goal,
+    create_goal as svc_create_goal,
+    update_goal as svc_update_goal,
+    delete_goal as svc_delete_goal,
+    add_value_to_goal as svc_add_value_to_goal,
+)
 
 router = APIRouter()
 
@@ -96,34 +103,16 @@ def _goal_to_response(g: Goal) -> GoalResponse:
     r.current_amount_str = serialize_money(g.current_amount)
     return r
 
+
 @router.get("/", response_model=List[GoalResponse])
 async def get_goals(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Get user's goals."""
-    goals = db.query(Goal).filter(Goal.user_id == current_user.id).all()
-    
-    # Calculate progress percentage for each goal
-    for goal in goals:
-        goal.progress_percentage = min((goal.current_amount / goal.target_amount) * 100, 100)
-        
-        # Update status based on progress and date
-        today = datetime.now().date()
-        target_date = goal.target_date.date() if isinstance(goal.target_date, datetime) else goal.target_date
-        
-        if goal.current_amount >= goal.target_amount:
-            goal.status = "achieved"
-        elif target_date < today:
-            goal.status = "overdue"
-        elif (target_date - today).days <= 30 and goal.progress_percentage < 75:
-            goal.status = "at_risk"
-        elif goal.progress_percentage >= 50:
-            goal.status = "on_track"
-        else:
-            goal.status = "active"
-
+    goals = svc_get_goals(db, current_user.id)
     return [_goal_to_response(g) for g in goals]
+
 
 @router.post("/", response_model=GoalResponse)
 async def create_goal(
@@ -145,24 +134,7 @@ async def create_goal(
         )
 
     try:
-        # API recebe target_amount_cents; banco usa Numeric(15,2) via from_cents
-        target_amount_decimal = from_cents(goal.target_amount_cents)
-        db_goal = Goal(
-            name=goal.name,
-            target_amount=target_amount_decimal,
-            target_date=goal.target_date,
-            description=goal.description,
-            category=goal.category,
-            priority=goal.priority,
-            user_id=current_user.id,
-            current_amount=from_cents(0),
-            status="active",
-        )
-        with atomic_transaction(db):
-            db.add(db_goal)
-            db.flush()
-        db.refresh(db_goal)
-        db_goal.progress_percentage = 0.0
+        db_goal = svc_create_goal(db, current_user.id, goal.model_dump())
         resp = _goal_to_response(db_goal)
         idem.save_success(200, resp.model_dump(mode="json"))
         return resp
@@ -173,6 +145,7 @@ async def create_goal(
         idem.save_failed()
         raise
 
+
 @router.get("/{goal_id}", response_model=GoalResponse)
 async def get_goal(
     goal_id: str,
@@ -180,19 +153,9 @@ async def get_goal(
     db: Session = Depends(get_db)
 ):
     """Get a specific goal."""
-    goal = db.query(Goal).filter(
-        Goal.id == goal_id,
-        Goal.user_id == current_user.id
-    ).first()
-    
-    if not goal:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Meta não encontrada"
-        )
-    
-    goal.progress_percentage = min((goal.current_amount / goal.target_amount) * 100, 100)
+    goal = svc_get_goal(db, current_user.id, goal_id)
     return _goal_to_response(goal)
+
 
 @router.put("/{goal_id}", response_model=GoalResponse)
 async def update_goal(
@@ -202,32 +165,14 @@ async def update_goal(
     db: Session = Depends(get_db)
 ):
     """Update a goal."""
-    db_goal = db.query(Goal).filter(
-        Goal.id == goal_id,
-        Goal.user_id == current_user.id
-    ).first()
-    
-    if not db_goal:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Meta não encontrada"
-        )
-    
     update_data = goal_update.model_dump(exclude_unset=True)
-    # Converter centavos para Decimal antes de setar no modelo (colunas Numeric)
     if "target_amount_cents" in update_data:
         update_data["target_amount"] = from_cents(update_data.pop("target_amount_cents"))
     if "current_amount_cents" in update_data:
         update_data["current_amount"] = from_cents(update_data.pop("current_amount_cents"))
-    for field, value in update_data.items():
-        setattr(db_goal, field, value)
-    db_goal.updated_at = datetime.now()
-    with atomic_transaction(db):
-        lock_goal(goal_id, db)
-        db.add(db_goal)
-    db.refresh(db_goal)
-    db_goal.progress_percentage = min((db_goal.current_amount / db_goal.target_amount) * 100, 100)
+    db_goal = svc_update_goal(db, current_user.id, goal_id, update_data)
     return _goal_to_response(db_goal)
+
 
 @router.delete("/{goal_id}")
 async def delete_goal(
@@ -236,21 +181,9 @@ async def delete_goal(
     db: Session = Depends(get_db)
 ):
     """Delete a goal."""
-    db_goal = db.query(Goal).filter(
-        Goal.id == goal_id,
-        Goal.user_id == current_user.id
-    ).first()
-    
-    if not db_goal:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Meta não encontrada"
-        )
-    
-    with atomic_transaction(db):
-        lock_goal(goal_id, db)
-        db.delete(db_goal)
+    svc_delete_goal(db, current_user.id, goal_id)
     return {"message": "Meta removida com sucesso"}
+
 
 @router.post("/{goal_id}/add-value")
 async def add_value_to_goal(
@@ -260,37 +193,4 @@ async def add_value_to_goal(
     db: Session = Depends(get_db)
 ):
     """Adiciona valor à meta. Body: amount_cents (int). Validação estrita: sem float/str/bool."""
-    db_goal = db.query(Goal).filter(
-        Goal.id == goal_id,
-        Goal.user_id == current_user.id
-    ).first()
-    
-    if not db_goal:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Meta não encontrada"
-        )
-    
-    amount_cents = body.amount_cents
-    if amount_cents <= 0:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="amount_cents deve ser maior que zero"
-        )
-    
-    amount_decimal = from_cents(amount_cents)
-    # Constraint do banco: current_amount <= target_amount; limitar ao target
-    new_current = db_goal.current_amount + amount_decimal
-    db_goal.current_amount = min(new_current, db_goal.target_amount)
-    db_goal.updated_at = datetime.now()
-    if db_goal.current_amount >= db_goal.target_amount:
-        db_goal.status = "achieved"
-    with atomic_transaction(db):
-        lock_goal(goal_id, db)
-        db.add(db_goal)
-    db.refresh(db_goal)
-    return {
-        "message": "Valor adicionado com sucesso",
-        "new_amount": float(db_goal.current_amount),
-        "progress_percentage": min(float(db_goal.current_amount / db_goal.target_amount * 100), 100.0)
-    }
+    return svc_add_value_to_goal(db, current_user.id, goal_id, body.amount_cents)

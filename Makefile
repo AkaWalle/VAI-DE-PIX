@@ -1,4 +1,4 @@
-.PHONY: help install install-backend install-frontend dev dev-backend dev-frontend test test-unit test-e2e build clean
+.PHONY: help install install-backend install-frontend dev dev-backend dev-frontend test test-unit test-e2e build clean check-architecture
 
 help:
 	@echo "💰 VAI DE PIX - Comandos Disponíveis"
@@ -21,6 +21,9 @@ help:
 	@echo "Build:"
 	@echo "  make build                - Build para produção"
 	@echo "  make clean                - Limpa arquivos gerados"
+	@echo ""
+	@echo "Arquitetura:"
+	@echo "  make check-architecture   - Verifica se routers não acessam ORM direto (fitness function)"
 
 install:
 	@echo "📦 Instalando dependências..."
@@ -92,6 +95,10 @@ build:
 	@echo "🏗️  Building para produção..."
 	npm run build
 	@echo "✅ Build concluído"
+
+check-architecture:
+	@echo "🔒 Verificando regra: routers não devem acessar ORM diretamente..."
+	cd backend && python scripts/architecture_guard.py
 
 clean:
 	@echo "🧹 Limpando arquivos gerados..."
