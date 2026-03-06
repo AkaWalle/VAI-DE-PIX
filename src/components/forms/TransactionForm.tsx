@@ -360,7 +360,7 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
       onOpenChange={handleOpenChange}
       submitLabel="Criar Transação"
     >
-      {/* Mobile bottom-sheet pattern: container flex + scroll único; header/footer ficam no FormDialog */}
+      {/* Padrão fintech: container flex; só o conteúdo central rola; header/footer no FormDialog */}
       <div className="flex flex-col max-h-[90dvh] sm:max-h-none">
         <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-24 sm:pb-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
