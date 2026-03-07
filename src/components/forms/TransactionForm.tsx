@@ -360,9 +360,7 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
       onOpenChange={handleOpenChange}
       submitLabel="Criar Transação"
     >
-      {/* Padrão fintech: container flex; só o conteúdo central rola; header/footer no FormDialog */}
-      <div className="flex flex-col max-h-[90dvh] sm:max-h-none">
-        <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-24 sm:pb-4">
+      <div className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="type">Tipo *</Label>
@@ -502,7 +500,6 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
           Separe as tags por vírgula
         </p>
       </div>
-        </div>
       </div>
     </FormDialog>
   );

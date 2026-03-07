@@ -52,17 +52,17 @@ export function FormDialog({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
+      <DialogContent className="flex flex-col w-full max-h-[90svh] sm:max-w-lg overflow-hidden">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle>{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-4 py-4">{children}</div>
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+          <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-20 space-y-4">{children}</div>
 
           {showFooter && (
-            <div className="flex gap-2 justify-end">
+            <div className="flex flex-shrink-0 gap-2 justify-end">
               <Button
                 type="button"
                 variant="outline"
