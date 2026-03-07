@@ -699,8 +699,8 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
             </Button>
           )}
         </DialogTrigger>
-        <DialogContent className="w-full max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="flex flex-col w-full max-w-[95vw] sm:max-w-4xl max-h-[90svh] overflow-hidden">
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle className="flex items-center gap-2">
               <Upload className="h-5 w-5" />
               Importar Relatório Bancário
@@ -711,7 +711,7 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-6">
+          <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-20 space-y-6">
             {/* Seleção de Arquivo */}
             <Card>
               <CardHeader>
@@ -882,7 +882,7 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
             )}
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="flex-shrink-0">
             <Button variant="outline" onClick={() => setIsOpen(false)}>
               Cancelar
             </Button>

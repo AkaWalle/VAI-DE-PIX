@@ -64,14 +64,14 @@ export function SharedExpenseRespondModal({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
+        <DialogContent className="flex flex-col w-full max-h-[90svh] sm:max-w-md overflow-hidden">
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle>Despesa compartilhada</DialogTitle>
             <DialogDescription>
               {share.expense_description}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-2 py-2">
+          <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-20 space-y-2 py-2">
             <p className="text-sm text-muted-foreground">
               <span className="font-medium text-foreground">Valor:</span>{" "}
               {formatCurrency(share.expense_amount, { showSign: false })}
@@ -85,7 +85,7 @@ export function SharedExpenseRespondModal({
               <ExpenseShareTimeline shareId={share.id} />
             </div>
           </div>
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="flex-shrink-0 gap-2 sm:gap-0">
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}
