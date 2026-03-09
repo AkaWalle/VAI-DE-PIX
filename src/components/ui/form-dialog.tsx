@@ -57,7 +57,7 @@ export function FormDialog({
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent
         className={cn(
-          "flex w-full max-h-[90svh] flex-col overflow-hidden sm:max-w-lg",
+          "flex w-full max-h-[90vh] flex-col overflow-x-hidden overflow-y-hidden sm:max-w-lg",
           contentClassName,
         )}
       >
@@ -67,16 +67,16 @@ export function FormDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
-          <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-20 space-y-4">{children}</div>
+          <div className="modal-body px-4 pb-20 space-y-4">{children}</div>
 
           {showFooter && (
-            <div className="flex flex-shrink-0 justify-end gap-2">
+            <div className="flex flex-shrink-0 flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setIsOpen(false)}
                 disabled={isLoading}
-                className="min-h-[44px]"
+                className="min-h-[44px] w-full sm:w-auto"
               >
                 {cancelLabel}
               </Button>
@@ -84,7 +84,7 @@ export function FormDialog({
                 type="submit"
                 disabled={isLoading}
                 aria-label={`${submitLabel} - ${title.toLowerCase()}`}
-                className="min-h-[44px]"
+                className="min-h-[44px] w-full sm:w-auto"
               >
                 {isLoading ? (
                   <>
