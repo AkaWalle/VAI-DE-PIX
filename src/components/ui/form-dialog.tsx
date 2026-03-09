@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface FormDialogProps {
   trigger: React.ReactNode;
@@ -22,6 +23,7 @@ interface FormDialogProps {
   submitLabel?: string;
   cancelLabel?: string;
   showFooter?: boolean;
+  contentClassName?: string;
 }
 
 export function FormDialog({
@@ -36,6 +38,7 @@ export function FormDialog({
   submitLabel = "Salvar",
   cancelLabel = "Cancelar",
   showFooter = true,
+  contentClassName,
 }: FormDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false);
 
@@ -52,7 +55,12 @@ export function FormDialog({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="flex flex-col w-full max-h-[90svh] sm:max-w-lg overflow-hidden">
+      <DialogContent
+        className={cn(
+          "flex w-full max-h-[90svh] flex-col overflow-hidden sm:max-w-lg",
+          contentClassName,
+        )}
+      >
         <DialogHeader className="flex-shrink-0">
           <DialogTitle>{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
@@ -62,12 +70,13 @@ export function FormDialog({
           <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-20 space-y-4">{children}</div>
 
           {showFooter && (
-            <div className="flex flex-shrink-0 gap-2 justify-end">
+            <div className="flex flex-shrink-0 justify-end gap-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setIsOpen(false)}
                 disabled={isLoading}
+                className="min-h-[44px]"
               >
                 {cancelLabel}
               </Button>
@@ -75,6 +84,7 @@ export function FormDialog({
                 type="submit"
                 disabled={isLoading}
                 aria-label={`${submitLabel} - ${title.toLowerCase()}`}
+                className="min-h-[44px]"
               >
                 {isLoading ? (
                   <>

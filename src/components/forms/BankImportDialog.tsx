@@ -325,7 +325,7 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
 
     const dateField = findField("date");
     const descriptionField = findField("description");
-    let amountField = findField("amount");
+    const amountField = findField("amount");
     const typeField = findField("type");
 
     // Itaú: valor = Crédito - Débito (colunas separadas)
