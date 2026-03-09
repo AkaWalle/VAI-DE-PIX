@@ -292,6 +292,11 @@
     @apply m-4 sm:m-6;
   }
 
+  .modal-body {
+    @apply flex-1 min-h-0 max-h-[90vh] overflow-y-auto overflow-x-hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
   /* Prevent text overflow */
   .text-overflow-ellipsis {
     @apply truncate;

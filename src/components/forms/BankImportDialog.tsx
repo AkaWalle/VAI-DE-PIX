@@ -699,7 +699,7 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
             </Button>
           )}
         </DialogTrigger>
-        <DialogContent className="flex flex-col w-full max-w-[95vw] sm:max-w-4xl max-h-[90svh] overflow-hidden">
+        <DialogContent className="flex flex-col w-full max-w-[95vw] max-h-[90vh] overflow-x-hidden overflow-y-hidden sm:max-w-lg md:max-w-2xl">
           <DialogHeader className="flex-shrink-0">
             <DialogTitle className="flex items-center gap-2">
               <Upload className="h-5 w-5" />
@@ -711,7 +711,7 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-20 space-y-6">
+          <div className="modal-body px-4 pb-20 space-y-6">
             {/* Seleção de Arquivo */}
             <Card>
               <CardHeader>
@@ -722,14 +722,14 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                     <Input
                       ref={fileInputRef}
                       type="file"
                       accept=".csv,.txt"
                       onChange={handleFileSelect}
                       disabled={isImporting}
-                      className="flex-1"
+                      className="w-full sm:flex-1"
                     />
                     {selectedFile && (
                       <Button
@@ -740,13 +740,14 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
                           if (fileInputRef.current)
                             fileInputRef.current.value = "";
                         }}
+                        className="min-h-[44px] w-full sm:w-auto"
                       >
                         <X className="h-4 w-4" />
                       </Button>
                     )}
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                     <Button
                       variant="outline"
                       size="sm"
@@ -756,6 +757,7 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
                         link.download = "extrato-bancario-exemplo.csv";
                         link.click();
                       }}
+                      className="min-h-[44px] w-full sm:w-auto"
                     >
                       <Download className="h-4 w-4 mr-2" />
                       Exemplo Extrato
@@ -769,6 +771,7 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
                         link.download = "cartao-credito-exemplo.csv";
                         link.click();
                       }}
+                      className="min-h-[44px] w-full sm:w-auto"
                     >
                       <Download className="h-4 w-4 mr-2" />
                       Exemplo Cartão
@@ -777,9 +780,11 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
 
                   {selectedFile && (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <FileText className="h-4 w-4" />
-                      {selectedFile.name} (
-                      {((selectedFile?.size ?? 0) / 1024).toFixed(1)} KB)
+                      <FileText className="h-4 w-4 shrink-0" />
+                      <span className="min-w-0 truncate">{selectedFile.name}</span>
+                      <span className="shrink-0">
+                        ({((selectedFile?.size ?? 0) / 1024).toFixed(1)} KB)
+                      </span>
                     </div>
                   )}
 
@@ -814,7 +819,7 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
                       .map((transaction, index) => (
                         <div
                           key={index}
-                          className="flex items-center gap-2 p-2 border rounded flex-wrap"
+                          className="flex flex-col gap-2 rounded border p-2 md:flex-row md:items-center"
                         >
                           <div className="flex-1 min-w-0">
                             <div className="font-medium text-sm">
@@ -836,7 +841,7 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
                           >
                             R$ {Math.abs(transaction.amount ?? 0).toFixed(2)}
                           </div>
-                          <div className="w-[180px] shrink-0">
+                          <div className="w-full shrink-0 md:w-[180px]">
                             <Select
                               value={transaction.category || ""}
                               onValueChange={(value) =>
@@ -849,7 +854,7 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
                                 )
                               }
                             >
-                              <SelectTrigger className="h-8 text-xs">
+                              <SelectTrigger className="min-h-[44px] w-full text-sm">
                                 <SelectValue placeholder="Categoria (sugestão)" />
                               </SelectTrigger>
                               <SelectContent>
@@ -882,14 +887,15 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
             )}
           </div>
 
-          <DialogFooter className="flex-shrink-0">
-            <Button variant="outline" onClick={() => setIsOpen(false)}>
+          <DialogFooter className="flex-shrink-0 gap-2">
+            <Button variant="outline" onClick={() => setIsOpen(false)} className="min-h-[44px] w-full sm:w-auto">
               Cancelar
             </Button>
             {parsedTransactions.length > 0 && (
               <Button
                 onClick={() => setShowConfirmDialog(true)}
                 disabled={isImporting}
+                className="min-h-[44px] w-full sm:w-auto"
               >
                 {isImporting
                   ? "Importando..."

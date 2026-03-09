@@ -64,14 +64,14 @@ export function SharedExpenseRespondModal({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="flex flex-col w-full max-h-[90svh] sm:max-w-md overflow-hidden">
+        <DialogContent className="flex flex-col w-full max-h-[90vh] max-w-[95vw] overflow-x-hidden overflow-y-hidden sm:max-w-md">
           <DialogHeader className="flex-shrink-0">
             <DialogTitle>Despesa compartilhada</DialogTitle>
             <DialogDescription>
               {share.expense_description}
             </DialogDescription>
           </DialogHeader>
-          <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-20 space-y-2 py-2">
+          <div className="modal-body px-4 pb-20 space-y-2 py-2">
             <p className="text-sm text-muted-foreground">
               <span className="font-medium text-foreground">Valor:</span>{" "}
               {formatCurrency(share.expense_amount, { showSign: false })}
@@ -85,11 +85,12 @@ export function SharedExpenseRespondModal({
               <ExpenseShareTimeline shareId={share.id} />
             </div>
           </div>
-          <DialogFooter className="flex-shrink-0 gap-2 sm:gap-0">
+          <DialogFooter className="flex-shrink-0 gap-2">
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={isSubmitting}
+              className="min-h-[44px] w-full sm:w-auto"
             >
               Fechar
             </Button>
@@ -97,12 +98,14 @@ export function SharedExpenseRespondModal({
               variant="destructive"
               onClick={() => handleConfirm("reject")}
               disabled={isSubmitting}
+              className="min-h-[44px] w-full sm:w-auto"
             >
               Recusar
             </Button>
             <Button
               onClick={() => handleConfirm("accept")}
               disabled={isSubmitting}
+              className="min-h-[44px] w-full sm:w-auto"
             >
               Aceitar
             </Button>
