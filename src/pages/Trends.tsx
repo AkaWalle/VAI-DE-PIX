@@ -28,53 +28,55 @@ import {
   Area,
 } from "recharts";
 
+function calculateTrend(data: { income: number; expense: number }[]) {
+  if (data.length < 3) return { trend: 0, direction: "neutral" as const };
+
+  const recentAvgBase = 3;
+  const recent =
+    data
+      .slice(-recentAvgBase)
+      .reduce(
+        (sum, item) =>
+          sum + (Number(item.income) - Math.abs(Number(item.expense))),
+        0,
+      ) / recentAvgBase;
+  const older =
+    data
+      .slice(0, recentAvgBase)
+      .reduce(
+        (sum, item) =>
+          sum + (Number(item.income) - Math.abs(Number(item.expense))),
+        0,
+      ) / recentAvgBase;
+
+  if (!Number.isFinite(older) || Math.abs(older) === 0) {
+    return { trend: 0, direction: "neutral" as const };
+  }
+
+  const trend = ((recent - older) / Math.abs(older)) * 100;
+  const direction = trend > 5 ? "up" : trend < -5 ? "down" : "neutral";
+
+  return { trend: Math.abs(trend), direction };
+}
+
 export default function Trends() {
   const { transactions, categories, getCashflow } = useFinancialStore();
 
-  // Análise de tendências
-  const last6MonthsData = getCashflow(6);
-  const last12MonthsData = getCashflow(12);
-  const last3MonthsData = getCashflow(3);
+  // Dados de cashflow memoizados
+  const last3MonthsData = useMemo(() => getCashflow(3), [getCashflow, transactions]);
+  const last6MonthsData = useMemo(() => getCashflow(6), [getCashflow, transactions]);
+  const last12MonthsData = useMemo(() => getCashflow(12), [getCashflow, transactions]);
 
-  // Calcular tendências
-  const calculateTrend = (data: { income: number; expense: number }[]) => {
-    if (data.length < 3) return { trend: 0, direction: "neutral" as const };
-
-    const recentAvgBase = 3;
-    const recent =
-      data
-        .slice(-recentAvgBase)
-        .reduce(
-          (sum, item) =>
-            sum + (Number(item.income) - Math.abs(Number(item.expense))),
-          0,
-        ) / recentAvgBase;
-    const older =
-      data
-        .slice(0, recentAvgBase)
-        .reduce(
-          (sum, item) =>
-            sum + (Number(item.income) - Math.abs(Number(item.expense))),
-          0,
-        ) / recentAvgBase;
-
-    if (!Number.isFinite(older) || Math.abs(older) === 0) {
-      return { trend: 0, direction: "neutral" as const };
-    }
-
-    const trend = ((recent - older) / Math.abs(older)) * 100;
-    const direction = trend > 5 ? "up" : trend < -5 ? "down" : "neutral";
-
-    return { trend: Math.abs(trend), direction };
-  };
-
-  const incomeTrend = calculateTrend(
-    last6MonthsData.map((d) => ({ income: d.income, expense: 0 })),
-  );
-  const expenseTrend = calculateTrend(
-    last6MonthsData.map((d) => ({ income: 0, expense: d.expense })),
-  );
-  const balanceTrend = calculateTrend(last6MonthsData);
+  // Tendências memoizadas (income, expense, balance)
+  const { incomeTrend, expenseTrend, balanceTrend } = useMemo(() => ({
+    incomeTrend: calculateTrend(
+      last6MonthsData.map((d) => ({ income: d.income, expense: 0 })),
+    ),
+    expenseTrend: calculateTrend(
+      last6MonthsData.map((d) => ({ income: 0, expense: d.expense })),
+    ),
+    balanceTrend: calculateTrend(last6MonthsData),
+  }), [last6MonthsData]);
 
   // Análise de categorias com maior crescimento/decrescimento
   const categoryTrends = useMemo(() => {

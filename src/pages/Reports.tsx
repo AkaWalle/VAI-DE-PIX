@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useFinancialStore } from "@/stores/financial-store";
 import {
   Card,
@@ -46,37 +46,47 @@ export default function Reports() {
   const [selectedPeriod, setSelectedPeriod] = useState("6");
   const [isExporting, setIsExporting] = useState(false);
 
-  // Análises de dados
-  const totalTransactions = transactions.length;
-  const totalIncome = transactions
-    .filter((t) => t.type === "income")
-    .reduce((sum, t) => sum + t.amount, 0);
-  const totalExpenses = transactions
-    .filter((t) => t.type === "expense")
-    .reduce((sum, t) => sum + Math.abs(t.amount), 0);
-  const netBalance = totalIncome - totalExpenses;
+  // Análises de dados (memoizado para evitar recálculo a cada render)
+  const reportSummary = useMemo(() => {
+    const totalIncome = transactions
+      .filter((t) => t.type === "income")
+      .reduce((sum, t) => sum + t.amount, 0);
+    const totalExpenses = transactions
+      .filter((t) => t.type === "expense")
+      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    const categoryExpenses = categories
+      .filter((c) => c.type === "expense")
+      .map((category) => {
+        const categoryTransactions = transactions.filter(
+          (t) => t.category === category.id && t.type === "expense",
+        );
+        const total = categoryTransactions.reduce(
+          (sum, t) => sum + Math.abs(t.amount),
+          0,
+        );
+        return {
+          name: category.name,
+          value: total,
+          color: category.color,
+        };
+      })
+      .filter((item) => item.value > 0)
+      .sort((a, b) => b.value - a.value);
+
+    return {
+      totalTransactions: transactions.length,
+      totalIncome,
+      totalExpenses,
+      netBalance: totalIncome - totalExpenses,
+      categoryExpenses,
+    };
+  }, [transactions, categories]);
+
+  const { totalTransactions, totalIncome, totalExpenses, netBalance, categoryExpenses } =
+    reportSummary;
 
   // Dados para gráficos
   const cashflowData = getCashflow(parseInt(selectedPeriod));
-
-  const categoryExpenses = categories
-    .filter((c) => c.type === "expense")
-    .map((category) => {
-      const categoryTransactions = transactions.filter(
-        (t) => t.category === category.id && t.type === "expense",
-      );
-      const total = categoryTransactions.reduce(
-        (sum, t) => sum + Math.abs(t.amount),
-        0,
-      );
-      return {
-        name: category.name,
-        value: total,
-        color: category.color,
-      };
-    })
-    .filter((item) => item.value > 0)
-    .sort((a, b) => b.value - a.value);
 
   const handleExportReport = async () => {
     setIsExporting(true);

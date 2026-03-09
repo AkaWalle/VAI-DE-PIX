@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useFinancialStore } from "@/stores/financial-store";
 import { envelopesService } from "@/services/envelopes.service";
 import {
@@ -84,12 +84,14 @@ export default function Envelopes() {
     }
   };
 
-  // Valores no store estão em centavos (number)
-  const totalBalance = envelopes.reduce((sum, env) => sum + env.balance, 0);
-  const totalTarget = envelopes.reduce(
-    (sum, env) => sum + (env.targetAmount ?? 0),
-    0,
-  );
+  // Valores no store estão em centavos (number) — memoizado
+  const { totalBalance, totalTarget } = useMemo(() => ({
+    totalBalance: envelopes.reduce((sum, env) => sum + env.balance, 0),
+    totalTarget: envelopes.reduce(
+      (sum, env) => sum + (env.targetAmount ?? 0),
+      0,
+    ),
+  }), [envelopes]);
 
   return (
     <div className="space-y-6">
@@ -346,8 +348,9 @@ export default function Envelopes() {
           <CardContent>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <label className="text-sm font-medium">De:</label>
+                <label htmlFor="transfer-from" className="text-sm font-medium">De:</label>
                 <select
+                  id="transfer-from"
                   className="w-full p-2 border border-input rounded-md bg-background"
                   value={transferFromId}
                   onChange={(e) => setTransferFromId(e.target.value)}
@@ -361,8 +364,9 @@ export default function Envelopes() {
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Para:</label>
+                <label htmlFor="transfer-to" className="text-sm font-medium">Para:</label>
                 <select
+                  id="transfer-to"
                   className="w-full p-2 border border-input rounded-md bg-background"
                   value={transferToId}
                   onChange={(e) => setTransferToId(e.target.value)}

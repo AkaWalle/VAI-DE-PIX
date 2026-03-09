@@ -202,6 +202,7 @@ export default function Auth() {
                       <Input
                         id="login-email"
                         type="email"
+                        autoComplete="email"
                         placeholder="seu@email.com"
                         value={loginForm.email}
                         onChange={(e) =>
@@ -218,6 +219,7 @@ export default function Auth() {
                       <Input
                         id="login-password"
                         type="password"
+                        autoComplete="current-password"
                         placeholder="••••••••"
                         value={loginForm.password}
                         onChange={(e) =>
@@ -279,6 +281,7 @@ export default function Auth() {
                       <Input
                         id="register-name"
                         type="text"
+                        autoComplete="name"
                         placeholder="Seu nome"
                         value={registerForm.name}
                         onChange={(e) =>
@@ -295,6 +298,7 @@ export default function Auth() {
                       <Input
                         id="register-email"
                         type="email"
+                        autoComplete="email"
                         placeholder="seu@email.com"
                         value={registerForm.email}
                         onChange={(e) =>
@@ -311,6 +315,7 @@ export default function Auth() {
                       <Input
                         id="register-password"
                         type="password"
+                        autoComplete="new-password"
                         placeholder="••••••••"
                         value={registerForm.password}
                         onChange={(e) =>
@@ -329,6 +334,7 @@ export default function Auth() {
                       <Input
                         id="register-confirm-password"
                         type="password"
+                        autoComplete="new-password"
                         placeholder="••••••••"
                         value={registerForm.confirmPassword}
                         onChange={(e) =>

@@ -672,8 +672,9 @@ export default function Automations() {
           <CardContent className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label>Nome da Regra</Label>
+                <Label htmlFor="automation-rule-name">Nome da Regra</Label>
                 <Input
+                  id="automation-rule-name"
                   value={newRule.name}
                   onChange={(e) =>
                     setNewRule((prev) => ({ ...prev, name: e.target.value }))
@@ -682,14 +683,14 @@ export default function Automations() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Tipo</Label>
+                <Label htmlFor="automation-rule-type">Tipo</Label>
                 <Select
                   value={newRule.type}
                   onValueChange={(value: string) =>
                     setNewRule((prev) => ({ ...prev, type: value }))
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="automation-rule-type">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -724,8 +725,9 @@ export default function Automations() {
             </div>
 
             <div className="space-y-2">
-              <Label>Descrição</Label>
+              <Label htmlFor="automation-rule-description">Descrição</Label>
               <Input
+                id="automation-rule-description"
                 value={newRule.description}
                 onChange={(e) =>
                   setNewRule((prev) => ({
@@ -740,14 +742,14 @@ export default function Automations() {
             {newRule.type === "recurring_transaction" && (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <div className="space-y-2">
-                  <Label>Frequência</Label>
+                  <Label htmlFor="automation-trigger">Frequência</Label>
                   <Select
                     value={newRule.trigger}
                     onValueChange={(value) =>
                       setNewRule((prev) => ({ ...prev, trigger: value }))
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="automation-trigger">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -759,8 +761,9 @@ export default function Automations() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Data início</Label>
+                  <Label htmlFor="automation-start-date">Data início</Label>
                   <Input
+                    id="automation-start-date"
                     type="date"
                     value={newRule.startDate}
                     onChange={(e) =>
@@ -772,8 +775,9 @@ export default function Automations() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Data fim (opcional)</Label>
+                  <Label htmlFor="automation-end-date">Data fim (opcional)</Label>
                   <Input
+                    id="automation-end-date"
                     type="date"
                     value={newRule.endDate}
                     onChange={(e) =>
@@ -785,8 +789,9 @@ export default function Automations() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Valor</Label>
+                  <Label htmlFor="automation-recurring-amount">Valor</Label>
                   <CurrencyInput
+                    id="automation-recurring-amount"
                     value={newRule.amountCents}
                     onChange={(v) =>
                       setNewRule((prev) => ({
@@ -797,14 +802,14 @@ export default function Automations() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Tipo</Label>
+                  <Label htmlFor="automation-action-type">Tipo</Label>
                   <Select
                     value={newRule.actionValue}
                     onValueChange={(value) =>
                       setNewRule((prev) => ({ ...prev, actionValue: value }))
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="automation-action-type">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -814,14 +819,14 @@ export default function Automations() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Categoria</Label>
+                  <Label htmlFor="automation-recurring-category">Categoria</Label>
                   <Select
                     value={newRule.category}
                     onValueChange={(value) =>
                       setNewRule((prev) => ({ ...prev, category: value }))
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="automation-recurring-category">
                       <SelectValue placeholder="Selecione a categoria" />
                     </SelectTrigger>
                     <SelectContent>
@@ -834,14 +839,14 @@ export default function Automations() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Conta</Label>
+                  <Label htmlFor="automation-recurring-account">Conta</Label>
                   <Select
                     value={newRule.account}
                     onValueChange={(value) =>
                       setNewRule((prev) => ({ ...prev, account: value }))
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="automation-recurring-account">
                       <SelectValue placeholder="Selecione a conta" />
                     </SelectTrigger>
                     <SelectContent>
@@ -859,14 +864,14 @@ export default function Automations() {
             {newRule.type === "low_balance_alert" && (
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Conta</Label>
+                  <Label htmlFor="automation-low-balance-account">Conta</Label>
                   <Select
                     value={newRule.account}
                     onValueChange={(value) =>
                       setNewRule((prev) => ({ ...prev, account: value }))
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="automation-low-balance-account">
                       <SelectValue placeholder="Selecione a conta" />
                     </SelectTrigger>
                     <SelectContent>
@@ -879,8 +884,9 @@ export default function Automations() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Valor mínimo (alerta quando saldo ficar abaixo)</Label>
+                  <Label htmlFor="automation-low-balance-amount">Valor mínimo (alerta quando saldo ficar abaixo)</Label>
                   <CurrencyInput
+                    id="automation-low-balance-amount"
                     value={newRule.amountCents}
                     onChange={(v) =>
                       setNewRule((prev) => ({
@@ -896,14 +902,14 @@ export default function Automations() {
             {newRule.type === "category_limit" && (
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Categoria</Label>
+                  <Label htmlFor="automation-category-limit-category">Categoria</Label>
                   <Select
                     value={newRule.category}
                     onValueChange={(value) =>
                       setNewRule((prev) => ({ ...prev, category: value }))
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="automation-category-limit-category">
                       <SelectValue placeholder="Selecione a categoria" />
                     </SelectTrigger>
                     <SelectContent>
@@ -918,8 +924,9 @@ export default function Automations() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Limite mensal (toast ao ultrapassar)</Label>
+                  <Label htmlFor="automation-category-limit-amount">Limite mensal (toast ao ultrapassar)</Label>
                   <CurrencyInput
+                    id="automation-category-limit-amount"
                     value={newRule.amountCents}
                     onChange={(v) =>
                       setNewRule((prev) => ({
@@ -935,7 +942,7 @@ export default function Automations() {
             {newRule.type === "weekly_report" && (
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Dia da semana para enviar</Label>
+                  <Label htmlFor="automation-weekly-day">Dia da semana para enviar</Label>
                   <Select
                     value={String(newRule.dayOfWeek)}
                     onValueChange={(value) =>
@@ -945,7 +952,7 @@ export default function Automations() {
                       }))
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="automation-weekly-day">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -960,8 +967,9 @@ export default function Automations() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>E-mail de destino</Label>
+                  <Label htmlFor="automation-weekly-email">E-mail de destino</Label>
                   <Input
+                    id="automation-weekly-email"
                     type="email"
                     value={newRule.destinationEmail}
                     onChange={(e) =>
@@ -979,8 +987,9 @@ export default function Automations() {
             {newRule.type === "payment_reminder" && (
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Lembrar após (dias)</Label>
+                  <Label htmlFor="automation-payment-reminder-days">Lembrar após (dias)</Label>
                   <Input
+                    id="automation-payment-reminder-days"
                     type="number"
                     min={1}
                     max={365}
@@ -1003,14 +1012,14 @@ export default function Automations() {
             {newRule.type === "round_up" && (
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Caixinha destino</Label>
+                  <Label htmlFor="automation-roundup-envelope">Caixinha destino</Label>
                   <Select
                     value={newRule.envelopeId}
                     onValueChange={(value) =>
                       setNewRule((prev) => ({ ...prev, envelopeId: value }))
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="automation-roundup-envelope">
                       <SelectValue placeholder="Selecione a caixinha" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1023,7 +1032,7 @@ export default function Automations() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Arredondar para</Label>
+                  <Label htmlFor="automation-roundup-amount">Arredondar para</Label>
                   <Select
                     value={String(newRule.roundToCents)}
                     onValueChange={(value) =>
@@ -1033,7 +1042,7 @@ export default function Automations() {
                       }))
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="automation-roundup-amount">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -1050,14 +1059,14 @@ export default function Automations() {
               newRule.type === "goal_reminder") && (
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Categoria</Label>
+                  <Label htmlFor="automation-budget-category">Categoria</Label>
                   <Select
                     value={newRule.category}
                     onValueChange={(value) =>
                       setNewRule((prev) => ({ ...prev, category: value }))
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="automation-budget-category">
                       <SelectValue placeholder="Selecione a categoria" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1070,8 +1079,9 @@ export default function Automations() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Limite</Label>
+                  <Label htmlFor="automation-budget-limit">Limite</Label>
                   <CurrencyInput
+                    id="automation-budget-limit"
                     value={newRule.amountCents}
                     onChange={(v) =>
                       setNewRule((prev) => ({

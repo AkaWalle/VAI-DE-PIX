@@ -313,6 +313,7 @@ export default function Settings() {
               <Label htmlFor="name">Nome completo</Label>
               <Input
                 id="name"
+                autoComplete="name"
                 value={profileForm.name}
                 onChange={(e) =>
                   setProfileForm((prev) => ({ ...prev, name: e.target.value }))
@@ -325,6 +326,7 @@ export default function Settings() {
               <Input
                 id="email"
                 type="email"
+                autoComplete="email"
                 value={profileForm.email}
                 onChange={(e) =>
                   setProfileForm((prev) => ({ ...prev, email: e.target.value }))
@@ -455,8 +457,9 @@ export default function Settings() {
               <CardContent className="pt-4">
                 <div className="grid gap-4 md:grid-cols-3">
                   <div className="space-y-2">
-                    <Label>Nome da Conta</Label>
+                    <Label htmlFor="new-account-name">Nome da Conta</Label>
                     <Input
+                      id="new-account-name"
                       value={newAccount.name}
                       onChange={(e) =>
                         setNewAccount((prev) => ({
@@ -468,14 +471,14 @@ export default function Settings() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Tipo</Label>
+                    <Label htmlFor="new-account-type">Tipo</Label>
                     <Select
                       value={newAccount.type}
                       onValueChange={(value: string) =>
                         setNewAccount((prev) => ({ ...prev, type: value }))
                       }
                     >
-                      <SelectTrigger>
+                      <SelectTrigger id="new-account-type">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -492,8 +495,9 @@ export default function Settings() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Saldo Inicial</Label>
+                    <Label htmlFor="new-account-balance">Saldo Inicial</Label>
                     <CurrencyInput
+                      id="new-account-balance"
                       value={newAccount.balanceCents}
                       onChange={(v) =>
                         setNewAccount((prev) => ({

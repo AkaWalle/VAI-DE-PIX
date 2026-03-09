@@ -425,6 +425,7 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
               <Input
                 id="sharedWithEmail"
                 type="email"
+                autoComplete="email"
                 placeholder="email@exemplo.com"
                 value={formData.sharedWithEmail}
                 onChange={(e) =>
@@ -443,7 +444,7 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
             value={formData.category}
             onValueChange={(value) => updateFormData("category", value)}
           >
-            <SelectTrigger>
+            <SelectTrigger id="category">
               <SelectValue placeholder="Selecione a categoria" />
             </SelectTrigger>
             <SelectContent>
@@ -464,7 +465,7 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
             value={formData.account}
             onValueChange={(value) => updateFormData("account", value)}
           >
-            <SelectTrigger>
+            <SelectTrigger id="account">
               <SelectValue placeholder="Selecione a conta" />
             </SelectTrigger>
             <SelectContent>
