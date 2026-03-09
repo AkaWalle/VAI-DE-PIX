@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useFinancialStore } from "@/stores/financial-store";
 import {
   Card,
@@ -84,59 +84,68 @@ export default function Transactions() {
   const [selectedMonth, setSelectedMonth] = useState("");
   const [selectedYear, setSelectedYear] = useState("");
 
-  // Filter transactions
-  const filteredTransactions = transactions.filter((transaction) => {
-    const matchesSearch = transaction.description
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
-    const matchesType =
-      selectedType === "all" || transaction.type === selectedType;
+  // Filter transactions (memoizado para evitar recálculo a cada render)
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter((transaction) => {
+      const matchesSearch = transaction.description
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+      const matchesType =
+        selectedType === "all" || transaction.type === selectedType;
 
-    // Filtro de data
-    let matchesDate = true;
-    if (dateFilter !== "all") {
-      const transactionDate = new Date(transaction.date);
+      let matchesDate = true;
+      if (dateFilter !== "all") {
+        const transactionDate = new Date(transaction.date);
 
-      switch (dateFilter) {
-        case "specific":
-          if (specificDate) {
-            const filterDate = new Date(specificDate);
-            matchesDate =
-              transactionDate.toDateString() === filterDate.toDateString();
-          }
-          break;
-        case "month":
-          if (selectedMonth) {
-            const [year, month] = selectedMonth.split("-");
-            matchesDate =
-              transactionDate.getFullYear() === parseInt(year) &&
-              transactionDate.getMonth() === parseInt(month) - 1;
-          }
-          break;
-        case "year":
-          if (selectedYear) {
-            matchesDate =
-              transactionDate.getFullYear() === parseInt(selectedYear);
-          }
-          break;
+        switch (dateFilter) {
+          case "specific":
+            if (specificDate) {
+              const filterDate = new Date(specificDate);
+              matchesDate =
+                transactionDate.toDateString() === filterDate.toDateString();
+            }
+            break;
+          case "month":
+            if (selectedMonth) {
+              const [year, month] = selectedMonth.split("-");
+              matchesDate =
+                transactionDate.getFullYear() === parseInt(year) &&
+                transactionDate.getMonth() === parseInt(month) - 1;
+            }
+            break;
+          case "year":
+            if (selectedYear) {
+              matchesDate =
+                transactionDate.getFullYear() === parseInt(selectedYear);
+            }
+            break;
+        }
       }
-    }
 
-    return matchesSearch && matchesType && matchesDate;
-  });
+      return matchesSearch && matchesType && matchesDate;
+    });
+  }, [
+    transactions,
+    searchTerm,
+    selectedType,
+    dateFilter,
+    specificDate,
+    selectedMonth,
+    selectedYear,
+  ]);
 
-  const getCategoryName = (categoryId: string) => {
-    return (
-      categories.find((c) => c.id === categoryId)?.name ||
-      "Categoria não encontrada"
-    );
-  };
+  // Mapas para lookup O(1) em vez de N .find() por linha
+  const categoryNameMap = useMemo(() => {
+    return Object.fromEntries(
+      categories.map((c) => [c.id, c.name]),
+    ) as Record<string, string>;
+  }, [categories]);
 
-  const getAccountName = (accountId: string) => {
-    return (
-      accounts.find((a) => a.id === accountId)?.name || "Conta não encontrada"
-    );
-  };
+  const accountNameMap = useMemo(() => {
+    return Object.fromEntries(
+      accounts.map((a) => [a.id, a.name]),
+    ) as Record<string, string>;
+  }, [accounts]);
 
   // Função para limpar filtros
   const clearFilters = () => {
@@ -148,8 +157,8 @@ export default function Transactions() {
     setSelectedYear("");
   };
 
-  // Gerar opções de mês e ano baseadas nas transações
-  const getAvailableMonths = () => {
+  // Opções de mês e ano baseadas nas transações (memoizado)
+  const availableMonths = useMemo(() => {
     const months = new Set<string>();
     transactions.forEach((transaction) => {
       const date = new Date(transaction.date);
@@ -157,16 +166,16 @@ export default function Transactions() {
       months.add(monthKey);
     });
     return Array.from(months).sort().reverse();
-  };
+  }, [transactions]);
 
-  const getAvailableYears = () => {
+  const availableYears = useMemo(() => {
     const years = new Set<number>();
     transactions.forEach((transaction) => {
       const date = new Date(transaction.date);
       years.add(date.getFullYear());
     });
     return Array.from(years).sort((a, b) => b - a);
-  };
+  }, [transactions]);
 
   // Funções de seleção
   const handleSelectTransaction = (transactionId: string, checked: boolean) => {
@@ -207,8 +216,8 @@ export default function Transactions() {
         Data: formatDate(transaction.date),
         Tipo: transaction.type === "income" ? "Receita" : "Despesa",
         Descrição: transaction.description,
-        Categoria: getCategoryName(transaction.category),
-        Conta: getAccountName(transaction.account),
+        Categoria: categoryNameMap[transaction.category] ?? "Categoria não encontrada",
+        Conta: accountNameMap[transaction.account] ?? "Conta não encontrada",
         Valor: formatCurrency(Math.abs(transaction.amount)),
         Tags: transaction.tags?.join(", ") || "",
       }));
@@ -494,6 +503,8 @@ export default function Transactions() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
+                  type="search"
+                  aria-label="Buscar transações"
                   placeholder="Buscar transações..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -576,8 +587,9 @@ export default function Transactions() {
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                 {dateFilter === "specific" && (
                   <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium">Data:</label>
+                    <label htmlFor="filter-specific-date" className="text-sm font-medium">Data:</label>
                     <Input
+                      id="filter-specific-date"
                       type="date"
                       value={specificDate}
                       onChange={(e) => setSpecificDate(e.target.value)}
@@ -588,16 +600,16 @@ export default function Transactions() {
 
                 {dateFilter === "month" && (
                   <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium">Mês:</label>
+                    <label htmlFor="filter-month" className="text-sm font-medium">Mês:</label>
                     <Select
                       value={selectedMonth}
                       onValueChange={setSelectedMonth}
                     >
-                      <SelectTrigger className="w-full sm:w-[200px]">
+                      <SelectTrigger id="filter-month" className="w-full sm:w-[200px]">
                         <SelectValue placeholder="Selecione o mês" />
                       </SelectTrigger>
                       <SelectContent>
-                        {getAvailableMonths().map((month) => {
+                        {availableMonths.map((month) => {
                           const [year, monthNum] = month.split("-");
                           const monthName = new Date(
                             parseInt(year),
@@ -619,16 +631,16 @@ export default function Transactions() {
 
                 {dateFilter === "year" && (
                   <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium">Ano:</label>
+                    <label htmlFor="filter-year" className="text-sm font-medium">Ano:</label>
                     <Select
                       value={selectedYear}
                       onValueChange={setSelectedYear}
                     >
-                      <SelectTrigger className="w-full sm:w-[120px]">
+                      <SelectTrigger id="filter-year" className="w-full sm:w-[120px]">
                         <SelectValue placeholder="Selecione o ano" />
                       </SelectTrigger>
                       <SelectContent>
-                        {getAvailableYears().map((year) => (
+                        {availableYears.map((year) => (
                           <SelectItem key={year} value={year.toString()}>
                             {year}
                           </SelectItem>
@@ -785,10 +797,10 @@ export default function Transactions() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {getCategoryName(transaction.category)}
+                        {categoryNameMap[transaction.category] ?? "Categoria não encontrada"}
                       </TableCell>
                       <TableCell>
-                        {getAccountName(transaction.account)}
+                        {accountNameMap[transaction.account] ?? "Conta não encontrada"}
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useFinancialStore } from "@/stores/financial-store";
 import { useAuthStore } from "@/stores/auth-store-index";
 import { useSharedExpensesStore } from "@/stores/shared-expenses-store";
@@ -325,7 +325,10 @@ export function SharedExpenseForm({
     }
   };
 
-  const expenseCategories = categories.filter((c) => c.type === "expense");
+  const expenseCategories = useMemo(
+    () => categories.filter((c) => c.type === "expense"),
+    [categories],
+  );
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
@@ -460,6 +463,8 @@ export function SharedExpenseForm({
               )}
               <div className="grid gap-2 md:grid-cols-3">
                 <Input
+                  id="participant-name"
+                  aria-label="Nome do participante"
                   placeholder="Nome"
                   value={newParticipant.name}
                   onChange={(e) =>
@@ -470,8 +475,11 @@ export function SharedExpenseForm({
                   }
                 />
                 <Input
+                  id="participant-email"
+                  aria-label="Email do participante"
                   placeholder="Email"
                   type="email"
+                  autoComplete="email"
                   value={newParticipant.email}
                   onChange={(e) =>
                     setNewParticipant((prev) => ({
