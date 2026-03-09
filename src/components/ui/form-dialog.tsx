@@ -1,15 +1,11 @@
-import { useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  ResponsiveOverlay,
+  type MobileOverlayVariant,
+} from "@/components/ui/responsive-overlay";
 
 interface FormDialogProps {
   trigger: React.ReactNode;
@@ -24,6 +20,8 @@ interface FormDialogProps {
   cancelLabel?: string;
   showFooter?: boolean;
   contentClassName?: string;
+  mobileContentClassName?: string;
+  mobileVariant?: MobileOverlayVariant;
 }
 
 export function FormDialog({
@@ -39,8 +37,11 @@ export function FormDialog({
   cancelLabel = "Cancelar",
   showFooter = true,
   contentClassName,
+  mobileContentClassName,
+  mobileVariant = "sheet",
 }: FormDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false);
+  const formId = useId();
 
   const isOpen = open !== undefined ? open : internalOpen;
   const setIsOpen = onOpenChange || setInternalOpen;
@@ -53,52 +54,58 @@ export function FormDialog({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent
-        className={cn(
-          "flex w-full max-h-[90vh] flex-col overflow-x-hidden overflow-y-hidden sm:max-w-lg",
-          contentClassName,
-        )}
+    <ResponsiveOverlay
+      open={isOpen}
+      onOpenChange={setIsOpen}
+      trigger={trigger}
+      title={title}
+      description={description}
+      mobileVariant={mobileVariant}
+      desktopContentClassName={cn(
+        "flex w-full max-h-[90vh] flex-col overflow-x-hidden overflow-y-hidden sm:max-w-lg",
+        contentClassName,
+      )}
+      mobileContentClassName={mobileContentClassName}
+      bodyClassName="px-4 pb-6 space-y-4"
+      footer={
+        showFooter ? (
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsOpen(false)}
+              disabled={isLoading}
+              className="min-h-[44px] w-full sm:w-auto"
+            >
+              {cancelLabel}
+            </Button>
+            <Button
+              type="submit"
+              form={formId}
+              disabled={isLoading}
+              aria-label={`${submitLabel} - ${title.toLowerCase()}`}
+              className="min-h-[44px] w-full sm:w-auto"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                submitLabel
+              )}
+            </Button>
+          </div>
+        ) : null
+      }
+    >
+      <form
+        id={formId}
+        onSubmit={handleSubmit}
+        className="flex min-h-0 flex-col space-y-4"
       >
-        <DialogHeader className="flex-shrink-0">
-          <DialogTitle>{title}</DialogTitle>
-          {description && <DialogDescription>{description}</DialogDescription>}
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
-          <div className="modal-body px-4 pb-20 space-y-4">{children}</div>
-
-          {showFooter && (
-            <div className="flex flex-shrink-0 flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsOpen(false)}
-                disabled={isLoading}
-                className="min-h-[44px] w-full sm:w-auto"
-              >
-                {cancelLabel}
-              </Button>
-              <Button
-                type="submit"
-                disabled={isLoading}
-                aria-label={`${submitLabel} - ${title.toLowerCase()}`}
-                className="min-h-[44px] w-full sm:w-auto"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Salvando...
-                  </>
-                ) : (
-                  submitLabel
-                )}
-              </Button>
-            </div>
-          )}
-        </form>
-      </DialogContent>
-    </Dialog>
+        {children}
+      </form>
+    </ResponsiveOverlay>
   );
 }

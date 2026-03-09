@@ -136,6 +136,7 @@ export function EnvelopeValueForm({
       open={isOpen}
       onOpenChange={setIsOpen}
       submitLabel={isWithdraw ? "Retirar Valor" : "Adicionar Valor"}
+      mobileVariant="sheet"
     >
       <div className="space-y-2">
         <Label htmlFor="amount">Valor *</Label>

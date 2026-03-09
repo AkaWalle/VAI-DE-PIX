@@ -1,12 +1,4 @@
 import { useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/utils/format";
 import type { PendingShareItem } from "@/services/sharedExpenseApi";
@@ -21,6 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { ResponsiveOverlay } from "@/components/ui/responsive-overlay";
 
 interface SharedExpenseRespondModalProps {
   share: PendingShareItem | null;
@@ -63,29 +56,16 @@ export function SharedExpenseRespondModal({
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="flex flex-col w-full max-h-[90vh] max-w-[95vw] overflow-x-hidden overflow-y-hidden sm:max-w-md">
-          <DialogHeader className="flex-shrink-0">
-            <DialogTitle>Despesa compartilhada</DialogTitle>
-            <DialogDescription>
-              {share.expense_description}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="modal-body px-4 pb-20 space-y-2 py-2">
-            <p className="text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">Valor:</span>{" "}
-              {formatCurrency(share.expense_amount, { showSign: false })}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">Criado por:</span>{" "}
-              {share.creator_name}
-            </p>
-            <div className="border-t pt-3">
-              <p className="mb-2 text-xs font-medium text-muted-foreground">Histórico</p>
-              <ExpenseShareTimeline shareId={share.id} />
-            </div>
-          </div>
-          <DialogFooter className="flex-shrink-0 gap-2">
+      <ResponsiveOverlay
+        open={open}
+        onOpenChange={onOpenChange}
+        title="Despesa compartilhada"
+        description={share.expense_description}
+        mobileVariant="sheet"
+        desktopContentClassName="flex flex-col w-full max-h-[90vh] max-w-[95vw] overflow-x-hidden overflow-y-hidden sm:max-w-md"
+        bodyClassName="space-y-2 py-2"
+        footer={
+          <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}
@@ -109,9 +89,22 @@ export function SharedExpenseRespondModal({
             >
               Aceitar
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </div>
+        }
+      >
+        <p className="text-sm text-muted-foreground">
+          <span className="font-medium text-foreground">Valor:</span>{" "}
+          {formatCurrency(share.expense_amount, { showSign: false })}
+        </p>
+        <p className="text-sm text-muted-foreground">
+          <span className="font-medium text-foreground">Criado por:</span>{" "}
+          {share.creator_name}
+        </p>
+        <div className="border-t pt-3">
+          <p className="mb-2 text-xs font-medium text-muted-foreground">Histórico</p>
+          <ExpenseShareTimeline shareId={share.id} />
+        </div>
+      </ResponsiveOverlay>
 
       <AlertDialog open={confirmAction !== null} onOpenChange={(o) => !o && handleAlertCancel()}>
         <AlertDialogContent>

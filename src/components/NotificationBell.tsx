@@ -7,14 +7,23 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { notificationsService, type NotificationItem } from "@/services/notifications.service";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export function NotificationBell() {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -65,19 +74,90 @@ export function NotificationBell() {
     });
   };
 
+  const trigger = (
+    <Button variant="ghost" size="sm" className="relative h-9 w-9 min-h-[44px] min-w-[44px]">
+      <Bell className="h-4 w-4" />
+      {unreadCount > 0 && (
+        <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-destructive-foreground">
+          {unreadCount > 99 ? "99+" : unreadCount}
+        </span>
+      )}
+      <span className="sr-only">Notificações</span>
+    </Button>
+  );
+
+  const listContent = (
+    <ScrollArea className="h-[280px]">
+      {loading ? (
+        <div className="flex items-center justify-center py-8 text-muted-foreground text-sm">
+          Carregando...
+        </div>
+      ) : notifications.length === 0 ? (
+        <div className="flex items-center justify-center py-8 text-muted-foreground text-sm">
+          Nenhuma notificação
+        </div>
+      ) : (
+        <ul className="divide-y">
+          {notifications.map((n) => (
+            <li
+              key={n.id}
+              className={cn(
+                "cursor-pointer px-3 py-2.5 text-left transition-colors hover:bg-muted/50",
+                !n.read_at && "bg-muted/30",
+              )}
+              onClick={() => {
+                if (!n.read_at) handleMarkAsRead(n.id);
+                if (n.type === "expense_share_pending" && n.metadata?.share_id) {
+                  setOpen(false);
+                  navigate(`/shared-expenses/pending?shareId=${String(n.metadata.share_id)}`);
+                }
+              }}
+            >
+              <div className="flex gap-2">
+                {!n.read_at && (
+                  <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium leading-tight">{n.title}</p>
+                  {n.body && (
+                    <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{n.body}</p>
+                  )}
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {formatDistanceToNow(new Date(n.created_at), { addSuffix: true, locale: ptBR })}
+                  </p>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </ScrollArea>
+  );
+
+  if (isMobile) {
+    return (
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetTrigger asChild>{trigger}</SheetTrigger>
+        <SheetContent side="bottom" className="max-h-[85vh] rounded-t-3xl p-0">
+          <SheetHeader className="border-b px-4 py-4 text-left">
+            <SheetTitle>Notificações</SheetTitle>
+          </SheetHeader>
+          <div className="flex items-center justify-end border-b px-3 py-2">
+            {unreadCount > 0 && (
+              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={handleMarkAllRead}>
+                Marcar todas como lidas
+              </Button>
+            )}
+          </div>
+          {listContent}
+        </SheetContent>
+      </Sheet>
+    );
+  }
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button variant="ghost" size="sm" className="relative h-9 w-9">
-          <Bell className="h-4 w-4" />
-          {unreadCount > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-destructive-foreground">
-              {unreadCount > 99 ? "99+" : unreadCount}
-            </span>
-          )}
-          <span className="sr-only">Notificações</span>
-        </Button>
-      </PopoverTrigger>
+      <PopoverTrigger asChild>{trigger}</PopoverTrigger>
       <PopoverContent className="w-80 p-0" align="end">
         <div className="flex items-center justify-between border-b px-3 py-2">
           <span className="font-semibold">Notificações</span>
@@ -87,51 +167,7 @@ export function NotificationBell() {
             </Button>
           )}
         </div>
-        <ScrollArea className="h-[280px]">
-          {loading ? (
-            <div className="flex items-center justify-center py-8 text-muted-foreground text-sm">
-              Carregando...
-            </div>
-          ) : notifications.length === 0 ? (
-            <div className="flex items-center justify-center py-8 text-muted-foreground text-sm">
-              Nenhuma notificação
-            </div>
-          ) : (
-            <ul className="divide-y">
-              {notifications.map((n) => (
-                <li
-                  key={n.id}
-                  className={cn(
-                    "cursor-pointer px-3 py-2.5 text-left transition-colors hover:bg-muted/50",
-                    !n.read_at && "bg-muted/30",
-                  )}
-                  onClick={() => {
-                    if (!n.read_at) handleMarkAsRead(n.id);
-                    if (n.type === "expense_share_pending" && n.metadata?.share_id) {
-                      setOpen(false);
-                      navigate(`/shared-expenses/pending?shareId=${String(n.metadata.share_id)}`);
-                    }
-                  }}
-                >
-                  <div className="flex gap-2">
-                    {!n.read_at && (
-                      <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium leading-tight">{n.title}</p>
-                      {n.body && (
-                        <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{n.body}</p>
-                      )}
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {formatDistanceToNow(new Date(n.created_at), { addSuffix: true, locale: ptBR })}
-                      </p>
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </ScrollArea>
+        {listContent}
       </PopoverContent>
     </Popover>
   );
