@@ -16,15 +16,6 @@ import {
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -48,6 +39,7 @@ import {
   Download,
 } from "lucide-react";
 import { formatCurrencyFromCents } from "@/utils/currency";
+import { ResponsiveOverlay } from "@/components/ui/responsive-overlay";
 
 interface ImportedTransaction {
   date: string;
@@ -684,36 +676,52 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
 
   return (
     <>
-      <Dialog
+      <ResponsiveOverlay
         open={isOpen}
         onOpenChange={(open) => {
           setIsOpen(open);
           if (!open) resetDialog();
         }}
-      >
-        <DialogTrigger asChild>
-          {trigger || (
+        trigger={
+          trigger || (
             <Button variant="outline" size="sm">
               <Upload className="h-4 w-4 mr-2" />
               Importar Relatório
             </Button>
-          )}
-        </DialogTrigger>
-        <DialogContent className="flex flex-col w-full max-w-[95vw] max-h-[90vh] overflow-x-hidden overflow-y-hidden sm:max-w-lg md:max-w-2xl">
-          <DialogHeader className="flex-shrink-0">
-            <DialogTitle className="flex items-center gap-2">
-              <Upload className="h-5 w-5" />
-              Importar Relatório Bancário
-            </DialogTitle>
-            <DialogDescription>
-              Importe extratos bancários ou relatórios de cartão de crédito em
-              formato CSV
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="modal-body px-4 pb-20 space-y-6">
+          )
+        }
+        title={
+          <span className="flex items-center gap-2">
+            <Upload className="h-5 w-5" />
+            Importar Relatório Bancário
+          </span>
+        }
+        description="Importe extratos bancários ou relatórios de cartão de crédito em formato CSV"
+        mobileVariant="fullscreen"
+        desktopContentClassName="flex flex-col w-full max-w-[95vw] max-h-[90vh] overflow-x-hidden overflow-y-hidden sm:max-w-lg md:max-w-2xl"
+        mobileContentClassName="flex h-[100dvh] w-screen max-w-none flex-col rounded-none border-0 p-0"
+        bodyClassName="space-y-6"
+        footer={
+          <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
             {/* Seleção de Arquivo */}
-            <Card>
+            <Button variant="outline" onClick={() => setIsOpen(false)} className="min-h-[44px] w-full sm:w-auto">
+              Cancelar
+            </Button>
+            {parsedTransactions.length > 0 && (
+              <Button
+                onClick={() => setShowConfirmDialog(true)}
+                disabled={isImporting}
+                className="min-h-[44px] w-full sm:w-auto"
+              >
+                {isImporting
+                  ? "Importando..."
+                  : `Importar ${parsedTransactions.length} Transações`}
+              </Button>
+            )}
+          </div>
+        }
+      >
+        <Card>
               <CardHeader>
                 <CardTitle className="text-lg">1. Selecionar Arquivo</CardTitle>
                 <CardDescription>
@@ -799,11 +807,11 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
                   )}
                 </div>
               </CardContent>
-            </Card>
+        </Card>
 
-            {/* Preview das Transações */}
-            {showPreview && parsedTransactions.length > 0 && (
-              <Card>
+        {/* Preview das Transações */}
+        {showPreview && parsedTransactions.length > 0 && (
+          <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">
                     2. Preview das Transações
@@ -883,28 +891,9 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
                     )}
                   </div>
                 </CardContent>
-              </Card>
-            )}
-          </div>
-
-          <DialogFooter className="flex-shrink-0 gap-2">
-            <Button variant="outline" onClick={() => setIsOpen(false)} className="min-h-[44px] w-full sm:w-auto">
-              Cancelar
-            </Button>
-            {parsedTransactions.length > 0 && (
-              <Button
-                onClick={() => setShowConfirmDialog(true)}
-                disabled={isImporting}
-                className="min-h-[44px] w-full sm:w-auto"
-              >
-                {isImporting
-                  ? "Importando..."
-                  : `Importar ${parsedTransactions.length} Transações`}
-              </Button>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </Card>
+        )}
+      </ResponsiveOverlay>
 
       {/* Dialog de Confirmação */}
       <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>

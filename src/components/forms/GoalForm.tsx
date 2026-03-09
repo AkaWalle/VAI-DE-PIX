@@ -146,6 +146,7 @@ export function GoalForm({ trigger }: GoalFormProps) {
       open={isOpen}
       onOpenChange={setIsOpen}
       submitLabel="Criar Meta"
+      mobileVariant="sheet"
     >
       <div className="space-y-2">
         <Label htmlFor="name">Nome da Meta *</Label>

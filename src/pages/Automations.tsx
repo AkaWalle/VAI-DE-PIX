@@ -23,6 +23,8 @@ import { Badge } from "@/components/ui/badge";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { automationsService } from "@/services/automations.service";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 import {
   Zap,
   Plus,
@@ -88,6 +90,7 @@ interface AutomationRule {
 }
 
 export default function Automations() {
+  const isMobile = useIsMobile();
   const { categories, accounts, envelopes } = useFinancialStore();
   const { toast } = useToast();
 
@@ -603,7 +606,7 @@ export default function Automations() {
             className="h-9 px-4 text-sm"
           >
             <Plus className="h-4 w-4 mr-2" />
-            Nova Automação
+            {showNewRule ? "Fechar Formulário" : "Nova Automação"}
           </Button>
         </div>
       </div>
@@ -658,8 +661,19 @@ export default function Automations() {
 
       {/* New/Edit Rule Form */}
       {showNewRule && (
-        <Card className="bg-gradient-card shadow-card-custom border-dashed">
-          <CardHeader>
+        <div
+          className={cn(
+            isMobile &&
+              "fixed inset-0 z-50 overflow-y-auto bg-background/95 p-3 pb-24 backdrop-blur-sm",
+          )}
+        >
+          <Card
+            className={cn(
+              "bg-gradient-card shadow-card-custom border-dashed",
+              isMobile && "min-h-[calc(100dvh-1.5rem)]",
+            )}
+          >
+          <CardHeader className={cn(isMobile && "sticky top-0 z-10 border-b bg-background/95 backdrop-blur")}>
             <CardTitle>
               {editingRuleId ? "Editar Automação" : "Nova Automação"}
             </CardTitle>
@@ -669,7 +683,7 @@ export default function Automations() {
                 : "Configure uma nova regra de automação"}
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 pb-6">
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="automation-rule-name">Nome da Regra</Label>
@@ -1094,7 +1108,12 @@ export default function Automations() {
               </div>
             )}
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div
+              className={cn(
+                "flex flex-wrap items-center gap-2",
+                isMobile && "sticky bottom-0 border-t bg-background/95 py-3 backdrop-blur-sm",
+              )}
+            >
               <Button
                 onClick={editingRuleId ? handleUpdateRule : handleCreateRule}
                 className="h-9 px-4 text-sm"
@@ -1111,7 +1130,8 @@ export default function Automations() {
               </Button>
             </div>
           </CardContent>
-        </Card>
+          </Card>
+        </div>
       )}
 
       {/* Automation Rules */}

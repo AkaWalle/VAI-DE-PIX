@@ -144,6 +144,7 @@ export function EnvelopeForm({ trigger }: EnvelopeFormProps) {
       open={isOpen}
       onOpenChange={setIsOpen}
       submitLabel="Criar Caixinha"
+      mobileVariant="sheet"
     >
       <div className="space-y-2">
         <Label htmlFor="name">Nome da Caixinha *</Label>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useId } from "react";
 import { useFinancialStore } from "@/stores/financial-store";
 import { useAuthStore } from "@/stores/auth-store-index";
 import { useSharedExpensesStore } from "@/stores/shared-expenses-store";
@@ -14,26 +14,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/utils/format";
-import { fromCents, toCents, formatCurrencyFromCents, calculateSplit, getInvitedEmail, parseCurrencyInput } from "@/utils/currency";
+import {
+  fromCents,
+  toCents,
+  formatCurrencyFromCents,
+  calculateSplit,
+  getInvitedEmail,
+} from "@/utils/currency";
 import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import {
-  X,
   Plus,
   Trash2,
   Users,
-  DollarSign,
   Calculator,
   UserPlus,
 } from "lucide-react";
+import { ResponsiveOverlay } from "@/components/ui/responsive-overlay";
 
 interface SharedExpenseFormProps {
   expenseId?: string;
@@ -54,8 +52,8 @@ export function SharedExpenseForm({
   onClose,
   onSuccess,
 }: SharedExpenseFormProps) {
-  const { sharedExpenses, categories, addSharedExpense, updateSharedExpense } =
-    useFinancialStore();
+  const formId = useId();
+  const { sharedExpenses, categories, updateSharedExpense } = useFinancialStore();
   const { user } = useAuthStore();
   const { createExpense } = useSharedExpensesStore();
   const { toast } = useToast();
@@ -331,31 +329,55 @@ export function SharedExpenseForm({
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4">
-      <Card className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-x-hidden overflow-y-hidden md:max-w-2xl">
-        <CardHeader>
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                {isEditing
-                  ? "Editar Despesa Compartilhada"
-                  : "Nova Despesa Compartilhada"}
-              </CardTitle>
-              <CardDescription>
-                {isEditing
-                  ? "Atualize os detalhes da despesa"
-                  : "Crie uma nova despesa para dividir entre múltiplas pessoas"}
-              </CardDescription>
-            </div>
-            <Button variant="ghost" size="sm" onClick={onClose} className="min-h-[44px] min-w-[44px] shrink-0 touch-manipulation" aria-label="Fechar">
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        </CardHeader>
-
-        <CardContent className="modal-body px-4 pb-6 scrollbar-hide sm:px-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
+    <ResponsiveOverlay
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      title={
+        <span className="flex items-center gap-2">
+          <Users className="h-5 w-5" />
+          {isEditing
+            ? "Editar Despesa Compartilhada"
+            : "Nova Despesa Compartilhada"}
+        </span>
+      }
+      description={
+        isEditing
+          ? "Atualize os detalhes da despesa"
+          : "Crie uma nova despesa para dividir entre múltiplas pessoas"
+      }
+      mobileVariant="fullscreen"
+      desktopContentClassName="flex max-h-[90vh] w-full max-w-lg flex-col overflow-x-hidden overflow-y-hidden md:max-w-2xl"
+      mobileContentClassName="flex h-[100dvh] w-screen max-w-none flex-col rounded-none border-0 p-0"
+      bodyClassName="scrollbar-hide sm:px-6"
+      footer={
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            className="min-h-[44px] w-full touch-manipulation sm:w-auto"
+          >
+            Cancelar
+          </Button>
+          <Button
+            type="submit"
+            form={formId}
+            className="min-h-[44px] w-full touch-manipulation sm:w-auto"
+            disabled={isSubmitDisabled}
+          >
+            {isSubmitting
+              ? "Salvando..."
+              : isEditing
+                ? "Atualizar"
+                : "Criar"}{" "}
+            Despesa
+          </Button>
+        </div>
+      }
+    >
+      <form id={formId} onSubmit={handleSubmit} className="space-y-6">
             {/* Basic Information */}
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
@@ -535,23 +557,16 @@ export function SharedExpenseForm({
                     </div>
 
                     <div className="flex w-full flex-wrap items-center gap-2 md:w-auto md:flex-nowrap">
-                      <div className="relative flex-1 md:flex-none">
-                        <DollarSign className="absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                          type="text"
-                          inputMode="decimal"
-                          value={
-                            participant.amount === 0
-                              ? ""
-                              : formatCurrency(participant.amount, { showSign: false })
-                          }
-                          onChange={(e) =>
+                      <div className="flex-1 md:flex-none">
+                        <CurrencyInput
+                          value={toCents(participant.amount)}
+                          onChange={(value) =>
                             updateParticipantAmount(
                               participant.userId,
-                              parseCurrencyInput(e.target.value),
+                              fromCents(value),
                             )
                           }
-                          className="min-h-[44px] w-full min-w-0 pl-6 text-sm md:w-24"
+                          className="min-h-[44px] w-full min-w-0 text-sm md:w-32"
                           disabled={formData.splitType === "equal"}
                         />
                       </div>
@@ -613,33 +628,7 @@ export function SharedExpenseForm({
                 </Badge>
               )}
             </div>
-
-            {/* Actions - altura mínima para toque no mobile */}
-            <div className="flex flex-col-reverse gap-2 pt-4 sm:flex-row sm:justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onClose}
-                className="min-h-[44px] w-full touch-manipulation sm:w-auto"
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                className="min-h-[44px] w-full touch-manipulation sm:w-auto"
-                disabled={isSubmitDisabled}
-              >
-                {isSubmitting
-                  ? "Salvando..."
-                  : isEditing
-                    ? "Atualizar"
-                    : "Criar"}{" "}
-                Despesa
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+      </form>
+    </ResponsiveOverlay>
   );
 }

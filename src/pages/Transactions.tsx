@@ -511,7 +511,7 @@ export default function Transactions() {
                   className="pl-9"
                 />
               </div>
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
                 <Button
                   variant={selectedType === "all" ? "default" : "outline"}
                   size="sm"
@@ -546,7 +546,7 @@ export default function Transactions() {
                 <span className="text-sm font-medium">Filtro por Data:</span>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
                 <Button
                   variant={dateFilter === "all" ? "default" : "outline"}
                   size="sm"
@@ -727,7 +727,106 @@ export default function Transactions() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto rounded-md border">
+          <div className="space-y-3 md:hidden">
+            {filteredTransactions.length === 0 ? (
+              <div className="flex min-h-40 flex-col items-center justify-center gap-3 rounded-lg border border-dashed p-6 text-center">
+                <p className="text-muted-foreground">Nenhuma transação encontrada</p>
+                <TransactionForm
+                  trigger={
+                    <ActionButton size="sm" icon={Plus}>
+                      Adicionar Transação
+                    </ActionButton>
+                  }
+                />
+              </div>
+            ) : (
+              filteredTransactions.map((transaction) => (
+                <Card
+                  key={transaction.id}
+                  className={
+                    selectedTransactions.has(transaction.id)
+                      ? "border-primary/40 bg-primary/5"
+                      : ""
+                  }
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <Checkbox
+                        checked={selectedTransactions.has(transaction.id)}
+                        onCheckedChange={(checked) =>
+                          handleSelectTransaction(
+                            transaction.id,
+                            checked as boolean,
+                          )
+                        }
+                        aria-label={`Selecionar transação ${transaction.description}`}
+                        className="mt-1"
+                      />
+
+                      <div className="min-w-0 flex-1 space-y-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate font-medium">
+                              {transaction.description}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatDate(transaction.date)}
+                            </p>
+                          </div>
+
+                          <span
+                            className={`shrink-0 text-sm font-semibold ${
+                              transaction.type === "income"
+                                ? "text-success"
+                                : "text-expense"
+                            }`}
+                          >
+                            {formatCurrency(transaction.amount)}
+                          </span>
+                        </div>
+
+                        <div className="grid gap-3 text-sm sm:grid-cols-2">
+                          <div className="min-w-0">
+                            <p className="text-xs text-muted-foreground">Categoria</p>
+                            <p className="truncate font-medium">
+                              {categoryNameMap[transaction.category] ?? "Categoria não encontrada"}
+                            </p>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs text-muted-foreground">Conta</p>
+                            <p className="truncate font-medium">
+                              {accountNameMap[transaction.account] ?? "Conta não encontrada"}
+                            </p>
+                          </div>
+                        </div>
+
+                        {transaction.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {transaction.tags.slice(0, 3).map((tag) => (
+                              <Badge
+                                key={tag}
+                                variant="secondary"
+                                className="text-xs"
+                              >
+                                {tag}
+                              </Badge>
+                            ))}
+                            {transaction.tags.length > 3 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{transaction.tags.length - 3}
+                              </Badge>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+
+          <div className="hidden overflow-x-auto rounded-md border md:block">
             <Table>
               <TableHeader>
                 <TableRow>

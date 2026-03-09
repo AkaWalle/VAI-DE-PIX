@@ -124,6 +124,7 @@ export function AddGoalValueForm({
       open={isOpen}
       onOpenChange={setIsOpen}
       submitLabel="Adicionar Valor"
+      mobileVariant="sheet"
     >
       <div className="space-y-2">
         <Label htmlFor="amount">Valor a Adicionar *</Label>
