@@ -527,7 +527,6 @@ export const useFinancialStore = create<FinancialStore>()(
       setDateRange: (range) => set({ dateRange: range }),
 
       // User management
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars -- assinatura mantida para compatibilidade
       initializeUserData: (_userId: string) => {
         // Inicializar dados vazios - dados virão da API
         const now = new Date();

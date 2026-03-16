@@ -122,19 +122,6 @@ export default function Settings() {
     "#ec4899",
   ];
 
-  const accountTypeLabels: Record<
-    "checking" | "savings" | "investment" | "credit" | "cash" | "refeicao" | "alimentacao",
-    string
-  > = {
-    checking: "Conta Corrente",
-    savings: "Poupança",
-    investment: "Investimento",
-    credit: "Cartão de Crédito",
-    cash: "Dinheiro",
-    refeicao: "Refeição",
-    alimentacao: "Alimentação",
-  };
-
   const storeAccountTypeLabels: Record<
     "bank" | "cash" | "card" | "refeicao" | "alimentacao",
     string

@@ -14,8 +14,6 @@ import {
 
 export { tokenManager } from "./token-manager";
 
-const HTTP_LOG_PREFIX = "[HTTP]";
-
 // Create axios instance with dynamic baseURL
 const initialBaseURL = typeof window !== 'undefined' ? getApiBaseURLDynamic() : 'http://localhost:8000/api';
 
@@ -153,6 +151,7 @@ export const apiHelpers = {
   },
 
   // Log API calls in development (sem output para evitar ruído)
+  /** No-op em produção; parâmetros mantidos para uso futuro (log em dev). */
   logRequest: (_method: string, _url: string, _data?: unknown): void => {},
 };
 

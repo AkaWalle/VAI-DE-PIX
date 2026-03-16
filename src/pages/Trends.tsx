@@ -62,10 +62,12 @@ function calculateTrend(data: { income: number; expense: number }[]) {
 export default function Trends() {
   const { transactions, categories, getCashflow } = useFinancialStore();
 
-  // Dados de cashflow memoizados
+  // Dados de cashflow memoizados; transactions na deps garante recálculo quando a lista mudar
+  /* eslint-disable react-hooks/exhaustive-deps -- getCashflow é estável; transactions força atualização ao mudar lista */
   const last3MonthsData = useMemo(() => getCashflow(3), [getCashflow, transactions]);
   const last6MonthsData = useMemo(() => getCashflow(6), [getCashflow, transactions]);
   const last12MonthsData = useMemo(() => getCashflow(12), [getCashflow, transactions]);
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   // Tendências memoizadas (income, expense, balance)
   const { incomeTrend, expenseTrend, balanceTrend } = useMemo(() => ({
