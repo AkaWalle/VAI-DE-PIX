@@ -32,6 +32,7 @@ import {
   UserPlus,
 } from "lucide-react";
 import { ResponsiveOverlay } from "@/components/ui/responsive-overlay";
+import { logError } from "@/lib/logger";
 
 interface SharedExpenseFormProps {
   expenseId?: string;
@@ -89,6 +90,7 @@ export function SharedExpenseForm({
     ? sharedExpenses.find((e) => e.id === expenseId)
     : null;
 
+  // Sincroniza formulário ao editar; apenas expense é dependência (user não é usado aqui)
   useEffect(() => {
     if (expense) {
       const totalAmountCents = toCents(expense.totalAmount);
@@ -114,7 +116,7 @@ export function SharedExpenseForm({
         ...prev.slice(1),
       ];
     });
-  }, [user?.id, user?.email, user?.name, expense]);
+  }, [user, expense]);
 
   const handleInputChange = (field: string, value: string | number) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -281,7 +283,6 @@ export function SharedExpenseForm({
       toast({ title: "Despesa criada com sucesso" });
       onSuccess();
     } catch (err: unknown) {
-      console.error(err);
       const status = (err as { response?: { status?: number } })?.response?.status;
       const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
       const detailStr = typeof detail === "string" ? detail : detail ? JSON.stringify(detail) : "";
@@ -318,6 +319,14 @@ export function SharedExpenseForm({
           variant: "destructive",
         });
       }
+
+      logError(err, {
+        feature: "shared-expense-form",
+        action: "submit",
+        isEditing,
+        splitType: formData.splitType,
+        participantCount: participants.length,
+      });
     } finally {
       setIsSubmitting(false);
     }
