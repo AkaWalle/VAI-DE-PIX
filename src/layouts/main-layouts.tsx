@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -8,6 +9,8 @@ import { Moon, Sun } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import { useLoadData } from "@/hooks/use-load-data";
 import { NotificationBell } from "@/components/NotificationBell";
+import { SyncIndicator } from "@/components/SyncIndicator";
+import { useSyncStore } from "@/stores/sync-store";
 
 function ThemeToggle() {
   const { theme, setTheme } = useTheme();
@@ -15,9 +18,8 @@ function ThemeToggle() {
   return (
     <Button
       variant="ghost"
-      size="sm"
+      size="icon"
       onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-      className="h-9 w-9 min-h-[44px] min-w-[44px]"
     >
       <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
       <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
@@ -27,8 +29,22 @@ function ThemeToggle() {
 }
 
 export function MainLayout() {
-  // Carregar dados da API quando o usuário estiver autenticado
   useLoadData();
+
+  // Atualiza indicador de sync quando conexão muda (Story 3.3)
+  useEffect(() => {
+    const onOnline = () => useSyncStore.getState().setOnline();
+    const onOffline = () => useSyncStore.getState().setOffline();
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      useSyncStore.getState().setOffline();
+    }
+    window.addEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);
+    return () => {
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("offline", onOffline);
+    };
+  }, []);
 
   return (
     <ThemeProvider>
@@ -51,6 +67,7 @@ export function MainLayout() {
                 </div>
 
                 <div className="flex items-center gap-2 flex-shrink-0">
+                  <SyncIndicator />
                   <NotificationBell />
                   <ThemeToggle />
                 </div>

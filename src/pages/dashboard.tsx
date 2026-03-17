@@ -30,6 +30,7 @@ import {
 } from "@/services/insights.service";
 import { notificationsService } from "@/services/notifications.service";
 import { Button } from "@/components/ui/button";
+import { PageLayout } from "@/components/layout/PageLayout";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import {
   AreaChart,
@@ -210,14 +211,11 @@ export default function Dashboard() {
   }, []);
 
   return (
-    <div className="space-y-3 sm:space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Dashboard</h1>
-        <p className="text-xs sm:text-sm text-muted-foreground">
-          Visão geral da sua situação financeira
-        </p>
-      </div>
+    <PageLayout
+      title="Dashboard"
+      subtitle="Visão geral da sua situação financeira"
+      className="space-y-3 sm:space-y-6"
+    >
 
       {/* Banner: notificações de insights não lidas */}
       {unreadInsightCount > 0 && (
@@ -346,7 +344,6 @@ export default function Dashboard() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="h-9 px-3 text-sm"
                           disabled={feedbackLoading === item.insight_hash}
                           onClick={() =>
                             handleInsightFeedback(
@@ -361,7 +358,7 @@ export default function Dashboard() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="h-9 px-3 text-sm text-muted-foreground"
+                          className="text-muted-foreground"
                           disabled={feedbackLoading === item.insight_hash}
                           onClick={() =>
                             handleInsightFeedback(
@@ -673,6 +670,6 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </PageLayout>
   );
 }

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useFinancialStore } from "@/stores/financial-store";
+import { useSyncStore } from "@/stores/sync-store";
 import { goalsService } from "@/services/goals.service";
 import { FormDialog } from "@/components/ui/form-dialog";
 import { ActionButton } from "@/components/ui/action-button";
@@ -80,7 +81,7 @@ export function AddGoalValueForm({
       updateGoal(goalId, {
         currentAmount: result.new_amount,
       });
-
+      useSyncStore.getState().setSynced();
       toast({
         title: "Valor adicionado!",
         description: `${formatCurrencyFromCents(formData.amountCents)} adicionado à meta "${goalName}".`,
@@ -95,6 +96,7 @@ export function AddGoalValueForm({
 
       setIsOpen(false);
     } catch {
+      useSyncStore.getState().setError("Não foi possível adicionar valor à meta.");
       toast({
         title: "Erro ao adicionar valor",
         description: "Ocorreu um erro inesperado. Tente novamente.",

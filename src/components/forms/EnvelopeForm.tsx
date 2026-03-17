@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useFinancialStore } from "@/stores/financial-store";
+import { useSyncStore } from "@/stores/sync-store";
 import { envelopesService } from "@/services/envelopes.service";
 import { FormDialog } from "@/components/ui/form-dialog";
 import { ActionButton } from "@/components/ui/action-button";
@@ -104,7 +105,7 @@ export function EnvelopeForm({ trigger }: EnvelopeFormProps) {
         description: created.description ?? undefined,
       };
       setEnvelopes([...envelopes, newEnvelope]);
-
+      useSyncStore.getState().setSynced();
       toast({
         title: "Caixinha criada!",
         description: `Caixinha "${formData.name}" criada com sucesso.`,
@@ -120,6 +121,7 @@ export function EnvelopeForm({ trigger }: EnvelopeFormProps) {
 
       setIsOpen(false);
     } catch {
+      useSyncStore.getState().setError("Não foi possível criar a caixinha.");
       toast({
         title: "Erro ao criar caixinha",
         description: "Ocorreu um erro inesperado. Tente novamente.",

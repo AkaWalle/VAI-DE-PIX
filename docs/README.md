@@ -1,53 +1,45 @@
-# 📚 Documentação Interna - VAI DE PIX
+# Documentação — Vai de Pix
 
-Esta pasta contém toda a documentação, scripts e arquivos auxiliares do projeto.
+**Vai de Pix** é um sistema de controle financeiro pessoal: transações, contas, caixinhas (envelopes), metas, despesas compartilhadas e sincronização de dados entre dispositivo e servidor.
 
-> **Nota:** Esta é uma pasta oculta (começa com `.`). Para vê-la no VSCode, ative "Show Hidden Files" nas configurações.
+## Pré-requisitos
 
-## 📁 Estrutura
+- Node.js 18+
+- Python 3.10+
+- PostgreSQL 14+ (ou SQLite apenas para desenvolvimento local)
+- npm ou yarn
 
-### 🗄️ [database/](./database/)
-Documentação sobre banco de dados:
-- Configuração do DATABASE_URL
-- Migrations
-- Troubleshooting de conexão
-- Guias do Railway
+## Rodar localmente
 
-### 🚀 [deploy/](./deploy/)
-Guias de deploy e configuração:
-- Deploy no Vercel
-- Deploy no Railway
-- Configuração de variáveis de ambiente
-- Troubleshooting de deploy
+1. Clonar o repositório e entrar na pasta do projeto.
+2. **Backend:** `cd backend && python -m venv .venv`
+3. **Backend:** Ativar o venv e instalar dependências — `.venv\Scripts\activate` (Windows) ou `source .venv/bin/activate` (Linux/macOS), depois `pip install -r requirements.txt`
+4. **Backend:** Copiar `backend/.env.example` para `backend/.env` e preencher as variáveis obrigatórias.
+5. **Backend:** Rodar migrations — `alembic upgrade head` (dentro de `backend/`).
+6. **Backend:** Subir a API — `python main.py` (servidor em http://localhost:8000).
+7. **Frontend:** Na raiz do projeto — `npm install`, copiar `env.local.example` para `.env.local`, depois `npm run dev` (app em http://localhost:5000).
 
-### 🧪 [qa/](./qa/)
-Documentação de testes e qualidade:
-- Estrutura completa de testes
-- Como verificar testes no GitHub Actions
-- Resumo de implementação QA
-- Guias de commit
+## Variáveis de ambiente obrigatórias
 
-### 📋 [reports/](./reports/)
-Relatórios finais de validação (longo prazo):
-- `staging-final.md` — Validação staging local (infra, API, frontend, idempotência, concorrência)
-- `validation-pre-producao.md` — Validação pré-produção (histórico)
+### Backend (`backend/.env`)
 
-### 🔧 [scripts/](./scripts/)
-Scripts auxiliares:
-- Scripts de configuração (.sh, .ps1, .bat)
-- Scripts de setup
-- Scripts de teste
+| Variável | Descrição |
+|----------|-----------|
+| `DATABASE_URL` | URL do banco (ex.: `postgresql://user:senha@host:5432/db`). Em dev pode ser `sqlite:///./vai_de_pix.db`. Em produção deve ser PostgreSQL. |
+| `SECRET_KEY` | Chave secreta para assinatura dos tokens JWT (trocar em produção). |
+| `FRONTEND_URL` | URL do frontend para CORS (ex.: `http://localhost:5000`). |
 
-### 📦 [old/](./old/)
-Arquivos obsoletos ou antigos:
-- Configurações não mais utilizadas
-- Documentação desatualizada
+### Frontend (`.env.local`)
 
-## 📄 Arquivos na Raiz de .docs
+| Variável | Descrição |
+|----------|-----------|
+| `VITE_API_URL` | URL base da API (ex.: `http://localhost:8000/api`). |
 
-- `CHANGELOG.md` - Histórico de mudanças do projeto
-- `README.md` - Este arquivo
+## Outros documentos
 
----
-
-**Última atualização:** 2025-01-27
+- [ARCHITECTURE.md](./ARCHITECTURE.md) — Camadas do sistema, fluxos e decisões técnicas
+- [DATABASE.md](./DATABASE.md) — Tabelas, campos, índices e migrations
+- [API.md](./API.md) — Autenticação e endpoints por domínio
+- [FRONTEND.md](./FRONTEND.md) — Estrutura do frontend, estado e padrões
+- [INTEGRATIONS.md](./INTEGRATIONS.md) — Integrações externas e configuração
+- [CONTRIBUTING.md](./CONTRIBUTING.md) — Branches, commits, testes e PR

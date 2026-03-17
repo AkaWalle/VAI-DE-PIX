@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useFinancialStore } from "@/stores/financial-store";
+import { useSyncStore } from "@/stores/sync-store";
 import {
   Card,
   CardContent,
@@ -25,6 +26,7 @@ import {
   Square,
   Calendar,
   X,
+  ArrowLeftRight,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -54,6 +56,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { transactionsService } from "@/services/transactions.service";
+import { PageLayout } from "@/components/layout/PageLayout";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export default function Transactions() {
   const {
@@ -272,12 +276,14 @@ export default function Transactions() {
       if (result.deleted > 0) {
         clearAllTransactions();
         setSelectedTransactions(new Set());
+        useSyncStore.getState().setSynced();
         toast({
           title: "Transações apagadas!",
           description: `${result.deleted} transação(ões) removida(s) com sucesso.`,
         });
       }
       if (result.errors.length > 0) {
+        useSyncStore.getState().setError("Algumas transações não puderam ser removidas.");
         toast({
           title: "Algumas falharam",
           description: `${result.errors.length} transação(ões) não puderam ser removidas.`,
@@ -286,6 +292,7 @@ export default function Transactions() {
         setTransactions(previousTransactions.filter((t) => !result.deleted_ids.includes(t.id)));
       }
     } catch {
+      useSyncStore.getState().setError("Não foi possível apagar transações.");
       toast({
         title: "Erro ao apagar",
         description: "Não foi possível conectar ao servidor. Tente novamente.",
@@ -307,12 +314,14 @@ export default function Transactions() {
       if (result.deleted > 0) {
         result.deleted_ids.forEach((id) => deleteTransaction(id));
         setSelectedTransactions(new Set());
+        useSyncStore.getState().setSynced();
         toast({
           title: "Transações apagadas!",
           description: `${result.deleted} transação(ões) removida(s) com sucesso.`,
         });
       }
       if (result.errors.length > 0) {
+        useSyncStore.getState().setError("Algumas transações não puderam ser removidas.");
         toast({
           title: "Algumas falharam",
           description: `${result.errors.length} transação(ões) não puderam ser removidas.`,
@@ -320,6 +329,7 @@ export default function Transactions() {
         });
       }
     } catch {
+      useSyncStore.getState().setError("Não foi possível apagar transações.");
       toast({
         title: "Erro ao apagar",
         description: "Não foi possível conectar ao servidor. Tente novamente.",
@@ -332,15 +342,10 @@ export default function Transactions() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Transações</h1>
-          <p className="text-muted-foreground">
-            Gerencie suas receitas e despesas
-          </p>
-        </div>
+    <PageLayout
+      title="Transações"
+      subtitle="Gerencie suas receitas e despesas"
+      action={
         <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap items-center">
           <BankImportDialog
             trigger={
@@ -348,7 +353,6 @@ export default function Transactions() {
                 variant="outline"
                 size="sm"
                 icon={Download}
-                className="h-9 px-3 text-sm"
               >
                 Importar Relatório
               </ActionButton>
@@ -361,7 +365,6 @@ export default function Transactions() {
             loading={isExporting}
             loadingText="Exportando..."
             onClick={handleExport}
-            className="h-9 px-3 text-sm"
           >
             Exportar
           </ActionButton>
@@ -373,7 +376,7 @@ export default function Transactions() {
                 variant="outline"
                 size="sm"
                 onClick={() => handleSelectAll(!isAllSelected)}
-                className="h-9 px-3 text-sm flex items-center gap-2"
+                className="flex items-center gap-2"
               >
                 {isAllSelected ? (
                   <CheckSquare className="h-4 w-4" />
@@ -392,7 +395,6 @@ export default function Transactions() {
                       icon={Trash2}
                       loading={isDeleting}
                       loadingText="Apagando..."
-                      className="h-9 px-3 text-sm"
                     >
                       Apagar Selecionadas ({selectedTransactions.size})
                     </ActionButton>
@@ -435,7 +437,7 @@ export default function Transactions() {
                   icon={Trash2}
                   loading={isDeleting}
                   loadingText="Apagando..."
-                  className="h-9 px-3 text-sm text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
+                  className="text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
                 >
                   Apagar Todas
                 </ActionButton>
@@ -468,15 +470,15 @@ export default function Transactions() {
               <ActionButton
                 icon={Plus}
                 variant="default"
-                className="h-9 px-3 text-sm"
+                size="sm"
               >
                 Nova Transação
               </ActionButton>
             }
           />
         </div>
-      </div>
-
+      }
+    >
       {/* Filters */}
       <Card className="bg-gradient-card shadow-card-custom">
         <CardHeader>
@@ -489,7 +491,7 @@ export default function Transactions() {
               variant="outline"
               size="sm"
               onClick={clearFilters}
-              className="h-9 px-3 text-sm flex items-center gap-2"
+                className="flex items-center gap-2"
             >
               <X className="h-4 w-4" />
               Limpar Filtros
@@ -516,7 +518,6 @@ export default function Transactions() {
                   variant={selectedType === "all" ? "default" : "outline"}
                   size="sm"
                   onClick={() => setSelectedType("all")}
-                  className="h-9 px-3 text-sm"
                 >
                   Todas
                 </Button>
@@ -524,7 +525,6 @@ export default function Transactions() {
                   variant={selectedType === "income" ? "default" : "outline"}
                   size="sm"
                   onClick={() => setSelectedType("income")}
-                  className="h-9 px-3 text-sm"
                 >
                   Receitas
                 </Button>
@@ -532,7 +532,6 @@ export default function Transactions() {
                   variant={selectedType === "expense" ? "default" : "outline"}
                   size="sm"
                   onClick={() => setSelectedType("expense")}
-                  className="h-9 px-3 text-sm"
                 >
                   Despesas
                 </Button>
@@ -551,7 +550,6 @@ export default function Transactions() {
                   variant={dateFilter === "all" ? "default" : "outline"}
                   size="sm"
                   onClick={() => setDateFilter("all")}
-                  className="h-9 px-3 text-sm"
                 >
                   Todas as Datas
                 </Button>
@@ -559,7 +557,6 @@ export default function Transactions() {
                   variant={dateFilter === "specific" ? "default" : "outline"}
                   size="sm"
                   onClick={() => setDateFilter("specific")}
-                  className="h-9 px-3 text-sm"
                 >
                   Data Específica
                 </Button>
@@ -567,7 +564,6 @@ export default function Transactions() {
                   variant={dateFilter === "month" ? "default" : "outline"}
                   size="sm"
                   onClick={() => setDateFilter("month")}
-                  className="h-9 px-3 text-sm"
                 >
                   Por Mês
                 </Button>
@@ -575,7 +571,6 @@ export default function Transactions() {
                   variant={dateFilter === "year" ? "default" : "outline"}
                   size="sm"
                   onClick={() => setDateFilter("year")}
-                  className="h-9 px-3 text-sm"
                 >
                   Por Ano
                 </Button>
@@ -729,16 +724,20 @@ export default function Transactions() {
         <CardContent>
           <div className="space-y-3 md:hidden">
             {filteredTransactions.length === 0 ? (
-              <div className="flex min-h-40 flex-col items-center justify-center gap-3 rounded-lg border border-dashed p-6 text-center">
-                <p className="text-muted-foreground">Nenhuma transação encontrada</p>
-                <TransactionForm
-                  trigger={
-                    <ActionButton size="sm" icon={Plus}>
-                      Adicionar Transação
-                    </ActionButton>
-                  }
-                />
-              </div>
+              <EmptyState
+                icon={ArrowLeftRight}
+                title="Nenhuma transação encontrada"
+                description="Adicione receitas e despesas para acompanhar seu fluxo de caixa."
+                action={
+                  <TransactionForm
+                    trigger={
+                      <ActionButton variant="default" size="sm" icon={Plus}>
+                        Adicionar Transação
+                      </ActionButton>
+                    }
+                  />
+                }
+              />
             ) : (
               filteredTransactions.map((transaction) => (
                 <Card
@@ -848,19 +847,22 @@ export default function Transactions() {
               <TableBody>
                 {filteredTransactions.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center">
-                      <div className="flex flex-col items-center gap-2">
-                        <p className="text-muted-foreground">
-                          Nenhuma transação encontrada
-                        </p>
-                        <TransactionForm
-                          trigger={
-                            <ActionButton size="sm" icon={Plus}>
-                              Adicionar Transação
-                            </ActionButton>
-                          }
-                        />
-                      </div>
+                    <TableCell colSpan={7} className="p-0">
+                      <EmptyState
+                        icon={ArrowLeftRight}
+                        title="Nenhuma transação encontrada"
+                        description="Adicione receitas e despesas para acompanhar seu fluxo de caixa."
+                        action={
+                          <TransactionForm
+                            trigger={
+                              <ActionButton variant="default" size="sm" icon={Plus}>
+                                Adicionar Transação
+                              </ActionButton>
+                            }
+                          />
+                        }
+                        className="border-0 shadow-none rounded-none"
+                      />
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -938,6 +940,6 @@ export default function Transactions() {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </PageLayout>
   );
 }

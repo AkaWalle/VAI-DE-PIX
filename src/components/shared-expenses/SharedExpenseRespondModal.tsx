@@ -70,7 +70,7 @@ export function SharedExpenseRespondModal({
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={isSubmitting}
-              className="min-h-[44px] w-full sm:w-auto"
+              fullWidthMobile
             >
               Fechar
             </Button>
@@ -78,14 +78,14 @@ export function SharedExpenseRespondModal({
               variant="destructive"
               onClick={() => handleConfirm("reject")}
               disabled={isSubmitting}
-              className="min-h-[44px] w-full sm:w-auto"
+              fullWidthMobile
             >
               Recusar
             </Button>
             <Button
               onClick={() => handleConfirm("accept")}
               disabled={isSubmitting}
-              className="min-h-[44px] w-full sm:w-auto"
+              fullWidthMobile
             >
               Aceitar
             </Button>

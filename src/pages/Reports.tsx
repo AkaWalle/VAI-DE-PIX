@@ -171,7 +171,7 @@ export default function Reports() {
             loading={isExporting}
             loadingText="Exportando..."
             onClick={handleExportReport}
-            className="h-9 px-3 text-sm"
+            size="sm"
           >
             Exportar Relatório
           </ActionButton>

@@ -69,22 +69,23 @@ export function FormDialog({
       bodyClassName="px-4 pb-6 space-y-4"
       footer={
         showFooter ? (
-          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
             <Button
               type="button"
               variant="outline"
               onClick={() => setIsOpen(false)}
               disabled={isLoading}
-              className="min-h-[44px] w-full sm:w-auto"
+              fullWidthMobile
             >
               {cancelLabel}
             </Button>
             <Button
               type="submit"
               form={formId}
+              variant="default"
               disabled={isLoading}
               aria-label={`${submitLabel} - ${title.toLowerCase()}`}
-              className="min-h-[44px] w-full sm:w-auto"
+              fullWidthMobile
             >
               {isLoading ? (
                 <>

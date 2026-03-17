@@ -74,7 +74,7 @@ export function FinancialCard({
         <CardTitle className="text-xs sm:text-sm font-medium text-card-foreground/80">
           {title}
         </CardTitle>
-        {Icon && <Icon className={cn("h-4 w-4 sm:h-5 sm:w-5 shrink-0", getIconClasses())} />}
+        {Icon && <Icon className={cn("h-4 w-4 sm:h-5 sm:w-5 shrink-0", getIconClasses())} strokeWidth={2} />}
       </CardHeader>
       <CardContent className="p-3 sm:p-6 pt-0">
         <div className="text-lg sm:text-2xl font-bold text-card-foreground">

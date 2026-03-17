@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useFinancialStore } from "@/stores/financial-store";
+import { useSyncStore } from "@/stores/sync-store";
 import { goalsService } from "@/services/goals.service";
 import { FormDialog } from "@/components/ui/form-dialog";
 import { ActionButton } from "@/components/ui/action-button";
@@ -101,7 +102,7 @@ export function GoalForm({ trigger }: GoalFormProps) {
         status: (created.status === "active" ? "on_track" : (created.status as "on_track" | "at_risk" | "achieved" | "overdue")) ?? "on_track",
       };
       setGoals([...goals, newGoal]);
-
+      useSyncStore.getState().setSynced();
       toast({
         title: "Meta criada!",
         description: `Meta "${formData.name}" de ${formatCurrencyFromCents(formData.targetAmountCents)} criada com sucesso.`,
@@ -119,6 +120,7 @@ export function GoalForm({ trigger }: GoalFormProps) {
 
       setIsOpen(false);
     } catch {
+      useSyncStore.getState().setError("Não foi possível criar a meta.");
       toast({
         title: "Erro ao criar meta",
         description: "Ocorreu um erro inesperado. Tente novamente.",

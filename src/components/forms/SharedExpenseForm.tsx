@@ -361,19 +361,20 @@ export function SharedExpenseForm({
       mobileContentClassName="flex h-[100dvh] w-screen max-w-none flex-col rounded-none border-0 p-0"
       bodyClassName="scrollbar-hide sm:px-6"
       footer={
-        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
           <Button
             type="button"
             variant="outline"
             onClick={onClose}
-            className="min-h-[44px] w-full touch-manipulation sm:w-auto"
+            fullWidthMobile
           >
             Cancelar
           </Button>
           <Button
             type="submit"
             form={formId}
-            className="min-h-[44px] w-full touch-manipulation sm:w-auto"
+            variant="default"
+            fullWidthMobile
             disabled={isSubmitDisabled}
           >
             {isSubmitting
@@ -529,7 +530,7 @@ export function SharedExpenseForm({
                   type="button"
                   onClick={addParticipant}
                   variant="outline"
-                  className="min-h-[44px] w-full touch-manipulation"
+                  fullWidthMobile
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Adicionar
