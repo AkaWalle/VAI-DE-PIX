@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useFinancialStore } from "@/stores/financial-store";
+import { useSyncStore } from "@/stores/sync-store";
 import { envelopesService } from "@/services/envelopes.service";
 import { FormDialog } from "@/components/ui/form-dialog";
 import { ActionButton } from "@/components/ui/action-button";
@@ -94,7 +95,7 @@ export function EnvelopeValueForm({
       updateEnvelope(envelopeId, {
         balance: newBalance,
       });
-
+      useSyncStore.getState().setSynced();
       toast({
         title: `Valor ${isWithdraw ? "retirado" : "adicionado"}!`,
         description: `${formatCurrencyFromCents(amountCents)} ${isWithdraw ? "retirado da" : "adicionado à"} caixinha "${envelopeName}".`,
@@ -109,6 +110,7 @@ export function EnvelopeValueForm({
 
       setIsOpen(false);
     } catch {
+      useSyncStore.getState().setError(`Erro ao ${isWithdraw ? "retirar" : "adicionar"} valor na caixinha.`);
       toast({
         title: `Erro ao ${isWithdraw ? "retirar" : "adicionar"} valor`,
         description: "Ocorreu um erro inesperado. Tente novamente.",

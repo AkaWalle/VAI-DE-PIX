@@ -1,4 +1,5 @@
 import { useFinancialStore } from "@/stores/financial-store";
+import { useSyncStore } from "@/stores/sync-store";
 import { goalsService } from "@/services/goals.service";
 import {
   Card,
@@ -34,11 +35,13 @@ export default function Goals() {
     try {
       await goalsService.deleteGoal(goalId);
       deleteGoal(goalId);
+      useSyncStore.getState().setSynced();
       toast({
         title: "Meta removida!",
         description: `A meta "${goalName}" foi removida com sucesso.`,
       });
     } catch {
+      useSyncStore.getState().setError("Não foi possível remover a meta.");
       toast({
         title: "Erro ao remover meta",
         description: "Não foi possível remover a meta. Tente novamente.",
@@ -289,7 +292,7 @@ export default function Goals() {
                       variant="outline"
                       size="sm"
                       icon={Edit}
-                      className="h-9 px-3 text-sm flex-1 sm:flex-initial"
+                className="flex-1 sm:flex-initial"
                     >
                       Editar
                     </ActionButton>
@@ -299,7 +302,6 @@ export default function Goals() {
                         <ActionButton
                           variant="outline"
                           size="sm"
-                          className="h-9 px-3 text-sm"
                         >
                           <Trash2 className="h-4 w-4" />
                         </ActionButton>

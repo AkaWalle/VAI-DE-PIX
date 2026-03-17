@@ -46,6 +46,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { SharedExpenseForm } from "@/components/forms/SharedExpenseForm";
+import { PageLayout } from "@/components/layout/PageLayout";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export default function SharedExpenses() {
   const {
@@ -149,28 +151,20 @@ export default function SharedExpenses() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header - botão em destaque e área de toque adequada no mobile */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
-            Despesas Compartilhadas
-          </h1>
-          <p className="text-muted-foreground">
-            Gerencie despesas divididas entre múltiplas pessoas
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-          <ActionButton
-            variant="default"
-            icon={Plus}
-            onClick={() => setShowForm(true)}
-            className="h-9 px-4 text-sm"
-          >
-            Nova Despesa
-          </ActionButton>
-        </div>
-      </div>
+    <PageLayout
+      title="Despesas Compartilhadas"
+      subtitle="Gerencie despesas divididas entre múltiplas pessoas"
+      action={
+        <ActionButton
+          variant="default"
+          icon={Plus}
+          onClick={() => setShowForm(true)}
+          className="h-9 px-4 text-sm min-h-[44px] w-full touch-manipulation sm:min-h-0 sm:w-auto"
+        >
+          Nova Despesa
+        </ActionButton>
+      }
+    >
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -236,18 +230,12 @@ export default function SharedExpenses() {
 
       {/* Shared Expenses List */}
       {sharedExpenses.length === 0 ? (
-        <Card className="bg-gradient-card shadow-card-custom">
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Share2 className="h-16 w-16 text-muted-foreground/50 mb-4" />
-            <h3 className="text-xl font-semibold mb-2">
-              Nenhuma despesa compartilhada
-            </h3>
-            <p className="text-muted-foreground text-center mb-6 max-w-sm">
-              Comece criando uma despesa para dividir entre múltiplas pessoas
-            </p>
-            <p className="text-xs text-muted-foreground text-center mb-4 max-w-sm">
-              Por enquanto as despesas ficam salvas só no seu dispositivo. A pessoa adicionada por e-mail verá a dívida quando a sincronização estiver disponível.
-            </p>
+        <EmptyState
+          icon={Share2}
+          title="Nenhuma despesa compartilhada"
+          description="Comece criando uma despesa para dividir entre múltiplas pessoas."
+          hint="Por enquanto as despesas ficam salvas só no seu dispositivo. A pessoa adicionada por e-mail verá a dívida quando a sincronização estiver disponível."
+          action={
             <ActionButton
               variant="default"
               icon={Plus}
@@ -256,8 +244,8 @@ export default function SharedExpenses() {
             >
               Criar Primeira Despesa
             </ActionButton>
-          </CardContent>
-        </Card>
+          }
+        />
       ) : (
         <div className="grid gap-6">
           {sharedExpenses.map((expense) => {
@@ -332,7 +320,7 @@ export default function SharedExpenses() {
                           size="sm"
                           icon={Edit}
                           onClick={() => setEditingExpense(expense.id)}
-                          className="h-9 px-3 text-sm"
+                          size="sm"
                         >
                           Editar
                         </ActionButton>
@@ -341,7 +329,7 @@ export default function SharedExpenses() {
                           size="sm"
                           icon={Trash2}
                           onClick={() => setDeleteConfirmExpenseId(expense.id)}
-                          className="h-9 px-3 text-sm"
+                          size="sm"
                         >
                           Excluir
                         </ActionButton>
@@ -538,6 +526,6 @@ export default function SharedExpenses() {
           }}
         />
       )}
-    </div>
+    </PageLayout>
   );
 }

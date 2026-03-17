@@ -107,7 +107,7 @@ export function BottomNav() {
                 )
               }
             >
-              <Icon className="h-5 w-5 shrink-0" aria-hidden />
+              <Icon className="h-5 w-5 shrink-0" strokeWidth={2} aria-hidden />
               <span className="text-[10px] font-medium leading-tight truncate max-w-[72px]">
                 {label}
               </span>
@@ -126,7 +126,7 @@ export function BottomNav() {
             )}
             aria-label="Abrir menu Mais"
           >
-            <Menu className="h-5 w-5 shrink-0" aria-hidden />
+            <Menu className="h-5 w-5 shrink-0" strokeWidth={2} aria-hidden />
             <span className="text-[10px] font-medium leading-tight">Mais</span>
           </button>
         </div>
@@ -182,7 +182,7 @@ export function BottomNav() {
                             : "hover:bg-accent"
                         )}
                       >
-                        <Icon className="h-5 w-5 shrink-0" aria-hidden />
+                        <Icon className="h-5 w-5 shrink-0" strokeWidth={2} aria-hidden />
                         <span>{label}</span>
                       </button>
                     );
@@ -199,7 +199,7 @@ export function BottomNav() {
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 min-h-[44px] touch-manipulation w-full"
             aria-label="Sair"
           >
-            <LogOut className="h-5 w-5 shrink-0" aria-hidden />
+            <LogOut className="h-5 w-5 shrink-0" strokeWidth={2} aria-hidden />
             <span>Sair</span>
           </button>
         </SheetContent>

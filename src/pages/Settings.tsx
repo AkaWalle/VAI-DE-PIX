@@ -42,7 +42,9 @@ import {
   Save,
   Lightbulb,
 } from "lucide-react";
-import { accountsService } from "@/services/accounts.service";
+import { accountsService, type AccountTypeApi } from "@/services/accounts.service";
+import { categoriesService } from "@/services/categories.service";
+import { useSyncStore } from "@/stores/sync-store";
 import { Switch } from "@/components/ui/switch";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ResponsiveOverlay } from "@/components/ui/responsive-overlay";
@@ -50,7 +52,7 @@ import { ResponsiveOverlay } from "@/components/ui/responsive-overlay";
 export default function Settings() {
   const isMobile = useIsMobile();
   const { user, updateProfile } = useAuthStore();
-  const { categories, accounts, addAccount, addCategory, setAccounts } =
+  const { categories, accounts, addAccount, setAccounts, setCategories } =
     useFinancialStore();
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
@@ -164,7 +166,7 @@ export default function Settings() {
     return "bank";
   };
 
-  const handleAddAccount = () => {
+  const handleAddAccount = async () => {
     if (!newAccount.name) {
       toast({
         title: "Nome obrigatório",
@@ -174,22 +176,39 @@ export default function Settings() {
       return;
     }
 
-    // Store/API de contas ainda esperam saldo em reais (float)
     const balanceReais = newAccount.balanceCents / 100;
-
-    addAccount({
-      name: newAccount.name,
-      type: apiTypeToStoreType(newAccount.type),
-      balance: balanceReais,
-    });
-
-    toast({
-      title: "Conta adicionada!",
-      description: `A conta "${newAccount.name}" foi criada com sucesso.`,
-    });
-
-    setNewAccount({ name: "", type: "checking", balanceCents: 0 });
-    setShowNewAccount(false);
+    try {
+      const created = await accountsService.createAccount({
+        name: newAccount.name,
+        type: newAccount.type as AccountTypeApi,
+        balance: balanceReais,
+      });
+      setAccounts([
+        ...accounts,
+        {
+          id: created.id,
+          name: created.name,
+          type: apiTypeToStoreType(newAccount.type),
+          balance: created.balance,
+          currency: "BRL",
+          color: "#3b82f6",
+        },
+      ]);
+      useSyncStore.getState().setSynced();
+      toast({
+        title: "Conta adicionada!",
+        description: `A conta "${newAccount.name}" foi criada com sucesso.`,
+      });
+      setNewAccount({ name: "", type: "checking", balanceCents: 0 });
+      setShowNewAccount(false);
+    } catch {
+      useSyncStore.getState().setError("Não foi possível criar a conta.");
+      toast({
+        title: "Erro ao criar conta",
+        description: "Verifique sua conexão e tente novamente.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDeleteAccount = async (accountId: string, accountName: string) => {
@@ -197,11 +216,13 @@ export default function Settings() {
       await accountsService.deleteAccount(accountId);
       const loaded = await accountsService.getAccounts();
       setAccounts(accountsService.mapApiAccountsToStore(loaded));
+      useSyncStore.getState().setSynced();
       toast({
         title: "Conta excluída",
         description: `"${accountName}" foi removida da lista.`,
       });
     } catch {
+      useSyncStore.getState().setError("Não foi possível excluir a conta.");
       toast({
         title: "Erro ao excluir conta",
         description: "Não foi possível excluir a conta. Tente novamente.",
@@ -210,7 +231,7 @@ export default function Settings() {
     }
   };
 
-  const handleAddCategory = () => {
+  const handleAddCategory = async () => {
     if (!newCategory.name) {
       toast({
         title: "Nome obrigatório",
@@ -220,20 +241,32 @@ export default function Settings() {
       return;
     }
 
-    addCategory({
-      name: newCategory.name,
-      type: newCategory.type,
-      color: newCategory.color,
-      icon: "💰", // Ícone padrão
-    });
-
-    toast({
-      title: "Categoria adicionada!",
-      description: `A categoria "${newCategory.name}" foi criada com sucesso.`,
-    });
-
-    setNewCategory({ name: "", type: "expense", color: "#3b82f6" });
-    setShowNewCategory(false);
+    try {
+      const created = await categoriesService.createCategory({
+        name: newCategory.name,
+        type: newCategory.type,
+        color: newCategory.color,
+        icon: "💰",
+      });
+      setCategories([
+        ...categories,
+        { id: created.id, name: created.name, type: created.type, icon: created.icon, color: created.color },
+      ]);
+      useSyncStore.getState().setSynced();
+      toast({
+        title: "Categoria adicionada!",
+        description: `A categoria "${newCategory.name}" foi criada com sucesso.`,
+      });
+      setNewCategory({ name: "", type: "expense", color: "#3b82f6" });
+      setShowNewCategory(false);
+    } catch {
+      useSyncStore.getState().setError("Não foi possível criar a categoria.");
+      toast({
+        title: "Erro ao criar categoria",
+        description: "Verifique sua conexão e tente novamente.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleExportData = async () => {
@@ -344,7 +377,7 @@ export default function Settings() {
           variant="outline"
           size="sm"
           onClick={() => setShowNewAccount(false)}
-          className="h-9 px-3 text-sm"
+          size="sm"
         >
           Cancelar
         </Button>
@@ -419,7 +452,7 @@ export default function Settings() {
           variant="outline"
           size="sm"
           onClick={() => setShowNewCategory(false)}
-          className="h-9 px-3 text-sm"
+          size="sm"
         >
           Cancelar
         </Button>
@@ -479,7 +512,7 @@ export default function Settings() {
             loading={isLoading}
             loadingText="Salvando..."
             icon={Save}
-            className="h-9 px-3 text-sm"
+            size="sm"
           >
             Salvar Alterações
           </ActionButton>
@@ -688,7 +721,7 @@ export default function Settings() {
               variant="outline"
               size="sm"
               onClick={() => setShowNewCategory(!showNewCategory)}
-              className="h-9 px-3 text-sm"
+              size="sm"
             >
               <Plus className="h-4 w-4 mr-2" />
               Nova Categoria
@@ -769,7 +802,7 @@ export default function Settings() {
               loading={isLoading}
               loadingText="Exportando..."
               icon={Download}
-              className="h-9 px-3 text-sm"
+              size="sm"
             >
               Fazer Backup
             </ActionButton>
@@ -789,7 +822,6 @@ export default function Settings() {
                 <Button
                   variant="destructive"
                   size="sm"
-                  className="h-9 px-3 text-sm"
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
                   Limpar Dados

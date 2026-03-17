@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { useFinancialStore } from "@/stores/financial-store";
 import { useAuthStore } from "@/stores/auth-store-index";
 import { useToast } from "@/hooks/use-toast";
+import { useSyncStore } from "@/stores/sync-store";
 import {
   transactionsService,
   type TransactionCreate,
@@ -334,6 +335,7 @@ export function useTransactionController() {
         status === 0 ||
         /network|timeout|conexão/i.test(message)
       ) {
+        useSyncStore.getState().setError("Erro de conexão ao criar transação.");
         toast({
           title: "Erro de conexão",
           description:
@@ -341,6 +343,7 @@ export function useTransactionController() {
           variant: "destructive",
         });
       } else {
+        useSyncStore.getState().setError(message || "Erro ao criar transação.");
         toast({
           title: "Erro inesperado",
           description: "Algo deu errado. Se persistir, tente recarregar a página.",

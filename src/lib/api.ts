@@ -68,6 +68,19 @@ export const API_ENDPOINTS = {
     logout: "/auth/logout",
   },
 
+  // Snapshot do usuário (backup/restore — Fase 1 sync)
+  meData: {
+    get: "/me/data",
+    post: "/me/data",
+    put: "/me/data",
+  },
+
+  // Sync incremental (Fase 2 — Story 2.3)
+  meSync: {
+    get: "/me/sync",
+    post: "/me/sync",
+  },
+
   // Transactions
   transactions: {
     list: "/transactions",

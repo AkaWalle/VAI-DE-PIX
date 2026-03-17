@@ -14,7 +14,8 @@ import { isAuthReady, ensureValidSession } from "@/lib/auth-runtime-guard";
 const SYNC_RETRY_DELAY_MS = 2000;
 const SYNC_MAX_RETRIES = 2;
 
-function mapReadItemToStore(item: SharedExpenseItemRead): SharedExpense {
+/** Mapeia item do read-model (API/me/data) para formato do store. Exportado para uso em me-data.service. */
+export function mapReadItemToStore(item: SharedExpenseItemRead): SharedExpense {
   const createdAt = typeof item.created_at === "string" ? item.created_at : new Date(item.created_at).toISOString();
   const updatedAt = (item.updated_at && (typeof item.updated_at === "string" ? item.updated_at : new Date(item.updated_at).toISOString())) || createdAt;
   const date = createdAt.slice(0, 10);

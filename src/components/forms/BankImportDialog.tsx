@@ -704,14 +704,14 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
         footer={
           <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
             {/* Seleção de Arquivo */}
-            <Button variant="outline" onClick={() => setIsOpen(false)} className="min-h-[44px] w-full sm:w-auto">
+            <Button variant="outline" onClick={() => setIsOpen(false)} fullWidthMobile>
               Cancelar
             </Button>
             {parsedTransactions.length > 0 && (
               <Button
                 onClick={() => setShowConfirmDialog(true)}
                 disabled={isImporting}
-                className="min-h-[44px] w-full sm:w-auto"
+                fullWidthMobile
               >
                 {isImporting
                   ? "Importando..."
@@ -748,7 +748,7 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
                           if (fileInputRef.current)
                             fileInputRef.current.value = "";
                         }}
-                        className="min-h-[44px] w-full sm:w-auto"
+                        fullWidthMobile
                       >
                         <X className="h-4 w-4" />
                       </Button>
@@ -765,7 +765,7 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
                         link.download = "extrato-bancario-exemplo.csv";
                         link.click();
                       }}
-                      className="min-h-[44px] w-full sm:w-auto"
+                      fullWidthMobile
                     >
                       <Download className="h-4 w-4 mr-2" />
                       Exemplo Extrato
@@ -779,7 +779,7 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
                         link.download = "cartao-credito-exemplo.csv";
                         link.click();
                       }}
-                      className="min-h-[44px] w-full sm:w-auto"
+                      fullWidthMobile
                     >
                       <Download className="h-4 w-4 mr-2" />
                       Exemplo Cartão

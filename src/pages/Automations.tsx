@@ -1124,7 +1124,7 @@ export default function Automations() {
               <Button
                 variant="outline"
                 onClick={handleCancelEdit}
-                className="h-9 px-3 text-sm"
+                size="sm"
               >
                 Cancelar
               </Button>
@@ -1210,7 +1210,6 @@ export default function Automations() {
                         variant="outline"
                         size="sm"
                         onClick={() => handleEditRule(rule.id)}
-                        className="h-9 px-3 text-sm"
                       >
                         <Settings className="h-4 w-4" />
                       </Button>
@@ -1220,7 +1219,6 @@ export default function Automations() {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="h-9 px-3 text-sm"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
