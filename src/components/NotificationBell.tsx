@@ -20,16 +20,19 @@ import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAuthStore } from "@/stores/auth-store-index";
 
 export function NotificationBell() {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const { isAuthenticated } = useAuthStore();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
 
   const fetchUnreadCount = () => {
+    if (!isAuthenticated) return;
     notificationsService.getUnreadCount().then(setUnreadCount).catch(() => setUnreadCount(0));
   };
 
@@ -43,17 +46,18 @@ export function NotificationBell() {
   };
 
   useEffect(() => {
+    if (!isAuthenticated) return;
     fetchUnreadCount();
     const interval = setInterval(fetchUnreadCount, 60000);
     return () => clearInterval(interval);
-  }, []);
+  }, [isAuthenticated]);
 
   useEffect(() => {
-    if (open) {
+    if (open && isAuthenticated) {
       fetchNotifications();
       fetchUnreadCount();
     }
-  }, [open]);
+  }, [open, isAuthenticated]);
 
   const handleMarkAsRead = (id: string) => {
     notificationsService.markAsRead(id).then(() => {

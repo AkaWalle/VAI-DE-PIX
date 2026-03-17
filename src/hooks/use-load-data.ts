@@ -3,6 +3,7 @@ import { useAuthStore } from "@/stores/auth-store-index";
 import { loadInitialDataFromMeData } from "@/services/me-data.service";
 import { waitUntilAuthReady } from "@/lib/auth-runtime-guard";
 import { useSyncStore } from "@/stores/sync-store";
+import { useToast } from "@/hooks/use-toast";
 
 /**
  * Hook para carregar dados da API quando o usuário faz login.
@@ -11,6 +12,7 @@ import { useSyncStore } from "@/stores/sync-store";
  */
 export function useLoadData() {
   const { user, isAuthenticated } = useAuthStore();
+  const { toast } = useToast();
 
   useEffect(() => {
     let cancelled = false;
@@ -31,6 +33,11 @@ export function useLoadData() {
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Falha ao carregar dados";
         useSyncStore.getState().setError(msg);
+        toast({
+          title: "Erro ao carregar dados",
+          description: msg,
+          variant: "destructive",
+        });
         // Store permanece intacto; não quebra a UI
       }
     };
@@ -51,6 +58,11 @@ export function useLoadData() {
           .catch((err) => {
             const msg = err instanceof Error ? err.message : "Falha ao recarregar";
             useSyncStore.getState().setError(msg);
+            toast({
+              title: "Erro ao recarregar dados",
+              description: msg,
+              variant: "destructive",
+            });
             console.error("Erro ao recarregar dados:", err);
           });
       }
