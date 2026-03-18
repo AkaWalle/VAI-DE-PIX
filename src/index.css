@@ -26,8 +26,8 @@
     --secondary-foreground: 0 0% 98%;
 
     --muted: 240 3.7% 15.9%;
-    /* Aumenta contraste em dark (legibilidade WCAG) */
-    --muted-foreground: 240 5% 72%;
+    /* Aumenta contraste em dark (legibilidade WCAG AA) */
+    --muted-foreground: 240 5% 75%;
 
     --accent: 240 3.7% 15.9%;
     --accent-foreground: 0 0% 98%;
@@ -58,7 +58,7 @@
 
     /* Sidebar Colors */
     --sidebar-background: 240 10% 3.9%;
-    --sidebar-foreground: 240 5% 72%;
+    --sidebar-foreground: 240 5% 75%;
     --sidebar-primary: 142 76% 36%;
     --sidebar-primary-foreground: 355.7 100% 97.3%;
     --sidebar-accent: 240 3.7% 15.9%;
