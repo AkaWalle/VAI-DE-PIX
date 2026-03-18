@@ -21,6 +21,16 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { automationsService } from "@/services/automations.service";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -96,6 +106,12 @@ export default function Automations() {
 
   const [automationRules, setAutomationRules] = useState<AutomationRule[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [togglingRuleId, setTogglingRuleId] = useState<string | null>(null);
+  const [toggleDialog, setToggleDialog] = useState<{
+    open: boolean;
+    ruleId: string | null;
+    nextActive: boolean;
+  }>({ open: false, ruleId: null, nextActive: false });
 
   const [showNewRule, setShowNewRule] = useState(false);
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
@@ -155,13 +171,14 @@ export default function Automations() {
     loadAutomations();
   }, [toast]);
 
-  const handleToggleRule = async (ruleId: string) => {
+  const handleToggleRule = async (ruleId: string, nextActive: boolean) => {
     try {
       const rule = automationRules.find((r) => r.id === ruleId);
       if (!rule) return;
 
+      setTogglingRuleId(ruleId);
       const updatedRule = await automationsService.updateAutomation(ruleId, {
-        is_active: !rule.isActive,
+        is_active: nextActive,
       });
 
       setAutomationRules((prev) =>
@@ -183,6 +200,8 @@ export default function Automations() {
         description: "Não foi possível atualizar a automação. Tente novamente.",
         variant: "destructive",
       });
+    } finally {
+      setTogglingRuleId(null);
     }
   };
 
@@ -590,8 +609,90 @@ export default function Automations() {
   const activeRules = automationRules.filter((rule) => rule.isActive).length;
   const totalRules = automationRules.length;
 
+  const formatDatePtBr = (iso: string) =>
+    new Date(iso).toLocaleDateString("pt-BR");
+
+  const currentToggleRule =
+    toggleDialog.ruleId != null
+      ? automationRules.find((r) => r.id === toggleDialog.ruleId) ?? null
+      : null;
+
   return (
     <div className="space-y-6">
+      <AlertDialog
+        open={toggleDialog.open}
+        onOpenChange={(open) =>
+          setToggleDialog((prev) => ({ ...prev, open }))
+        }
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {toggleDialog.nextActive ? "Ativar automação?" : "Desativar automação?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {currentToggleRule ? (
+                <>
+                  Você está prestes a{" "}
+                  <span className="font-medium">
+                    {toggleDialog.nextActive ? "ativar" : "desativar"}
+                  </span>{" "}
+                  a regra{" "}
+                  <span className="font-medium">“{currentToggleRule.name}”</span>.
+                  {toggleDialog.nextActive
+                    ? " Ela poderá executar ações automaticamente conforme as condições configuradas."
+                    : " Ela deixará de executar ações automaticamente até ser ativada novamente."}
+                </>
+              ) : (
+                "Confirme para continuar."
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {currentToggleRule && (
+            <div className="mt-2 rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground">
+              <div className="flex flex-col gap-1">
+                <div>
+                  <span className="font-medium text-foreground">Status atual:</span>{" "}
+                  {currentToggleRule.isActive ? "Ativa" : "Inativa"}
+                </div>
+                <div>
+                  <span className="font-medium text-foreground">Última execução:</span>{" "}
+                  {currentToggleRule.lastRun ? formatDatePtBr(currentToggleRule.lastRun) : "Nunca"}
+                </div>
+                <div>
+                  <span className="font-medium text-foreground">Próxima execução:</span>{" "}
+                  {currentToggleRule.nextRun ? formatDatePtBr(currentToggleRule.nextRun) : "Não agendada"}
+                </div>
+              </div>
+            </div>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() =>
+                setToggleDialog({ open: false, ruleId: null, nextActive: false })
+              }
+            >
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (!toggleDialog.ruleId) return;
+                const ruleId = toggleDialog.ruleId;
+                const nextActive = toggleDialog.nextActive;
+                setToggleDialog({ open: false, ruleId: null, nextActive: false });
+                await handleToggleRule(ruleId, nextActive);
+              }}
+              className={
+                toggleDialog.nextActive
+                  ? ""
+                  : "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              }
+            >
+              {toggleDialog.nextActive ? "Ativar" : "Desativar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -1148,6 +1249,8 @@ export default function Automations() {
         <div className="space-y-4">
           {automationRules.map((rule) => {
             const Icon = getRuleTypeIcon(rule.type);
+            const nextRunLabel = rule.nextRun ? formatDatePtBr(rule.nextRun) : "Não agendada";
+            const lastRunLabel = rule.lastRun ? formatDatePtBr(rule.lastRun) : "Nunca";
 
             return (
               <Card
@@ -1183,27 +1286,29 @@ export default function Automations() {
                           {rule.description}
                         </p>
 
-                        {rule.nextRun && (
-                          <p className="text-xs text-muted-foreground">
-                            <Calendar className="h-3 w-3 inline mr-1" />
-                            Próxima execução:{" "}
-                            {new Date(rule.nextRun).toLocaleDateString("pt-BR")}
-                          </p>
-                        )}
-
-                        {rule.lastRun && (
-                          <p className="text-xs text-muted-foreground">
-                            Última execução:{" "}
-                            {new Date(rule.lastRun).toLocaleDateString("pt-BR")}
-                          </p>
-                        )}
+                        <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-3 w-3" />
+                            <span className="whitespace-nowrap">
+                              Próxima execução: {nextRunLabel}
+                            </span>
+                          </div>
+                          <div className="pl-5">Última execução: {lastRunLabel}</div>
+                        </div>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2">
                       <Switch
                         checked={rule.isActive}
-                        onCheckedChange={() => handleToggleRule(rule.id)}
+                        disabled={togglingRuleId === rule.id}
+                        onCheckedChange={(nextActive) =>
+                          setToggleDialog({
+                            open: true,
+                            ruleId: rule.id,
+                            nextActive: Boolean(nextActive),
+                          })
+                        }
                       />
 
                       <Button
