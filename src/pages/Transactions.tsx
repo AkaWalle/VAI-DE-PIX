@@ -19,9 +19,8 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Plus,
   Search,
-  Upload,
-  Download,
   Trash2,
+  MoreVertical,
   CheckSquare,
   Square,
   Calendar,
@@ -58,6 +57,13 @@ import {
 import { transactionsService } from "@/services/transactions.service";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { EmptyState } from "@/components/ui/empty-state";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function Transactions() {
   const {
@@ -346,136 +352,131 @@ export default function Transactions() {
       title="Transações"
       subtitle="Gerencie suas receitas e despesas"
       action={
-        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap items-center">
-          <BankImportDialog
-            trigger={
-              <ActionButton
-                variant="outline"
-                size="sm"
-                icon={Download}
-              >
-                Importar Relatório
-              </ActionButton>
-            }
-          />
-          <ActionButton
-            variant="outline"
-            size="sm"
-            icon={Upload}
-            loading={isExporting}
-            loadingText="Exportando..."
-            onClick={handleExport}
-          >
-            Exportar
-          </ActionButton>
-
-          {/* Botões de seleção - aparecem apenas quando há transações */}
-          {filteredTransactions.length > 0 && (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleSelectAll(!isAllSelected)}
-                className="flex items-center gap-2"
-              >
-                {isAllSelected ? (
-                  <CheckSquare className="h-4 w-4" />
-                ) : (
-                  <Square className="h-4 w-4" />
-                )}
-                {isAllSelected ? "Desmarcar Todas" : "Selecionar Todas"}
-              </Button>
-
-              {selectedTransactions.size > 0 && (
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <ActionButton
-                      variant="destructive"
-                      size="sm"
-                      icon={Trash2}
-                      loading={isDeleting}
-                      loadingText="Apagando..."
-                    >
-                      Apagar Selecionadas ({selectedTransactions.size})
-                    </ActionButton>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>
-                        Apagar transações selecionadas?
-                      </AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Esta ação não pode ser desfeita.{" "}
-                        {selectedTransactions.size} transação
-                        {selectedTransactions.size > 1 ? "ões" : ""} será
-                        {selectedTransactions.size > 1 ? "ão" : ""}{" "}
-                        permanentemente removida
-                        {selectedTransactions.size > 1 ? "s" : ""}.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={handleDeleteSelected}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      >
-                        Sim, apagar selecionadas
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              )}
-            </>
-          )}
-
-          {transactions.length > 0 && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <ActionButton
-                  variant="outline"
-                  size="sm"
-                  icon={Trash2}
-                  loading={isDeleting}
-                  loadingText="Apagando..."
-                  className="text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
-                >
-                  Apagar Todas
-                </ActionButton>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>
-                    Apagar todas as transações?
-                  </AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Esta ação não pode ser desfeita. Todas as suas transações (
-                    {transactions.length}) serão permanentemente removidas.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleClearAllTransactions}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  >
-                    Sim, apagar todas
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
-
+        <div className="flex items-center gap-2">
           <TransactionForm
             trigger={
-              <ActionButton
-                icon={Plus}
-                variant="default"
-                size="sm"
-              >
+              <ActionButton icon={Plus} variant="default" size="sm">
                 Nova Transação
               </ActionButton>
             }
           />
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <ActionButton variant="outline" size="sm" icon={MoreVertical}>
+                Mais ações
+              </ActionButton>
+            </DropdownMenuTrigger>
+
+            <DropdownMenuContent align="end">
+              <BankImportDialog
+                trigger={
+                  <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                    Importar Relatório
+                  </DropdownMenuItem>
+                }
+              />
+
+              <DropdownMenuItem
+                onSelect={(e) => {
+                  e.preventDefault();
+                  void handleExport();
+                }}
+              >
+                Exportar
+              </DropdownMenuItem>
+
+              {filteredTransactions.length > 0 && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      handleSelectAll(!isAllSelected);
+                    }}
+                    className="flex items-center gap-2"
+                  >
+                    {isAllSelected ? (
+                      <CheckSquare className="h-4 w-4" />
+                    ) : (
+                      <Square className="h-4 w-4" />
+                    )}
+                    {isAllSelected ? "Desmarcar Todas" : "Selecionar Todas"}
+                  </DropdownMenuItem>
+                </>
+              )}
+
+              {selectedTransactions.size > 0 && (
+                <>
+                  <DropdownMenuSeparator />
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <DropdownMenuItem className="text-destructive focus:text-destructive">
+                        Apagar Selecionadas ({selectedTransactions.size})
+                      </DropdownMenuItem>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>
+                          Apagar transações selecionadas?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Esta ação não pode ser desfeita.{" "}
+                          {selectedTransactions.size} transação
+                          {selectedTransactions.size > 1 ? "ões" : ""} será
+                          {selectedTransactions.size > 1 ? "ão" : ""}{" "}
+                          permanentemente removida
+                          {selectedTransactions.size > 1 ? "s" : ""}.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={handleDeleteSelected}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Sim, apagar selecionadas
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </>
+              )}
+
+              {transactions.length > 0 && (
+                <>
+                  <DropdownMenuSeparator />
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <DropdownMenuItem className="text-destructive focus:text-destructive">
+                        Apagar Todas
+                      </DropdownMenuItem>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>
+                          Apagar todas as transações?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Esta ação não pode ser desfeita. Todas as suas transações (
+                          {transactions.length}) serão permanentemente removidas.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={handleClearAllTransactions}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Sim, apagar todas
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       }
     >
