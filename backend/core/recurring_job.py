@@ -12,9 +12,11 @@ import os
 import time
 
 from database import SessionLocal
-from models import AutomationRule, Transaction, Account, Category, User, InsightCache
+from models import AutomationRule, Transaction, Account, Category, User, InsightCache, SharedExpense, ExpenseShare, Notification
 from services.transaction_service import TransactionService
 from services.notification_service import create_notification
+from services.automation_checks import check_low_balance_after_transaction
+from services.email_service import send_email, is_email_configured
 from services.insights_service import (
     compute_insights,
     compute_category_monthly_variation,
@@ -131,20 +133,27 @@ def _execute_automation_rule(automation: AutomationRule, db: Session) -> dict:
     conditions = automation.conditions
     actions = automation.actions
     
-    # Validar condições
+    # Validar condições (valor em reais ou centavos)
     account_id = actions.get('account_id')
     category_id = actions.get('category_id')
     amount = actions.get('amount')
+    amount_cents = actions.get('amount_cents')
     transaction_type = actions.get('type', 'expense')
+    if amount_cents is not None:
+        amount_cents = int(amount_cents)
+    elif amount is not None:
+        amount_cents = int(round(float(amount) * 100))
+    else:
+        amount_cents = None
+
+    if not account_id or not category_id or amount_cents is None or amount_cents <= 0:
+        raise ValueError("Conta, categoria e valor (amount ou amount_cents) são obrigatórios para transações recorrentes")
     
-    if not account_id or not category_id or not amount:
-        raise ValueError("Conta, categoria e valor são obrigatórios para transações recorrentes")
-    
-    # Buscar conta e categoria
+    # Buscar conta e categoria (Account usa is_active; Category não tem soft delete)
     account = db.query(Account).filter(
         Account.id == account_id,
         Account.user_id == automation.user_id,
-        Account.deleted_at.is_(None)
+        Account.is_active == True
     ).first()
     
     if not account:
@@ -153,19 +162,18 @@ def _execute_automation_rule(automation: AutomationRule, db: Session) -> dict:
     category = db.query(Category).filter(
         Category.id == category_id,
         Category.user_id == automation.user_id,
-        Category.deleted_at.is_(None)
     ).first()
     
     if not category:
         raise ValueError(f"Categoria {category_id} não encontrada")
     
-    # Criar transação
+    # Criar transação (serviço exige amount_cents em centavos)
     transaction_data = {
         "date": datetime.now(),
         "account_id": account_id,
         "category_id": category_id,
         "type": transaction_type,
-        "amount": float(amount),
+        "amount_cents": amount_cents,
         "description": automation.name,
         "user_id": automation.user_id
     }
@@ -180,7 +188,7 @@ def _execute_automation_rule(automation: AutomationRule, db: Session) -> dict:
     return {
         "success": True,
         "transaction_id": db_transaction.id,
-        "amount": float(amount),
+        "amount_cents": amount_cents,
         "type": transaction_type
     }
 
@@ -546,6 +554,262 @@ def execute_insights_weekly_notifications():
         db.close()
 
 
+def execute_weekly_reports():
+    """
+    Relatório semanal por e-mail. Roda diariamente; envia apenas nos dias
+    em que o usuário escolheu (conditions.day_of_week: 0=segunda .. 6=domingo).
+    Resumo: receitas, despesas, saldo da semana, top 3 categorias.
+    """
+    if not is_email_configured():
+        logger.debug("Relatório semanal ignorado (SMTP não configurado)")
+        return
+
+    db: Session = SessionLocal()
+    try:
+        today = datetime.now().date()
+        weekday = today.weekday()  # 0=Monday, 6=Sunday
+        rules = db.query(AutomationRule).filter(
+            AutomationRule.is_active == True,
+            AutomationRule.type == "weekly_report",
+        ).all()
+
+        week_end = datetime.combine(today, datetime.min.time())
+        week_start = week_end - timedelta(days=7)
+        sent = 0
+
+        for rule in rules:
+            try:
+                conditions = rule.conditions or {}
+                preferred = conditions.get("day_of_week")
+                if preferred is not None and int(preferred) != weekday:
+                    continue
+                dest = (conditions.get("destination_email") or conditions.get("email") or "").strip()
+                if not dest:
+                    logger.warning("Regra weekly_report sem destination_email: %s", rule.id)
+                    continue
+
+                user = db.query(User).filter(User.id == rule.user_id).first()
+                if not user:
+                    continue
+
+                # Transações da semana (últimos 7 dias)
+                txs = db.query(Transaction).filter(
+                    Transaction.user_id == rule.user_id,
+                    Transaction.date >= week_start,
+                    Transaction.date < week_end,
+                ).all()
+
+                total_income = sum(float(t.amount) for t in txs if t.type == "income")
+                total_expense = sum(float(t.amount) for t in txs if t.type == "expense")
+                balance_week = total_income - total_expense
+
+                top_categories = db.query(
+                    Transaction.category_id,
+                    Category.name,
+                    func.sum(func.abs(Transaction.amount)).label("total"),
+                ).join(
+                    Category, Transaction.category_id == Category.id
+                ).filter(
+                    Transaction.user_id == rule.user_id,
+                    Transaction.type == "expense",
+                    Transaction.date >= week_start,
+                    Transaction.date < week_end,
+                ).group_by(
+                    Transaction.category_id, Category.name
+                ).order_by(
+                    func.sum(func.abs(Transaction.amount)).desc()
+                ).limit(3).all()
+
+                def fmt(v):
+                    s = f"{float(v):,.2f}"
+                    return "R$ " + s.replace(",", "X").replace(".", ",").replace("X", ".")
+
+                top_rows = "\n".join(
+                    f"<li>{name}: {fmt(tot)}</li>"
+                    for (_, name, tot) in top_categories
+                ) or "<li>Nenhuma despesa</li>"
+
+                html = f"""
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Resumo Semanal</title></head>
+<body style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+  <h2>Resumo Semanal – Vai de Pix</h2>
+  <p>Período: {week_start.date()} a {(week_end - timedelta(days=1)).date()}.</p>
+  <table style="border-collapse: collapse;">
+    <tr><td style="padding: 4px 12px 4px 0;"><strong>Receitas:</strong></td><td>{fmt(total_income)}</td></tr>
+    <tr><td style="padding: 4px 12px 4px 0;"><strong>Despesas:</strong></td><td>{fmt(total_expense)}</td></tr>
+    <tr><td style="padding: 4px 12px 4px 0;"><strong>Saldo da semana:</strong></td><td>{fmt(balance_week)}</td></tr>
+  </table>
+  <h3>Top 3 categorias (despesas)</h3>
+  <ul>{top_rows}</ul>
+  <p style="color: #666; font-size: 12px;">Enviado automaticamente pelo Vai de Pix.</p>
+</body>
+</html>
+"""
+                if send_email(dest, "Resumo Semanal – Vai de Pix", html):
+                    sent += 1
+                    rule.last_run = datetime.now()
+                    db.add(rule)
+                    db.commit()
+            except Exception as e:
+                logger.error(
+                    "Erro ao enviar relatório semanal para regra %s: %s",
+                    rule.id,
+                    e,
+                    exc_info=True,
+                    extra={"rule_id": rule.id},
+                )
+                db.rollback()
+
+        logger.info(
+            "Job de relatório semanal concluído: %s e-mails enviados",
+            sent,
+            extra={"sent": sent},
+        )
+    except Exception as e:
+        logger.error(
+            "Erro crítico no job de relatório semanal: %s",
+            e,
+            exc_info=True,
+        )
+    finally:
+        db.close()
+
+
+def execute_payment_reminders():
+    """
+    Lembrete de cobrança: para cada regra payment_reminder, encontra despesas compartilhadas
+    criadas há X dias (conditions.days_after_creation) que tenham participantes e ainda não
+    tenham gerado lembrete. Cria notificação in-app para o criador cobrar.
+    Roda 1x por dia (ex.: 10h).
+    """
+    db: Session = SessionLocal()
+    try:
+        rules = db.query(AutomationRule).filter(
+            AutomationRule.is_active == True,
+            AutomationRule.type == "payment_reminder",
+        ).all()
+
+        for rule in rules:
+            try:
+                conditions = rule.conditions or {}
+                days = conditions.get("days_after_creation")
+                if days is None:
+                    continue
+                days = int(days)
+                if days < 1:
+                    continue
+
+                threshold = datetime.now() - timedelta(days=days)
+                # Despesas ativas do criador criadas há pelo menos X dias
+                expenses = (
+                    db.query(SharedExpense)
+                    .filter(
+                        SharedExpense.created_by == rule.user_id,
+                        SharedExpense.status == "active",
+                        SharedExpense.created_at <= threshold,
+                    )
+                    .all()
+                )
+
+                # Já notificadas para esta regra (evitar repetir)
+                existing = (
+                    db.query(Notification)
+                    .filter(
+                        Notification.user_id == rule.user_id,
+                        Notification.type == "payment_reminder",
+                    )
+                    .all()
+                )
+                notified_expense_ids = set()
+                for n in existing:
+                    if getattr(n, "metadata_", None) and isinstance(n.metadata_, dict):
+                        if n.metadata_.get("automation_rule_id") == rule.id:
+                            eid = n.metadata_.get("expense_id")
+                            if eid:
+                                notified_expense_ids.add(eid)
+
+                for exp in expenses:
+                    if exp.id in notified_expense_ids:
+                        continue
+                    # Tem pelo menos um participante (share) que não é o criador?
+                    other_shares = (
+                        db.query(ExpenseShare)
+                        .filter(
+                            ExpenseShare.expense_id == exp.id,
+                            ExpenseShare.user_id != rule.user_id,
+                        )
+                        .limit(1)
+                        .all()
+                    )
+                    if not other_shares:
+                        continue
+
+                    create_notification(
+                        db,
+                        user_id=rule.user_id,
+                        type="payment_reminder",
+                        title="Lembrete de cobrança",
+                        body=f'A despesa "{exp.description[:60]}{"…" if len(exp.description) > 60 else ""}" foi criada há {days} dia(s). Lembre-se de cobrar os participantes que ainda não pagaram.',
+                        metadata={"automation_rule_id": rule.id, "expense_id": exp.id},
+                    )
+                    notified_expense_ids.add(exp.id)
+            except Exception as e:
+                logger.error(
+                    "Erro ao processar payment_reminder para regra %s: %s",
+                    rule.id,
+                    e,
+                    exc_info=True,
+                    extra={"rule_id": rule.id},
+                )
+                db.rollback()
+    except Exception as e:
+        logger.error(
+            "Erro crítico no job de lembrete de cobrança: %s",
+            e,
+            exc_info=True,
+        )
+    finally:
+        db.close()
+
+
+def execute_low_balance_alerts():
+    """
+    Verifica regras low_balance_alert para todas as contas.
+    Para cada regra ativa, compara saldo (ledger) com valor mínimo e cria notificação se abaixo.
+    Roda 1x por dia (ex.: 9h).
+    """
+    db: Session = SessionLocal()
+    try:
+        rules = db.query(AutomationRule).filter(
+            AutomationRule.is_active == True,
+            AutomationRule.type == "low_balance_alert",
+        ).all()
+        for rule in rules:
+            try:
+                conditions = rule.conditions or {}
+                account_id = conditions.get("account_id")
+                if not account_id:
+                    continue
+                check_low_balance_after_transaction(db, account_id, rule.user_id)
+            except Exception as e:
+                logger.warning(
+                    "Erro ao verificar low_balance_alert para regra %s: %s",
+                    rule.id,
+                    e,
+                    extra={"rule_id": rule.id},
+                )
+    except Exception as e:
+        logger.error(
+            "Erro crítico no job de alerta de saldo baixo: %s",
+            e,
+            exc_info=True,
+        )
+    finally:
+        db.close()
+
+
 def execute_monthly_snapshots():
     """
     Job mensal (Trilha 5.1): gera snapshots de saldo por conta.
@@ -648,6 +912,30 @@ def start_scheduler():
             trigger=CronTrigger(hour=2, minute=0),
             id='reconcile_snapshots',
             name='Conciliação de snapshots',
+            replace_existing=True,
+        )
+        # Alerta de saldo baixo: 1x por dia às 9h
+        scheduler.add_job(
+            execute_low_balance_alerts,
+            trigger=CronTrigger(hour=9, minute=0),
+            id='low_balance_alerts',
+            name='Alertas de saldo baixo',
+            replace_existing=True,
+        )
+        # Relatório semanal por e-mail: diário às 8h (envia só no dia preferido de cada regra)
+        scheduler.add_job(
+            execute_weekly_reports,
+            trigger=CronTrigger(hour=8, minute=0),
+            id='weekly_reports',
+            name='Relatório semanal por e-mail',
+            replace_existing=True,
+        )
+        # Lembrete de cobrança (despesas compartilhadas): diário às 10h
+        scheduler.add_job(
+            execute_payment_reminders,
+            trigger=CronTrigger(hour=10, minute=0),
+            id='payment_reminders',
+            name='Lembrete de cobrança',
             replace_existing=True,
         )
         scheduler.start()

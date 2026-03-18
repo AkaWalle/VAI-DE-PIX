@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useFinancialStore } from "@/stores/financial-store";
+import { useSyncStore } from "@/stores/sync-store";
 import {
   Card,
   CardContent,
@@ -25,6 +26,7 @@ import {
   Square,
   Calendar,
   X,
+  ArrowLeftRight,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -53,6 +55,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { transactionsService } from "@/services/transactions.service";
+import { PageLayout } from "@/components/layout/PageLayout";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export default function Transactions() {
   const {
@@ -61,6 +66,7 @@ export default function Transactions() {
     accounts,
     clearAllTransactions,
     deleteTransaction,
+    setTransactions,
   } = useFinancialStore();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
@@ -82,59 +88,68 @@ export default function Transactions() {
   const [selectedMonth, setSelectedMonth] = useState("");
   const [selectedYear, setSelectedYear] = useState("");
 
-  // Filter transactions
-  const filteredTransactions = transactions.filter((transaction) => {
-    const matchesSearch = transaction.description
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
-    const matchesType =
-      selectedType === "all" || transaction.type === selectedType;
+  // Filter transactions (memoizado para evitar recálculo a cada render)
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter((transaction) => {
+      const matchesSearch = transaction.description
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+      const matchesType =
+        selectedType === "all" || transaction.type === selectedType;
 
-    // Filtro de data
-    let matchesDate = true;
-    if (dateFilter !== "all") {
-      const transactionDate = new Date(transaction.date);
+      let matchesDate = true;
+      if (dateFilter !== "all") {
+        const transactionDate = new Date(transaction.date);
 
-      switch (dateFilter) {
-        case "specific":
-          if (specificDate) {
-            const filterDate = new Date(specificDate);
-            matchesDate =
-              transactionDate.toDateString() === filterDate.toDateString();
-          }
-          break;
-        case "month":
-          if (selectedMonth) {
-            const [year, month] = selectedMonth.split("-");
-            matchesDate =
-              transactionDate.getFullYear() === parseInt(year) &&
-              transactionDate.getMonth() === parseInt(month) - 1;
-          }
-          break;
-        case "year":
-          if (selectedYear) {
-            matchesDate =
-              transactionDate.getFullYear() === parseInt(selectedYear);
-          }
-          break;
+        switch (dateFilter) {
+          case "specific":
+            if (specificDate) {
+              const filterDate = new Date(specificDate);
+              matchesDate =
+                transactionDate.toDateString() === filterDate.toDateString();
+            }
+            break;
+          case "month":
+            if (selectedMonth) {
+              const [year, month] = selectedMonth.split("-");
+              matchesDate =
+                transactionDate.getFullYear() === parseInt(year) &&
+                transactionDate.getMonth() === parseInt(month) - 1;
+            }
+            break;
+          case "year":
+            if (selectedYear) {
+              matchesDate =
+                transactionDate.getFullYear() === parseInt(selectedYear);
+            }
+            break;
+        }
       }
-    }
 
-    return matchesSearch && matchesType && matchesDate;
-  });
+      return matchesSearch && matchesType && matchesDate;
+    });
+  }, [
+    transactions,
+    searchTerm,
+    selectedType,
+    dateFilter,
+    specificDate,
+    selectedMonth,
+    selectedYear,
+  ]);
 
-  const getCategoryName = (categoryId: string) => {
-    return (
-      categories.find((c) => c.id === categoryId)?.name ||
-      "Categoria não encontrada"
-    );
-  };
+  // Mapas para lookup O(1) em vez de N .find() por linha
+  const categoryNameMap = useMemo(() => {
+    return Object.fromEntries(
+      categories.map((c) => [c.id, c.name]),
+    ) as Record<string, string>;
+  }, [categories]);
 
-  const getAccountName = (accountId: string) => {
-    return (
-      accounts.find((a) => a.id === accountId)?.name || "Conta não encontrada"
-    );
-  };
+  const accountNameMap = useMemo(() => {
+    return Object.fromEntries(
+      accounts.map((a) => [a.id, a.name]),
+    ) as Record<string, string>;
+  }, [accounts]);
 
   // Função para limpar filtros
   const clearFilters = () => {
@@ -146,8 +161,8 @@ export default function Transactions() {
     setSelectedYear("");
   };
 
-  // Gerar opções de mês e ano baseadas nas transações
-  const getAvailableMonths = () => {
+  // Opções de mês e ano baseadas nas transações (memoizado)
+  const availableMonths = useMemo(() => {
     const months = new Set<string>();
     transactions.forEach((transaction) => {
       const date = new Date(transaction.date);
@@ -155,16 +170,16 @@ export default function Transactions() {
       months.add(monthKey);
     });
     return Array.from(months).sort().reverse();
-  };
+  }, [transactions]);
 
-  const getAvailableYears = () => {
+  const availableYears = useMemo(() => {
     const years = new Set<number>();
     transactions.forEach((transaction) => {
       const date = new Date(transaction.date);
       years.add(date.getFullYear());
     });
     return Array.from(years).sort((a, b) => b - a);
-  };
+  }, [transactions]);
 
   // Funções de seleção
   const handleSelectTransaction = (transactionId: string, checked: boolean) => {
@@ -205,8 +220,8 @@ export default function Transactions() {
         Data: formatDate(transaction.date),
         Tipo: transaction.type === "income" ? "Receita" : "Despesa",
         Descrição: transaction.description,
-        Categoria: getCategoryName(transaction.category),
-        Conta: getAccountName(transaction.account),
+        Categoria: categoryNameMap[transaction.category] ?? "Categoria não encontrada",
+        Conta: accountNameMap[transaction.account] ?? "Conta não encontrada",
         Valor: formatCurrency(Math.abs(transaction.amount)),
         Tags: transaction.tags?.join(", ") || "",
       }));
@@ -251,22 +266,36 @@ export default function Transactions() {
   };
 
   const handleClearAllTransactions = async () => {
+    const ids = transactions.map((t) => t.id);
+    if (ids.length === 0) return;
+
     setIsDeleting(true);
+    const previousTransactions = [...transactions];
     try {
-      // Simular delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      clearAllTransactions();
-      setSelectedTransactions(new Set());
-
-      toast({
-        title: "Transações apagadas!",
-        description: "Todas as transações foram removidas com sucesso.",
-      });
+      const result = await transactionsService.deleteTransactions(ids);
+      if (result.deleted > 0) {
+        clearAllTransactions();
+        setSelectedTransactions(new Set());
+        useSyncStore.getState().setSynced();
+        toast({
+          title: "Transações apagadas!",
+          description: `${result.deleted} transação(ões) removida(s) com sucesso.`,
+        });
+      }
+      if (result.errors.length > 0) {
+        useSyncStore.getState().setError("Algumas transações não puderam ser removidas.");
+        toast({
+          title: "Algumas falharam",
+          description: `${result.errors.length} transação(ões) não puderam ser removidas.`,
+          variant: "destructive",
+        });
+        setTransactions(previousTransactions.filter((t) => !result.deleted_ids.includes(t.id)));
+      }
     } catch {
+      useSyncStore.getState().setError("Não foi possível apagar transações.");
       toast({
         title: "Erro ao apagar",
-        description: "Ocorreu um erro ao tentar apagar as transações.",
+        description: "Não foi possível conectar ao servidor. Tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -277,48 +306,54 @@ export default function Transactions() {
   const handleDeleteSelected = async () => {
     if (selectedTransactions.size === 0) return;
 
+    const ids = Array.from(selectedTransactions);
     setIsDeleting(true);
+    const previousTransactions = [...transactions];
     try {
-      // Simular delay
-      await new Promise((resolve) => setTimeout(resolve, 800));
-
-      // Apagar transações selecionadas
-      selectedTransactions.forEach((id) => {
-        deleteTransaction(id);
-      });
-
-      const count = selectedTransactions.size;
-      setSelectedTransactions(new Set());
-
-      toast({
-        title: "Transações apagadas!",
-        description: `${count} transação${count > 1 ? "ões" : ""} removida${count > 1 ? "s" : ""} com sucesso.`,
-      });
+      const result = await transactionsService.deleteTransactions(ids);
+      if (result.deleted > 0) {
+        result.deleted_ids.forEach((id) => deleteTransaction(id));
+        setSelectedTransactions(new Set());
+        useSyncStore.getState().setSynced();
+        toast({
+          title: "Transações apagadas!",
+          description: `${result.deleted} transação(ões) removida(s) com sucesso.`,
+        });
+      }
+      if (result.errors.length > 0) {
+        useSyncStore.getState().setError("Algumas transações não puderam ser removidas.");
+        toast({
+          title: "Algumas falharam",
+          description: `${result.errors.length} transação(ões) não puderam ser removidas.`,
+          variant: "destructive",
+        });
+      }
     } catch {
+      useSyncStore.getState().setError("Não foi possível apagar transações.");
       toast({
         title: "Erro ao apagar",
-        description: "Ocorreu um erro ao tentar apagar as transações.",
+        description: "Não foi possível conectar ao servidor. Tente novamente.",
         variant: "destructive",
       });
+      setTransactions(previousTransactions);
     } finally {
       setIsDeleting(false);
     }
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Transações</h1>
-          <p className="text-muted-foreground">
-            Gerencie suas receitas e despesas
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
+    <PageLayout
+      title="Transações"
+      subtitle="Gerencie suas receitas e despesas"
+      action={
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap items-center">
           <BankImportDialog
             trigger={
-              <ActionButton variant="outline" size="sm" icon={Download}>
+              <ActionButton
+                variant="outline"
+                size="sm"
+                icon={Download}
+              >
                 Importar Relatório
               </ActionButton>
             }
@@ -430,10 +465,20 @@ export default function Transactions() {
             </AlertDialog>
           )}
 
-          <TransactionForm />
+          <TransactionForm
+            trigger={
+              <ActionButton
+                icon={Plus}
+                variant="default"
+                size="sm"
+              >
+                Nova Transação
+              </ActionButton>
+            }
+          />
         </div>
-      </div>
-
+      }
+    >
       {/* Filters */}
       <Card className="bg-gradient-card shadow-card-custom">
         <CardHeader>
@@ -446,7 +491,7 @@ export default function Transactions() {
               variant="outline"
               size="sm"
               onClick={clearFilters}
-              className="flex items-center gap-2"
+                className="flex items-center gap-2"
             >
               <X className="h-4 w-4" />
               Limpar Filtros
@@ -460,13 +505,15 @@ export default function Transactions() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
+                  type="search"
+                  aria-label="Buscar transações"
                   placeholder="Buscar transações..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-9"
                 />
               </div>
-              <div className="flex gap-2">
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
                 <Button
                   variant={selectedType === "all" ? "default" : "outline"}
                   size="sm"
@@ -498,7 +545,7 @@ export default function Transactions() {
                 <span className="text-sm font-medium">Filtro por Data:</span>
               </div>
 
-              <div className="flex flex-wrap gap-2">
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
                 <Button
                   variant={dateFilter === "all" ? "default" : "outline"}
                   size="sm"
@@ -535,8 +582,9 @@ export default function Transactions() {
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                 {dateFilter === "specific" && (
                   <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium">Data:</label>
+                    <label htmlFor="filter-specific-date" className="text-sm font-medium">Data:</label>
                     <Input
+                      id="filter-specific-date"
                       type="date"
                       value={specificDate}
                       onChange={(e) => setSpecificDate(e.target.value)}
@@ -547,16 +595,16 @@ export default function Transactions() {
 
                 {dateFilter === "month" && (
                   <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium">Mês:</label>
+                    <label htmlFor="filter-month" className="text-sm font-medium">Mês:</label>
                     <Select
                       value={selectedMonth}
                       onValueChange={setSelectedMonth}
                     >
-                      <SelectTrigger className="w-full sm:w-[200px]">
+                      <SelectTrigger id="filter-month" className="w-full sm:w-[200px]">
                         <SelectValue placeholder="Selecione o mês" />
                       </SelectTrigger>
                       <SelectContent>
-                        {getAvailableMonths().map((month) => {
+                        {availableMonths.map((month) => {
                           const [year, monthNum] = month.split("-");
                           const monthName = new Date(
                             parseInt(year),
@@ -578,16 +626,16 @@ export default function Transactions() {
 
                 {dateFilter === "year" && (
                   <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium">Ano:</label>
+                    <label htmlFor="filter-year" className="text-sm font-medium">Ano:</label>
                     <Select
                       value={selectedYear}
                       onValueChange={setSelectedYear}
                     >
-                      <SelectTrigger className="w-full sm:w-[120px]">
+                      <SelectTrigger id="filter-year" className="w-full sm:w-[120px]">
                         <SelectValue placeholder="Selecione o ano" />
                       </SelectTrigger>
                       <SelectContent>
-                        {getAvailableYears().map((year) => (
+                        {availableYears.map((year) => (
                           <SelectItem key={year} value={year.toString()}>
                             {year}
                           </SelectItem>
@@ -674,7 +722,110 @@ export default function Transactions() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto rounded-md border">
+          <div className="space-y-3 md:hidden">
+            {filteredTransactions.length === 0 ? (
+              <EmptyState
+                icon={ArrowLeftRight}
+                title="Nenhuma transação encontrada"
+                description="Adicione receitas e despesas para acompanhar seu fluxo de caixa."
+                action={
+                  <TransactionForm
+                    trigger={
+                      <ActionButton variant="default" size="sm" icon={Plus}>
+                        Adicionar Transação
+                      </ActionButton>
+                    }
+                  />
+                }
+              />
+            ) : (
+              filteredTransactions.map((transaction) => (
+                <Card
+                  key={transaction.id}
+                  className={
+                    selectedTransactions.has(transaction.id)
+                      ? "border-primary/40 bg-primary/5"
+                      : ""
+                  }
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <Checkbox
+                        checked={selectedTransactions.has(transaction.id)}
+                        onCheckedChange={(checked) =>
+                          handleSelectTransaction(
+                            transaction.id,
+                            checked as boolean,
+                          )
+                        }
+                        aria-label={`Selecionar transação ${transaction.description}`}
+                        className="mt-1"
+                      />
+
+                      <div className="min-w-0 flex-1 space-y-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate font-medium">
+                              {transaction.description}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatDate(transaction.date)}
+                            </p>
+                          </div>
+
+                          <span
+                            className={`shrink-0 text-sm font-semibold ${
+                              transaction.type === "income"
+                                ? "text-success"
+                                : "text-expense"
+                            }`}
+                          >
+                            {formatCurrency(transaction.amount)}
+                          </span>
+                        </div>
+
+                        <div className="grid gap-3 text-sm sm:grid-cols-2">
+                          <div className="min-w-0">
+                            <p className="text-xs text-muted-foreground">Categoria</p>
+                            <p className="truncate font-medium">
+                              {categoryNameMap[transaction.category] ?? "Categoria não encontrada"}
+                            </p>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs text-muted-foreground">Conta</p>
+                            <p className="truncate font-medium">
+                              {accountNameMap[transaction.account] ?? "Conta não encontrada"}
+                            </p>
+                          </div>
+                        </div>
+
+                        {transaction.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {transaction.tags.slice(0, 3).map((tag) => (
+                              <Badge
+                                key={tag}
+                                variant="secondary"
+                                className="text-xs"
+                              >
+                                {tag}
+                              </Badge>
+                            ))}
+                            {transaction.tags.length > 3 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{transaction.tags.length - 3}
+                              </Badge>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+
+          <div className="hidden overflow-x-auto rounded-md border md:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -696,19 +847,22 @@ export default function Transactions() {
               <TableBody>
                 {filteredTransactions.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center">
-                      <div className="flex flex-col items-center gap-2">
-                        <p className="text-muted-foreground">
-                          Nenhuma transação encontrada
-                        </p>
-                        <TransactionForm
-                          trigger={
-                            <ActionButton size="sm" icon={Plus}>
-                              Adicionar Transação
-                            </ActionButton>
-                          }
-                        />
-                      </div>
+                    <TableCell colSpan={7} className="p-0">
+                      <EmptyState
+                        icon={ArrowLeftRight}
+                        title="Nenhuma transação encontrada"
+                        description="Adicione receitas e despesas para acompanhar seu fluxo de caixa."
+                        action={
+                          <TransactionForm
+                            trigger={
+                              <ActionButton variant="default" size="sm" icon={Plus}>
+                                Adicionar Transação
+                              </ActionButton>
+                            }
+                          />
+                        }
+                        className="border-0 shadow-none rounded-none"
+                      />
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -744,10 +898,10 @@ export default function Transactions() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {getCategoryName(transaction.category)}
+                        {categoryNameMap[transaction.category] ?? "Categoria não encontrada"}
                       </TableCell>
                       <TableCell>
-                        {getAccountName(transaction.account)}
+                        {accountNameMap[transaction.account] ?? "Conta não encontrada"}
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
@@ -786,6 +940,6 @@ export default function Transactions() {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </PageLayout>
   );
 }

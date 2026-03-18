@@ -3,6 +3,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from fastapi import HTTPException
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 import sys
 
@@ -15,7 +16,11 @@ if sys.platform == 'win32':
     if hasattr(sys.stderr, 'reconfigure'):
         sys.stderr.reconfigure(encoding='utf-8')
 
-load_dotenv(encoding='utf-8')
+load_dotenv(
+    dotenv_path=Path(__file__).parent / ".env",
+    override=True,
+    encoding="utf-8",
+)
 
 # Detectar ambiente de produção
 is_production = (
@@ -128,16 +133,18 @@ try:
         connect_args = {"client_encoding": "utf8"}
         if "postgresql" in DATABASE_URL:
             connect_args["sslmode"] = "require"
-        # Em produção (Vercel/Neon serverless): pool mínimo + recycle para evitar conexões obsoletas
+        # Em produção (Vercel/Neon/Fly/Render): pool compatível com idempotência (request + sessão separada)
+        # pool_size=1 + max_overflow=0 causava TimeoutError ao usar get_db + run_with_idempotency_session
         if is_production:
             engine = create_engine(
                 DATABASE_URL,
                 connect_args=connect_args,
                 encoding='utf-8',
                 pool_pre_ping=True,
-                pool_size=1,
-                max_overflow=0,
-                pool_recycle=300,  # <=300 serverless: evita conexão stale
+                pool_size=5,
+                max_overflow=10,
+                pool_timeout=30,
+                pool_recycle=1800,
             )
         else:
             engine = create_engine(

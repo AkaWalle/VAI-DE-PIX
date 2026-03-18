@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, RefreshCw, Home } from "lucide-react";
+import { logError } from "@/lib/logger";
 
 interface Props {
   children: ReactNode;
@@ -39,16 +40,16 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // Log do erro para monitoramento
-    console.error("❌ ErrorBoundary capturou um erro:", error, errorInfo);
+    logError(error, {
+      feature: "error-boundary",
+      action: "componentDidCatch",
+      componentStack: errorInfo.componentStack,
+    });
 
     this.setState({
       error,
       errorInfo,
     });
-
-    // Aqui você pode enviar o erro para um serviço de monitoramento
-    // Ex: Sentry.captureException(error, { contexts: { react: { componentStack: errorInfo.componentStack } } });
   }
 
   handleReset = () => {

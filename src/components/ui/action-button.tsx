@@ -24,7 +24,7 @@ export function ActionButton({
 
   return (
     <Button
-      className={cn("gap-2", className)}
+      className={className}
       disabled={disabled || loading}
       aria-label={ariaLabel}
       {...props}

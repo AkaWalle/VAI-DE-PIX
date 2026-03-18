@@ -110,6 +110,34 @@ export const authService = {
     }
   },
 
+  /** Esqueci minha senha: envia e-mail com link (backend usa Resend ou SMTP). */
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    try {
+      apiHelpers.logRequest("POST", API_ENDPOINTS.auth.forgotPassword, { email });
+      const response = await httpClient.post<{ message: string }>(
+        API_ENDPOINTS.auth.forgotPassword,
+        { email: email.trim().toLowerCase() },
+      );
+      return apiHelpers.handleResponse(response);
+    } catch (error: unknown) {
+      throw new Error(apiHelpers.handleError(error as AxiosError));
+    }
+  },
+
+  /** Redefinir senha com token recebido por e-mail. */
+  async resetPassword(params: { token: string; newPassword: string }): Promise<{ message: string }> {
+    try {
+      apiHelpers.logRequest("POST", API_ENDPOINTS.auth.resetPassword, { token: "[REDACTED]" });
+      const response = await httpClient.post<{ message: string }>(
+        API_ENDPOINTS.auth.resetPassword,
+        { token: params.token.trim(), new_password: params.newPassword },
+      );
+      return apiHelpers.handleResponse(response);
+    } catch (error: unknown) {
+      throw new Error(apiHelpers.handleError(error as AxiosError));
+    }
+  },
+
   // Check if user is authenticated
   isAuthenticated(): boolean {
     return tokenManager.isValid();

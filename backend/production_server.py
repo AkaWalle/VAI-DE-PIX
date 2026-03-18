@@ -5,8 +5,9 @@ Execute: python production_server.py
 """
 
 import os
+from pathlib import Path
 from dotenv import load_dotenv
-load_dotenv()
+load_dotenv(dotenv_path=Path(__file__).parent / ".env", override=True)
 
 # Sentry (opcional): só inicializa se SENTRY_DSN estiver definido
 if os.getenv("SENTRY_DSN"):
@@ -36,7 +37,21 @@ from pathlib import Path
 
 from database import get_db, engine
 from sqlalchemy import text
-from routers import auth, transactions, goals, envelopes, categories, accounts, reports, notifications
+from routers import (
+    auth,
+    transactions,
+    goals,
+    envelopes,
+    categories,
+    accounts,
+    reports,
+    notifications,
+    insights,
+    privacy,
+    shared_expenses,
+    automations,
+    me_data,
+)
 from core.request_logging import StructuredLoggingMiddleware
 from core.request_id_middleware import RequestIDMiddleware
 from auth_utils import verify_token
@@ -99,6 +114,11 @@ app.include_router(categories.router, prefix="/api/categories", tags=["Categorie
 app.include_router(accounts.router, prefix="/api/accounts", tags=["Accounts"])
 app.include_router(reports.router, prefix="/api/reports", tags=["Reports"])
 app.include_router(notifications.router, prefix="/api/notifications", tags=["Notifications"])
+app.include_router(insights.router, prefix="/api/insights", tags=["Insights"])
+app.include_router(privacy.router, prefix="/api/privacy", tags=["Privacy"])
+app.include_router(shared_expenses.router, prefix="/api/shared-expenses", tags=["Shared Expenses"])
+app.include_router(automations.router, prefix="/api/automations", tags=["Automations"])
+app.include_router(me_data.router, prefix="/api", tags=["Me Data"])
 
 
 @app.on_event("startup")

@@ -228,7 +228,7 @@ alembic upgrade head
 
 ## 🤝 Contribuindo
 
-Contribuições são bem-vindas! Veja [CONTRIBUTING.md](CONTRIBUTING.md) para:
+Contribuições são bem-vindas! Veja [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) para:
 
 - Como fazer fork e criar branches
 - Padrões de código e commits

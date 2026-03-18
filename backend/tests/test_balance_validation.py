@@ -33,7 +33,7 @@ def _income_payload(account_id: str, category_id: str, amount_cents: int, descri
 
 
 class TestBalanceValidationExpense:
-    """Conta com saldo definido; despesa dentro do saldo → aprovado; acima → 422."""
+    """Conta com saldo definido; despesa sempre aprovada (saldo pode ficar negativo)."""
 
     def test_balance_100_expense_50_approved(
         self,
@@ -77,13 +77,14 @@ class TestBalanceValidationExpense:
         )
         assert response.status_code in (200, 201)
 
-    def test_balance_100_expense_100_01_rejected_422(
+    def test_balance_100_expense_100_01_approved_201(
         self,
         client: TestClient,
         auth_headers: dict,
         test_category,
         account_with_balance,
     ):
+        # Despesa acima do saldo é permitida (saldo pode ficar negativo)
         account = account_with_balance(100.0)
         payload = _expense_payload(
             account_id=account.id,
@@ -96,15 +97,16 @@ class TestBalanceValidationExpense:
             json=payload,
             headers=auth_headers,
         )
-        assert response.status_code == 422
+        assert response.status_code in (200, 201)
 
-    def test_balance_0_expense_0_01_rejected_422(
+    def test_balance_0_expense_0_01_approved_201(
         self,
         client: TestClient,
         auth_headers: dict,
         test_category,
         account_with_balance,
     ):
+        # Despesa em conta zerada é permitida (saldo fica negativo)
         account = account_with_balance(0.0)
         payload = _expense_payload(
             account_id=account.id,
@@ -117,7 +119,7 @@ class TestBalanceValidationExpense:
             json=payload,
             headers=auth_headers,
         )
-        assert response.status_code == 422
+        assert response.status_code in (200, 201)
 
 
 class TestIncomeDoesNotValidateBalance:

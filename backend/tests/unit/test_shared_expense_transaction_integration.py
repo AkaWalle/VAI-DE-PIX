@@ -4,6 +4,7 @@ participantes não recebem transação; relatórios corretos; exclusão SET NULL
 validação de consistência (SharedExpense sem Transaction → log crítico).
 """
 import logging
+import uuid
 import pytest
 from datetime import datetime, timezone
 from auth_utils import get_password_hash
@@ -31,9 +32,10 @@ class _Body:
 
 @pytest.fixture
 def user2(db):
+    """Segundo usuário; email único para evitar UNIQUE constraint entre testes."""
     u = User(
         name="User Two",
-        email="user2@example.com",
+        email=f"user2_{uuid.uuid4().hex[:8]}@example.com",
         hashed_password=get_password_hash("test123"),
         is_active=True,
     )
@@ -49,7 +51,7 @@ class TestSharedExpenseCreatesTransaction:
     def test_shared_expense_creates_one_transaction_for_creator(
         self, db, test_user, test_account, test_category, user2
     ):
-        """Criar despesa compartilhada 10 reais (1000 centavos) → 1 Transaction, amount=10, type=expense, shared_expense_id preenchido."""
+        """Criar despesa 10 reais (1000 centavos), 2 pessoas equal → 1 Transaction para o criador com amount=5 (parte do criador). Regra: debita apenas a parte do criador."""
         body = _Body(
             total_cents=1000,
             description="Almoço compartilhado",
@@ -64,7 +66,7 @@ class TestSharedExpenseCreatesTransaction:
         ).all()
         assert len(tx_list) == 1
         tx = tx_list[0]
-        assert float(tx.amount) == 10.00
+        assert float(tx.amount) == 5.00  # parte do criador em split equal (1000/2 centavos = 5 reais)
         assert tx.type == "expense"
         assert tx.shared_expense_id == expense.id
         assert tx.description.strip() != ""
@@ -96,12 +98,12 @@ class TestSharedExpenseCreatesTransaction:
 
 
 class TestReportSumCorrect:
-    """Relatório: despesa compartilhada + despesa normal = soma correta, sem duplicar."""
+    """Relatório: soma de transações (shared gera 1 tx com parte do criador + transações normais)."""
 
     def test_report_total_expense_includes_shared_and_normal(
         self, db, test_user, test_account, test_category, user2
     ):
-        """1 shared expense 100000 centavos + 1 transação normal 500 → total despesa 1500 (não 2000)."""
+        """Shared 100000 centavos (2 pessoas) → 1 tx 500 reais (criador) + 1 tx normal 500 → total despesa 1000. Relatório soma transações, não o total da despesa."""
         body = _Body(
             total_cents=100000,
             description="Shared",
@@ -126,7 +128,7 @@ class TestReportSumCorrect:
         month = datetime.now().month
         repo = ReportRepository(db)
         data = repo.get_monthly_comparison(test_user.id, year, month)
-        assert data["current_month"]["expense"] == 1500.0
+        assert data["current_month"]["expense"] == 1000.0  # 500 (shared creator share) + 500 (normal)
 
 
 class TestSharedExpenseDeletionSetsNull:

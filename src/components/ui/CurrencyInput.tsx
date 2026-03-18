@@ -27,8 +27,9 @@ export type CurrencyInputProps = {
 };
 
 /** Formata centavos para exibição: 1234 → "R$ 12,34" */
-function formatCents(cents: number): string {
-  return (cents / 100).toLocaleString("pt-BR", {
+function formatCents(cents: number | null | undefined): string {
+  const safe = cents ?? 0;
+  return (safe / 100).toLocaleString("pt-BR", {
     style: "currency",
     currency: "BRL",
     minimumFractionDigits: 2,
@@ -38,6 +39,7 @@ function formatCents(cents: number): string {
 
 export const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
   ({ value, onChange, className, id, placeholder = "R$ 0,00", onFocus, disabled, ...rest }, ref) => {
+    const safeValue = value ?? 0;
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
       // Permite: Backspace, Delete, Tab, Escape, setas
       if (
@@ -46,7 +48,7 @@ export const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputPro
         if (e.key === "Backspace" || e.key === "Delete") {
           e.preventDefault();
           // Remove o último dígito (shift right → divide por 10 descartando o centavo)
-          const newCents = Math.floor(value / 10);
+          const newCents = Math.floor(safeValue / 10);
           onChange(newCents);
         }
         return;
@@ -60,7 +62,7 @@ export const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputPro
 
       e.preventDefault();
       // Shift left: multiplica por 10 e adiciona novo dígito
-      const newCents = value * 10 + parseInt(e.key, 10);
+      const newCents = safeValue * 10 + parseInt(e.key, 10);
       // Limite: 999999999 centavos = R$ 9.999.999,99
       if (newCents > 999999999) return;
       onChange(newCents);
@@ -89,7 +91,7 @@ export const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputPro
         id={id}
         type="text"
         inputMode="numeric"
-        value={value === 0 ? "" : formatCents(value)}
+        value={safeValue === 0 ? "" : formatCents(safeValue)}
         placeholder={placeholder}
         disabled={disabled}
         onKeyDown={handleKeyDown}

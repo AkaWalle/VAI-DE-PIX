@@ -110,16 +110,16 @@ class TestCreateTransactionValidation:
 
 
 class TestCreateTransactionBalance:
-    """Saldo insuficiente → 422 com mensagem correta; income não valida saldo → 201."""
+    """Despesa com saldo insuficiente é permitida (201); income não valida saldo → 201."""
 
-    def test_post_insufficient_balance_422(
+    def test_post_expense_above_balance_allowed_201(
         self,
         client: TestClient,
         auth_headers: dict,
         test_category,
         account_with_balance,
     ):
-        # Conta com saldo 10 reais; despesa 50 reais
+        # Conta com saldo 10 reais; despesa 50 reais — permitido (saldo pode ficar negativo)
         account = account_with_balance(10.0)
         payload = _payload(
             account_id=account.id,
@@ -133,13 +133,8 @@ class TestCreateTransactionBalance:
             json=payload,
             headers=auth_headers,
         )
-        assert response.status_code == 422
-        detail = response.json().get("detail", {})
-        if isinstance(detail, dict):
-            msg = detail.get("message", "") or str(detail)
-        else:
-            msg = str(detail)
-        assert "saldo" in msg.lower() or "insuficiente" in msg.lower()
+        assert response.status_code in (200, 201)
+        assert response.json().get("type") == "expense"
 
     def test_post_income_does_not_validate_balance_201(
         self,

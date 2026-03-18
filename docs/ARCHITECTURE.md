@@ -1,74 +1,69 @@
-# Arquitetura — Vai de Pix
+> Última atualização: 2025-03-16
 
-Visão técnica de componentes, fluxos e decisões. Atualizado com Trilhas 5–7.
+# Arquitetura
 
----
+## Visão geral das camadas
 
-## 1. Visão geral
+O sistema tem quatro camadas principais:
 
-- **Backend:** FastAPI + SQLAlchemy + Alembic. PostgreSQL em produção; SQLite em dev/test.
-- **Fonte da verdade financeira:** Ledger contábil (append-only). Saldo da conta = soma do ledger; `account.balance` é cópia sincronizada.
-- **Regras e invariantes:** `docs/FINANCIAL-RULES.md`; testes em `tests/test_financial_invariants.py`.
+1. **Frontend** — SPA React (Vite), roda no navegador; consome a API REST e mantém estado local (Zustand).
+2. **Backend** — API FastAPI (Python); expõe REST, aplica regras de negócio e persiste no banco.
+3. **Banco de dados** — PostgreSQL em produção; SQLite permitido só em desenvolvimento. Fonte da verdade para usuários, contas, transações, envelopes, metas, despesas compartilhadas, etc.
+4. **Integrações** — Sentry (erros), SMTP (e-mail opcional), Prometheus (métricas). Nenhuma é obrigatória para o núcleo do app.
 
----
+## Diagrama textual
 
-## 2. Ledger e saldo
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Browser (SPA)                                                   │
+│  React + Vite · Zustand · React Query · Axios                    │
+└────────────────────────────┬────────────────────────────────────┘
+                             │ HTTP/REST (JWT Bearer)
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  Backend (FastAPI)                                               │
+│  Routers → Services / Repositories → Models                      │
+│  Middlewares: CORS, logging, request-id, rate limit (auth)       │
+└────────────────────────────┬────────────────────────────────────┘
+                             │ SQLAlchemy
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  PostgreSQL (ou SQLite em dev)                                  │
+│  users, accounts, transactions, ledger_entries, envelopes,       │
+│  goals, shared_expenses, expense_shares, ...                     │
+└─────────────────────────────────────────────────────────────────┘
+                             │
+        ┌────────────────────┼────────────────────┐
+        ▼                    ▼                    ▼
+   Sentry (opcional)   SMTP (opcional)    Prometheus /metrics
+```
 
-- **ledger_entries:** apenas INSERT; sem UPDATE/DELETE na aplicação.
-- **Saldo:** `core/ledger_utils.get_balance_from_ledger(account_id)`; `sync_account_balance_from_ledger(account_id)` atualiza `account.balance` após operações.
-- **Transações atômicas:** `core/database_utils.atomic_transaction(db)` — commit em sucesso, rollback em exceção.
+## Fluxo principal de uma transação (ponta a ponta)
 
----
+1. Usuário cria uma transação no frontend (formulário).
+2. Frontend envia `POST /api/transactions` com body (date, account_id, category_id, type, amount, description) e header `Authorization: Bearer <access_token>`.
+3. Backend valida JWT, obtém `user_id`, valida payload (Pydantic) e chama o serviço de transações.
+4. Serviço aplica regras de domínio (ex.: ledger, saldo); persiste em `transactions` e em `ledger_entries` (movimentação de conta).
+5. Resposta 201 com o recurso criado; frontend atualiza a lista (store/React Query).
 
-## 3. Snapshots de saldo (Trilha 5)
+Transfers: duas transações vinculadas por `transfer_transaction_id`; débito em uma conta e crédito em outra, com entradas no ledger para cada conta.
 
-- **Objetivo:** performance em leituras históricas sem perder verdade; ledger continua fonte da verdade.
-- **Modelo:** `AccountBalanceSnapshot` — `account_id`, `snapshot_date` (YYYY-MM-01), `balance`, UNIQUE(account_id, snapshot_date).
-- **Serviço:** `services/balance_snapshot_service.py` — `compute_monthly_snapshots(db, account_id=None, year=None, month=None)` calcula saldo acumulado até o fim do mês via ledger e persiste/atualiza snapshot (idempotente).
-- **Leitura histórica:** `get_balance_from_ledger_until(account_id, until_dt, db)` para saldo até uma data; para períodos longos pode-se usar snapshot mais recente + delta do ledger (opcional).
-- **Jobs:** `execute_monthly_snapshots` (1º dia do mês às 1h); `execute_reconcile_snapshots` (diário às 2h) — recalcula via ledger, compara com snapshot; divergência > ε → log ERROR (sem dados financeiros em texto). Ver `FAILURE-SIMULATION.md` e `INCIDENT-PLAYBOOK.md`.
+## Decisões técnicas relevantes
 
----
+| Decisão | Motivo |
+|---------|--------|
+| **Ledger append-only** | Saldo derivado da soma do ledger; auditoria e consistência sem alterar histórico. |
+| **JWT stateless** | Escala horizontal sem sessão no servidor; refresh opcional via cookie e tabela `user_sessions`. |
+| **Valores monetários** | Transações/contas em `Numeric(15,2)`; envelopes e parcelas de despesa compartilhada em centavos (integer) no backend. Frontend usa centavos para envelopes (CurrencyInput). |
+| **Idempotency-Key** | Tabela `idempotency_keys` e middleware para evitar duplicar efeito em POST críticos (ex.: transações). |
+| **Sync (GET/POST /me/data e /me/sync)** | Backup/restore e sync incremental; servidor como fonte da verdade; cliente envia snapshot ou delta e recebe estado atual. |
+| **Rate limit** | Aplicado no router de auth (SlowAPI) para mitigar abuso em login/registro. |
+| **CORS** | Em produção permitem-se todas as origens; em dev lista fixa de localhost. |
 
-## 4. Idempotência (Trilha 6.1)
+## O que não está implementado (débitos técnicos conhecidos)
 
-- **Objetivo:** retry seguro em ações mutáveis; mesma chave + mesmo body → mesma resposta; mesma chave + body diferente → 409.
-- **Tabela:** `idempotency_keys` — key, user_id, endpoint, request_hash, response_payload, created_at; UNIQUE(key, endpoint).
-- **Header:** `Idempotency-Key` (opcional). Endpoints: POST /api/transactions, POST /api/goals.
-- **Fluxo:** antes de executar: se key existe e request_hash igual → retorna response_payload salvo; se key existe e request_hash diferente → 409; senão executa, salva resposta, retorna.
-- **Serviço:** `services/idempotency_service.py`.
-
----
-
-## 5. Concorrência (Trilha 6.2)
-
-- **row_version em Account:** incrementado a cada mudança de saldo; validação em `sync_account_balance_from_ledger` (UPDATE … WHERE row_version=?); conflito → `ConcurrencyConflictError` → HTTP 409.
-- **SELECT … FOR UPDATE:** em operações financeiras (criar/atualizar/deletar transação), as contas afetadas são bloqueadas com `with_for_update()` em ordem de id (evita deadlock) antes de ledger + sync.
-- **Serviço:** `TransactionService` trata `ConcurrencyConflictError` e retorna 409; `core/ledger_utils.py` define a exceção e o sync com optimistic locking.
-- **Testes:** `tests/test_concurrency.py` — row_version na conta, incremento após transação, sync com conflito (0 linhas) → exceção, e 409 na API.
-
----
-
-## 6. Governança de regras (Trilha 7)
-
-- **Versionamento:** toda regra deve ter rule_id, rule_version, effective_from. Insights persistem rule_id, rule_version e valores usados. Regras novas não recalculam histórico automaticamente.
-- **Regressão:** para cada regra, dataset fixo e teste de resultado esperado; bug financeiro → novo teste + atualização em FINANCIAL-RULES.md.
-
----
-
-## 7. Observabilidade e operação
-
-- **Logs:** estruturados (core/logging_config); sem dados sensíveis em texto.
-- **Sentry:** configurável; sem valores financeiros nem PII em mensagens.
-- **Métricas:** GET /metrics (Prometheus); insights_*, etc.
-- **Health:** GET /health, GET /api/health.
-- **Backup:** docs/BACKUP-POSTGRESQL.md.
-
----
-
-## Referências
-
-- FINANCIAL-RULES.md — regras, fórmulas, invariantes, edge cases.
-- DATA-CLASSIFICATION.md, DATA-RETENTION.md — LGPD.
-- FAILURE-SIMULATION.md, INCIDENT-PLAYBOOK.md — falhas e resposta a incidentes.
-- READY-TO-SCALE-CHECKLIST.md — checklist de escala.
+- **Activity feed REST** — O router `activity_feed` existe no código mas não está incluído em `main.py`; portanto `GET/PATCH /api/activity-feed` não estão ativos. O frontend chama essas rotas; sem o include o feed não retorna dados da API.
+- **WebSocket activity feed** — Endpoint `/ws/activity-feed` definido em `activity_feed_ws.py` não está registrado em `main.py`; tempo real do feed não funciona.
+- **Production server incompleto** — `production_server.py` não inclui os routers: insights, privacy, shared_expenses, automations, me_data (nem activity_feed); quem usa esse servidor tem um subconjunto da API.
+- **Filas/workers** — Não há fila assíncrona (ex.: Redis/Celery) para jobs pesados; automações e insights usam APScheduler no processo da API.
+- **Cache distribuído** — Cache de insights é por instância (tabela `insight_cache`); não há Redis compartilhado entre múltiplas instâncias.

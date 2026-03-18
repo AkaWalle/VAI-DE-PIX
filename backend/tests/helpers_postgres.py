@@ -3,6 +3,7 @@ Helpers para testes avançados que exigem PostgreSQL real.
 Usado por: test_concurrency_transactions, test_idempotency (bloco 2),
 test_chaos_failures, test_db_lock_and_latency.
 """
+from decimal import Decimal
 import os
 import uuid
 
@@ -79,15 +80,20 @@ def create_test_user_account_category(db: Session, account_balance: float = 1000
     db.add(account)
     db.flush()
 
-    entry = LedgerEntry(
-        user_id=user.id,
-        account_id=account.id,
-        transaction_id=None,
-        amount=account_balance,
-        entry_type="credit",
-    )
-    db.add(entry)
-    db.flush()
+    # check_ledger_amount_sign: credit exige amount > 0, debit exige amount < 0. Não inserir se saldo zero.
+    balance = Decimal(str(account_balance))
+    if balance != Decimal("0"):
+        entry_type = "credit" if balance > 0 else "debit"
+        # credit: amount > 0; debit: amount < 0 (signed)
+        entry = LedgerEntry(
+            user_id=user.id,
+            account_id=account.id,
+            transaction_id=None,
+            amount=balance,
+            entry_type=entry_type,
+        )
+        db.add(entry)
+        db.flush()
 
     category = Category(
         name="Test Category",

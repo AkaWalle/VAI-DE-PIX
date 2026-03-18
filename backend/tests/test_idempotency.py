@@ -178,7 +178,7 @@ def test_retry_after_simulated_failure_no_duplicate_ledger_or_transaction(
         ledger_balance = get_balance_from_ledger(account.id, postgres_db)
         expected = 1000.0 + 75.0
         assert abs(float(ledger_balance) - expected) < 1e-6
-        assert abs(account.balance - expected) < 1e-6
+        assert abs(float(account.balance) - expected) < 1e-6
     finally:
         cleanup_test_user(postgres_db, user.id)
 

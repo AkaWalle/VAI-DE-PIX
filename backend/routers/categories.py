@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime
@@ -7,6 +7,13 @@ from pydantic import BaseModel
 from database import get_db
 from models import Category, User
 from auth_utils import get_current_user
+
+from services.categories_service import (
+    get_categories as svc_get_categories,
+    create_category as svc_create_category,
+    update_category as svc_update_category,
+    delete_category as svc_delete_category,
+)
 
 router = APIRouter()
 
@@ -33,6 +40,7 @@ class CategoryResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
 @router.get("/", response_model=List[CategoryResponse])
 async def get_categories(
     type_filter: str = None,
@@ -40,12 +48,8 @@ async def get_categories(
     db: Session = Depends(get_db)
 ):
     """Get user's categories."""
-    query = db.query(Category).filter(Category.user_id == current_user.id)
-    
-    if type_filter:
-        query = query.filter(Category.type == type_filter)
-    
-    return query.all()
+    return svc_get_categories(db, current_user.id, type_filter)
+
 
 @router.post("/", response_model=CategoryResponse)
 async def create_category(
@@ -54,16 +58,9 @@ async def create_category(
     db: Session = Depends(get_db)
 ):
     """Create a new category."""
-    db_category = Category(
-        **category.model_dump(),
-        user_id=current_user.id
-    )
-    
-    db.add(db_category)
-    db.commit()
-    db.refresh(db_category)
-    
+    db_category = svc_create_category(db, current_user.id, category.model_dump())
     return db_category
+
 
 @router.put("/{category_id}", response_model=CategoryResponse)
 async def update_category(
@@ -73,25 +70,10 @@ async def update_category(
     db: Session = Depends(get_db)
 ):
     """Update a category."""
-    db_category = db.query(Category).filter(
-        Category.id == category_id,
-        Category.user_id == current_user.id
-    ).first()
-    
-    if not db_category:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Categoria não encontrada"
-        )
-    
     update_data = category_update.model_dump(exclude_unset=True)
-    for field, value in update_data.items():
-        setattr(db_category, field, value)
-    
-    db.commit()
-    db.refresh(db_category)
-    
+    db_category = svc_update_category(db, current_user.id, category_id, update_data)
     return db_category
+
 
 @router.delete("/{category_id}")
 async def delete_category(
@@ -100,18 +82,5 @@ async def delete_category(
     db: Session = Depends(get_db)
 ):
     """Delete a category."""
-    db_category = db.query(Category).filter(
-        Category.id == category_id,
-        Category.user_id == current_user.id
-    ).first()
-    
-    if not db_category:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Categoria não encontrada"
-        )
-    
-    db.delete(db_category)
-    db.commit()
-    
+    svc_delete_category(db, current_user.id, category_id)
     return {"message": "Categoria removida com sucesso"}

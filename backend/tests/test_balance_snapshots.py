@@ -52,7 +52,7 @@ class TestSnapshotEqualsLedgerSum:
             .first()
         )
         assert snap is not None
-        assert abs(snap.balance - expected) < 1e-6
+        assert abs(float(snap.balance) - float(expected)) < 1e-6
 
 
 class TestSnapshotPlusDeltaEqualsRealBalance:

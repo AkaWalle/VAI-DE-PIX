@@ -11,7 +11,7 @@ backend_dir = Path(__file__).parent
 sys.path.insert(0, str(backend_dir))
 
 from dotenv import load_dotenv
-load_dotenv()
+load_dotenv(dotenv_path=backend_dir / ".env", override=True)
 
 # Verificar se estamos no Windows
 is_windows = os.name == 'nt'

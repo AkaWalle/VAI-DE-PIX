@@ -19,6 +19,7 @@
     "test:all": "vitest run --reporter=verbose",
     "test:unit": "vitest run tests/unit --reporter=verbose",
     "test:prod": "vitest run tests/production-api.test.ts --reporter=verbose --no-coverage --config vitest.config.ts",
+    "test:e2e": "npx playwright test",
     "assert-auth": "node scripts/assert-no-refresh-outside-lock.mjs",
     "guard:no-miro": "node scripts/guard-no-miro.mjs"
   },
@@ -78,6 +79,7 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
+    "@playwright/test": "^1.49.0",
     "@eslint/js": "^9.32.0",
     "@tailwindcss/typography": "^0.5.16",
     "@types/node": "^22.16.5",

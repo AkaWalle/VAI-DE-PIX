@@ -122,7 +122,7 @@ interface FinancialStore {
   dateRange: { from: Date; to: Date };
 
   // Actions
-  addTransaction: (transaction: Omit<Transaction, "id" | "createdAt">) => void;
+  addTransaction: (transaction: Omit<Transaction, "id" | "createdAt"> & Partial<Pick<Transaction, "id" | "createdAt">>) => void;
   updateTransaction: (id: string, updates: Partial<Transaction>) => void;
   deleteTransaction: (id: string) => void;
   clearAllTransactions: () => void;
@@ -216,6 +216,8 @@ export const useFinancialStore = create<FinancialStore>()(
       // Actions
       addTransaction: (transaction) =>
         set((state) => {
+          const id = transaction.id ?? generateUniqueId();
+          const createdAt = transaction.createdAt ?? new Date().toISOString();
           // Update account balance when transaction is added
           const updatedAccounts = state.accounts.map((account) => {
             if (account.id === transaction.account) {
@@ -239,8 +241,8 @@ export const useFinancialStore = create<FinancialStore>()(
             transactions: [
               {
                 ...transaction,
-                id: generateUniqueId(),
-                createdAt: new Date().toISOString(),
+                id,
+                createdAt,
               },
               ...state.transactions,
             ],
@@ -525,7 +527,6 @@ export const useFinancialStore = create<FinancialStore>()(
       setDateRange: (range) => set({ dateRange: range }),
 
       // User management
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars -- assinatura mantida para compatibilidade
       initializeUserData: (_userId: string) => {
         // Inicializar dados vazios - dados virão da API
         const now = new Date();

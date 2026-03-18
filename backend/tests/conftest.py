@@ -33,11 +33,12 @@ from main import app
 # Garantir que todos os modelos estão carregados (tabelas criadas no create_all)
 import models  # noqa: F401
 
-# Banco de dados em memória para testes (SQLite)
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
+# URL padrão para testes (cada fixture db pode usar engine próprio para máximo isolamento)
+SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
+# Engine global para compatibilidade com client() e idempotency_session_factory
 engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, 
-    connect_args={"check_same_thread": False}
+    SQLALCHEMY_DATABASE_URL,
+    connect_args={"check_same_thread": False},
 )
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
@@ -77,30 +78,52 @@ def postgres_db(postgres_engine, postgres_session_factory):
     """
     Sessão PostgreSQL para um teste. Schema deve existir (migrations).
     O teste deve criar e limpar seus próprios dados (commit/delete).
+    Rollback em exceção evita PendingRollbackError em testes seguintes.
     """
     session = postgres_session_factory()
     try:
         yield session
+    except Exception:
+        session.rollback()
+        raise
     finally:
         session.close()
 
 
+def _make_sqlite_engine_for_test():
+    """Engine SQLite por teste: arquivo em temp para que todas as conexões (incl. thread do TestClient) vejam o mesmo schema."""
+    import tempfile
+    fd, path = tempfile.mkstemp(suffix=".db")
+    os.close(fd)
+    url = f"sqlite:///{path}"
+    eng = create_engine(url, connect_args={"check_same_thread": False})
+    return eng, path
+
+
 @pytest.fixture(scope="function")
 def db():
-    """Cria um banco de dados limpo para cada teste."""
-    Base.metadata.drop_all(bind=engine)  # estado limpo antes de create_all (evita "table already exists" e UNIQUE)
-    Base.metadata.create_all(bind=engine)
-    db = TestingSessionLocal()
+    """Cria um banco de dados limpo para cada teste. Arquivo SQLite por teste para que todas as conexões vejam o mesmo schema (evita 'no such table' com TestClient em outra thread)."""
+    test_engine, _path = _make_sqlite_engine_for_test()
     try:
-        yield db
+        Base.metadata.create_all(bind=test_engine)
+        Session = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
+        session = Session()
+        try:
+            yield session
+        finally:
+            session.close()
     finally:
-        db.close()
-        Base.metadata.drop_all(bind=engine)
+        Base.metadata.drop_all(bind=test_engine)
+        test_engine.dispose()
+        try:
+            os.unlink(_path)
+        except OSError:
+            pass
 
 
 @pytest.fixture
 def client(db):
-    """Cliente de teste FastAPI."""
+    """Cliente de teste FastAPI. Idempotency usa o mesmo engine do teste para evitar 'no such table'."""
     def override_get_db():
         try:
             yield db
@@ -108,7 +131,10 @@ def client(db):
             pass
 
     import database as db_module
-    db_module._idempotency_session_factory = TestingSessionLocal
+    # Idempotency deve usar o mesmo engine do db do teste (com schema create_all)
+    bind = db.get_bind()
+    idempotency_factory = sessionmaker(autocommit=False, autoflush=False, bind=bind)
+    db_module._idempotency_session_factory = idempotency_factory
     app.dependency_overrides[get_db] = override_get_db
     try:
         with TestClient(app) as test_client:
@@ -120,12 +146,12 @@ def client(db):
 
 @pytest.fixture
 def test_user(db):
-    """Cria um usuário de teste."""
+    """Cria um usuário de teste. Email único por teste para evitar UNIQUE constraint (users.email)."""
     user = User(
         name="Test User",
-        email="test@example.com",
+        email=f"test_{uuid.uuid4().hex[:12]}@example.com",
         hashed_password=get_password_hash("test123"),
-        is_active=True
+        is_active=True,
     )
     db.add(user)
     db.commit()
@@ -206,10 +232,10 @@ def auth_headers(client, test_user):
 
 @pytest.fixture
 def second_user(db):
-    """Segundo usuário para testes de despesa compartilhada (convidado / outro usuário)."""
+    """Segundo usuário para testes de despesa compartilhada. Email único para evitar UNIQUE constraint."""
     user = User(
         name="Second User",
-        email="second@example.com",
+        email=f"second_{uuid.uuid4().hex[:12]}@example.com",
         hashed_password=get_password_hash("test123"),
         is_active=True,
     )

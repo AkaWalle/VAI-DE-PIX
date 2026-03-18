@@ -6,7 +6,7 @@ from datetime import date, datetime, timedelta
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, extract
 
-from models import Transaction, Goal, Envelope, Category, Account
+from models import Transaction, Goal, Envelope, Category, Account, TransactionTag
 
 
 class ReportRepository:
@@ -28,7 +28,20 @@ class ReportRepository:
             joinedload(Transaction.account),
             joinedload(Transaction.category)
         ).all()
-    
+
+    def get_transactions_for_export_with_tags(
+        self,
+        user_id: str,
+        start_date: date
+    ) -> List[Transaction]:
+        """Busca transações para exportação com tags (eager load para t.tags)."""
+        return self.db.query(Transaction).filter(
+            Transaction.user_id == user_id,
+            Transaction.date >= start_date
+        ).options(
+            joinedload(Transaction.transaction_tag_links).joinedload(TransactionTag.tag)
+        ).all()
+
     def get_cashflow_data(
         self,
         user_id: str,

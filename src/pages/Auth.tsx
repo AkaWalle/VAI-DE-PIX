@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/stores/auth-store-index";
 import { hasSessionToken } from "@/lib/auth-session";
 import { Button } from "@/components/ui/button";
@@ -133,10 +133,10 @@ export default function Auth() {
 
         <div className="max-w-lg space-y-8 relative z-10">
           <div className="space-y-6">
-            <h2 className="text-4xl font-black leading-tight text-white drop-shadow-lg tracking-tight">
+            <h2 className="text-2xl sm:text-4xl font-black leading-tight text-white drop-shadow-lg tracking-tight">
               Domine suas finanças com inteligência
             </h2>
-            <p className="text-2xl text-white/95 drop-shadow-md font-medium leading-relaxed">
+            <p className="text-xl sm:text-2xl text-white/95 drop-shadow-md font-medium leading-relaxed">
               Sistema completo de gestão financeira pessoal com análises
               inteligentes e automações.
             </p>
@@ -145,19 +145,19 @@ export default function Auth() {
           <div className="space-y-6">
             <div className="flex items-center gap-4">
               <TrendingUp className="h-6 w-6 text-white drop-shadow-md flex-shrink-0" />
-              <span className="text-xl text-white drop-shadow-md font-medium">
+              <span className="text-base sm:text-xl text-white drop-shadow-md font-medium">
                 Relatórios detalhados para decisões melhores
               </span>
             </div>
             <div className="flex items-center gap-4">
               <Shield className="h-6 w-6 text-white drop-shadow-md flex-shrink-0" />
-              <span className="text-xl text-white drop-shadow-md font-medium">
+              <span className="text-base sm:text-xl text-white drop-shadow-md font-medium">
                 Dados 100% seguros e criptografados
               </span>
             </div>
             <div className="flex items-center gap-4">
               <Zap className="h-6 w-6 text-white drop-shadow-md flex-shrink-0" />
-              <span className="text-xl text-white drop-shadow-md font-medium">
+              <span className="text-base sm:text-xl text-white drop-shadow-md font-medium">
                 Automação para ganhar tempo no dia a dia
               </span>
             </div>
@@ -172,7 +172,7 @@ export default function Auth() {
           <div className="text-center">
             <div className="flex items-center justify-center gap-3 mb-4">
               <CircleDollarSign className="h-10 w-10 text-primary" />
-              <h1 className="text-3xl font-extrabold tracking-wide">
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-wide">
                 VAI DE PIX
               </h1>
             </div>
@@ -188,7 +188,7 @@ export default function Auth() {
             <TabsContent value="login">
               <Card>
                 <CardHeader className="space-y-2 text-center">
-                  <CardTitle className="text-3xl font-bold">
+                  <CardTitle className="text-2xl sm:text-3xl font-bold">
                     Bem-vindo de volta
                   </CardTitle>
                   <CardDescription className="text-base">
@@ -202,6 +202,7 @@ export default function Auth() {
                       <Input
                         id="login-email"
                         type="email"
+                        autoComplete="email"
                         placeholder="seu@email.com"
                         value={loginForm.email}
                         onChange={(e) =>
@@ -218,6 +219,7 @@ export default function Auth() {
                       <Input
                         id="login-password"
                         type="password"
+                        autoComplete="current-password"
                         placeholder="••••••••"
                         value={loginForm.password}
                         onChange={(e) =>
@@ -228,6 +230,14 @@ export default function Auth() {
                         }
                         disabled={isLoading}
                       />
+                      <div className="flex justify-end pt-0.5">
+                        <Link
+                          to="/auth/forgot-password"
+                          className="text-sm text-primary hover:underline"
+                        >
+                          Esqueci minha senha
+                        </Link>
+                      </div>
                     </div>
 
                     {error && (
@@ -251,12 +261,6 @@ export default function Auth() {
                       )}
                     </Button>
                   </form>
-
-                  <div className="mt-6 text-center text-sm text-muted-foreground">
-                    <p>Usuários de teste:</p>
-                    <p>joao@exemplo.com / maria@exemplo.com</p>
-                    <p>Senha: 123456</p>
-                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -265,7 +269,7 @@ export default function Auth() {
             <TabsContent value="register">
               <Card>
                 <CardHeader className="space-y-2 text-center">
-                  <CardTitle className="text-3xl font-bold">
+                  <CardTitle className="text-2xl sm:text-3xl font-bold">
                     Criar nova conta
                   </CardTitle>
                   <CardDescription className="text-base">
@@ -279,6 +283,7 @@ export default function Auth() {
                       <Input
                         id="register-name"
                         type="text"
+                        autoComplete="name"
                         placeholder="Seu nome"
                         value={registerForm.name}
                         onChange={(e) =>
@@ -295,6 +300,7 @@ export default function Auth() {
                       <Input
                         id="register-email"
                         type="email"
+                        autoComplete="email"
                         placeholder="seu@email.com"
                         value={registerForm.email}
                         onChange={(e) =>
@@ -311,6 +317,7 @@ export default function Auth() {
                       <Input
                         id="register-password"
                         type="password"
+                        autoComplete="new-password"
                         placeholder="••••••••"
                         value={registerForm.password}
                         onChange={(e) =>
@@ -329,6 +336,7 @@ export default function Auth() {
                       <Input
                         id="register-confirm-password"
                         type="password"
+                        autoComplete="new-password"
                         placeholder="••••••••"
                         value={registerForm.confirmPassword}
                         onChange={(e) =>
@@ -366,6 +374,10 @@ export default function Auth() {
               </Card>
             </TabsContent>
           </Tabs>
+
+          <p className="text-center text-xs text-muted-foreground mt-4">
+            VAI DE PIX é um organizador financeiro. Não realizamos transações bancárias.
+          </p>
         </div>
       </div>
     </div>

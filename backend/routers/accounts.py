@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
@@ -7,8 +7,14 @@ from pydantic import BaseModel
 from database import get_db
 from models import Account, User
 from auth_utils import get_current_user
-from core.database_utils import atomic_transaction
 from core.amount_parser import serialize_money
+
+from services.accounts_service import (
+    get_accounts as svc_get_accounts,
+    create_account as svc_create_account,
+    update_account as svc_update_account,
+    delete_account as svc_delete_account,
+)
 
 router = APIRouter()
 
@@ -39,18 +45,16 @@ def _account_to_response(a: Account) -> AccountResponse:
     r.balance_str = serialize_money(a.balance)
     return r
 
+
 @router.get("/", response_model=List[AccountResponse])
 async def get_accounts(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Lista contas do usuário. Apenas is_active=True (soft delete)."""
-    accounts = (
-        db.query(Account)
-        .filter(Account.user_id == current_user.id, Account.is_active == True)
-        .all()
-    )
+    accounts = svc_get_accounts(db, current_user.id)
     return [_account_to_response(a) for a in accounts]
+
 
 @router.post("/", response_model=AccountResponse)
 async def create_account(
@@ -59,15 +63,9 @@ async def create_account(
     db: Session = Depends(get_db)
 ):
     """Create a new account. Transação atômica: rollback em qualquer exceção."""
-    db_account = Account(
-        **account.model_dump(),
-        user_id=current_user.id
-    )
-    with atomic_transaction(db):
-        db.add(db_account)
-        db.flush()
-    db.refresh(db_account)
+    db_account = svc_create_account(db, current_user.id, account.model_dump())
     return _account_to_response(db_account)
+
 
 @router.put("/{account_id}", response_model=AccountResponse)
 async def update_account(
@@ -77,30 +75,10 @@ async def update_account(
     db: Session = Depends(get_db)
 ):
     """Atualiza uma conta. Apenas contas ativas."""
-    db_account = (
-        db.query(Account)
-        .filter(
-            Account.id == account_id,
-            Account.user_id == current_user.id,
-            Account.is_active == True,
-        )
-        .first()
-    )
-    
-    if not db_account:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Conta não encontrada"
-        )
-    
     update_data = account_update.model_dump(exclude_unset=True)
-    for field, value in update_data.items():
-        setattr(db_account, field, value)
-    
-    db_account.updated_at = datetime.now()
-    db.commit()
-    db.refresh(db_account)
+    db_account = svc_update_account(db, current_user.id, account_id, update_data)
     return _account_to_response(db_account)
+
 
 @router.delete("/{account_id}")
 async def delete_account(
@@ -110,32 +88,7 @@ async def delete_account(
 ):
     """
     Exclusão lógica (soft delete): marca is_active=False.
-    Não permite exclusão física. Não exclui se regra futura bloquear (ex.: transações vinculadas).
+    Não permite exclusão física.
     """
-    db_account = (
-        db.query(Account)
-        .filter(
-            Account.id == account_id,
-            Account.user_id == current_user.id,
-        )
-        .first()
-    )
-    if not db_account:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Conta não encontrada",
-        )
-    if not db_account.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Conta já está excluída",
-        )
-    # Regra futura: bloquear se houver transações (opcional; descomente se quiser)
-    # from models import Transaction
-    # if db.query(Transaction).filter(Transaction.account_id == account_id).limit(1).first():
-    #     raise HTTPException(status_code=400, detail="Não é possível excluir conta com transações vinculadas")
-    with atomic_transaction(db):
-        db_account.is_active = False
-        db_account.updated_at = datetime.now()
-        db.add(db_account)
+    svc_delete_account(db, current_user.id, account_id)
     return {"message": "Conta removida com sucesso"}

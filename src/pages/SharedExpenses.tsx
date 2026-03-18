@@ -24,7 +24,17 @@ import {
   Edit,
   Trash2,
   Share2,
+  ChevronDown,
+  ChevronUp,
+  MoreVertical,
+  Check,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,9 +44,10 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { SharedExpenseForm } from "@/components/forms/SharedExpenseForm";
+import { PageLayout } from "@/components/layout/PageLayout";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export default function SharedExpenses() {
   const {
@@ -47,6 +58,17 @@ export default function SharedExpenses() {
   const { toast } = useToast();
   const [showForm, setShowForm] = useState(false);
   const [editingExpense, setEditingExpense] = useState<string | null>(null);
+  const [deleteConfirmExpenseId, setDeleteConfirmExpenseId] = useState<string | null>(null);
+  const [expandedParticipantsIds, setExpandedParticipantsIds] = useState<Set<string>>(new Set());
+
+  const toggleParticipants = (expenseId: string) => {
+    setExpandedParticipantsIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(expenseId)) next.delete(expenseId);
+      else next.add(expenseId);
+      return next;
+    });
+  };
 
   const getStatusConfig = (status: string) => {
     switch (status) {
@@ -129,80 +151,72 @@ export default function SharedExpenses() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header - botão em destaque e área de toque adequada no mobile */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">
-            Despesas Compartilhadas
-          </h1>
-          <p className="text-muted-foreground">
-            Gerencie despesas divididas entre múltiplas pessoas
-          </p>
-        </div>
-        <div className="flex gap-2 w-full sm:w-auto">
-          <ActionButton
-            variant="default"
-            icon={Plus}
-            onClick={() => setShowForm(true)}
-            className="min-h-[44px] px-6 flex-1 sm:flex-initial touch-manipulation"
-          >
-            Nova Despesa
-          </ActionButton>
-        </div>
-      </div>
+    <PageLayout
+      title="Despesas Compartilhadas"
+      subtitle="Gerencie despesas divididas entre múltiplas pessoas"
+      action={
+        <ActionButton
+          variant="default"
+          icon={Plus}
+          onClick={() => setShowForm(true)}
+          className="h-9 px-4 text-sm min-h-[44px] w-full touch-manipulation sm:min-h-0 sm:w-auto"
+        >
+          Nova Despesa
+        </ActionButton>
+      }
+    >
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card className="bg-gradient-card shadow-card-custom">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <Card className="bg-gradient-card shadow-card-custom p-3 sm:p-6">
+          <CardHeader className="pb-2 p-0">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-2">
               <Share2 className="h-4 w-4" />
               Total de Despesas
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{sharedExpenses.length}</div>
+          <CardContent className="p-0 pt-1">
+            <div className="text-lg sm:text-2xl font-bold">{sharedExpenses.length}</div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-card shadow-card-custom border-green-500/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+        <Card className="bg-gradient-card shadow-card-custom border-green-500/20 p-3 sm:p-6">
+          <CardHeader className="pb-2 p-0">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-2">
               <CheckCircle className="h-4 w-4 text-green-500" />
               Quitadas
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-500">
+          <CardContent className="p-0 pt-1">
+            <div className="text-lg sm:text-2xl font-bold text-green-500">
               {sharedExpenses.filter((e) => e.status === "settled").length}
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-card shadow-card-custom border-yellow-500/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+        <Card className="bg-gradient-card shadow-card-custom border-yellow-500/20 p-3 sm:p-6">
+          <CardHeader className="pb-2 p-0">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-2">
               <Clock className="h-4 w-4 text-yellow-500" />
               Pendentes
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-500">
+          <CardContent className="p-0 pt-1">
+            <div className="text-lg sm:text-2xl font-bold text-yellow-500">
               {sharedExpenses.filter((e) => e.status === "pending").length}
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-card shadow-card-custom border-blue-500/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+        <Card className="bg-gradient-card shadow-card-custom border-blue-500/20 p-3 sm:p-6">
+          <CardHeader className="pb-2 p-0">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-2">
               <DollarSign className="h-4 w-4 text-blue-500" />
               Valor Total
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-500">
+          <CardContent className="p-0 pt-1">
+            <div className="text-lg sm:text-2xl font-bold text-blue-500">
               {formatCurrency(
                 sharedExpenses.reduce(
                   (sum, expense) => sum + expense.totalAmount,
@@ -216,18 +230,12 @@ export default function SharedExpenses() {
 
       {/* Shared Expenses List */}
       {sharedExpenses.length === 0 ? (
-        <Card className="bg-gradient-card shadow-card-custom">
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Share2 className="h-16 w-16 text-muted-foreground/50 mb-4" />
-            <h3 className="text-xl font-semibold mb-2">
-              Nenhuma despesa compartilhada
-            </h3>
-            <p className="text-muted-foreground text-center mb-6 max-w-sm">
-              Comece criando uma despesa para dividir entre múltiplas pessoas
-            </p>
-            <p className="text-xs text-muted-foreground text-center mb-4 max-w-sm">
-              Por enquanto as despesas ficam salvas só no seu dispositivo. A pessoa adicionada por e-mail verá a dívida quando a sincronização estiver disponível.
-            </p>
+        <EmptyState
+          icon={Share2}
+          title="Nenhuma despesa compartilhada"
+          description="Comece criando uma despesa para dividir entre múltiplas pessoas."
+          hint="Por enquanto as despesas ficam salvas só no seu dispositivo. A pessoa adicionada por e-mail verá a dívida quando a sincronização estiver disponível."
+          action={
             <ActionButton
               variant="default"
               icon={Plus}
@@ -236,8 +244,8 @@ export default function SharedExpenses() {
             >
               Criar Primeira Despesa
             </ActionButton>
-          </CardContent>
-        </Card>
+          }
+        />
       ) : (
         <div className="grid gap-6">
           {sharedExpenses.map((expense) => {
@@ -250,148 +258,175 @@ export default function SharedExpenses() {
             return (
               <Card
                 key={expense.id}
-                className="bg-gradient-card shadow-card-custom"
+                className="bg-gradient-card shadow-card-custom p-4 sm:p-6 overflow-hidden w-full"
               >
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-xl font-semibold">
+                <CardHeader className="p-0 pb-3 sm:pb-4 w-full">
+                  <div className="flex flex-wrap items-start justify-between gap-2 w-full min-w-0">
+                    <div className="space-y-1 min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="text-lg sm:text-xl font-semibold truncate">
                           {expense.title}
                         </h3>
                         <Badge
                           variant={statusConfig.variant}
-                          className="text-xs"
+                          className="text-xs shrink-0"
                         >
                           <StatusIcon className="h-3 w-3 mr-1" />
                           {statusConfig.label}
                         </Badge>
                       </div>
                       {expense.description && (
-                        <p className="text-muted-foreground">
+                        <p className="text-muted-foreground text-xs sm:text-sm line-clamp-1">
                           {expense.description}
                         </p>
                       )}
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <ActionButton
-                        variant="outline"
-                        size="sm"
-                        icon={Edit}
-                        onClick={() => setEditingExpense(expense.id)}
-                      >
-                        Editar
-                      </ActionButton>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <ActionButton
-                            variant="outline"
-                            size="sm"
-                            icon={Trash2}
-                          >
-                            Excluir
-                          </ActionButton>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Excluir Despesa</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Tem certeza que deseja excluir esta despesa
-                              compartilhada? Esta ação não pode ser desfeita.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleDeleteExpense(expense.id)}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    {/* Mobile: menu dropdown; Desktop: botões Editar/Excluir */}
+                    <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+                      <div className="md:hidden">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8"
+                              aria-label="Abrir menu"
                             >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => setEditingExpense(expense.id)}
+                              className="cursor-pointer"
+                            >
+                              <Edit className="h-4 w-4 mr-2" />
+                              Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onSelect={() => setDeleteConfirmExpenseId(expense.id)}
+                              className="cursor-pointer text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
                               Excluir
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                      <div className="hidden md:flex items-center gap-2">
+                        <ActionButton
+                          variant="outline"
+                          size="sm"
+                          icon={Edit}
+                          onClick={() => setEditingExpense(expense.id)}
+                          size="sm"
+                        >
+                          Editar
+                        </ActionButton>
+                        <ActionButton
+                          variant="outline"
+                          size="sm"
+                          icon={Trash2}
+                          onClick={() => setDeleteConfirmExpenseId(expense.id)}
+                          size="sm"
+                        >
+                          Excluir
+                        </ActionButton>
+                      </div>
                     </div>
                   </div>
                 </CardHeader>
 
-                <CardContent className="space-y-4">
+                <CardContent className="p-0 space-y-3 sm:space-y-4 w-full min-w-0">
                   {/* Expense Details */}
-                  <div className="grid gap-4 md:grid-cols-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4 w-full min-w-0">
                     <div className="flex items-center gap-2">
-                      <DollarSign className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">Valor Total:</span>
-                      <span className="font-semibold">
+                      <DollarSign className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground shrink-0" />
+                      <span className="text-xs sm:text-sm font-medium">Valor Total:</span>
+                      <span className="text-xs sm:text-sm font-semibold">
                         {formatCurrency(expense.totalAmount)}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">
-                        Participantes:
-                      </span>
-                      <span className="font-semibold">
+                      <Users className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground shrink-0" />
+                      <span className="text-xs sm:text-sm font-medium">Participantes:</span>
+                      <span className="text-xs sm:text-sm font-semibold">
                         {expense.participants.length}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">Data:</span>
-                      <span className="font-semibold">
+                      <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground shrink-0" />
+                      <span className="text-xs sm:text-sm font-medium">Data:</span>
+                      <span className="text-xs sm:text-sm font-semibold">
                         {formatDate(expense.date)}
                       </span>
                     </div>
                   </div>
 
                   {/* Progress Bar */}
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
+                  <div className="space-y-1 sm:space-y-2">
+                    <div className="flex justify-between text-xs">
                       <span>Progresso do Pagamento</span>
                       <span>
-                        {formatCurrency(totalPaid)} /{" "}
-                        {formatCurrency(totalAmount)}
+                        {formatCurrency(totalPaid)} / {formatCurrency(totalAmount)}
                       </span>
                     </div>
-                    <div className="w-full bg-muted rounded-full h-2">
+                    <div className="w-full bg-muted rounded-full h-1.5 sm:h-2">
                       <div
-                        className="bg-primary h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${(totalPaid / totalAmount) * 100}%` }}
+                        className="bg-primary h-1.5 sm:h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${totalAmount ? (totalPaid / totalAmount) * 100 : 0}%` }}
                       />
                     </div>
                   </div>
 
-                  {/* Participants */}
-                  <div className="space-y-3">
-                    <h4 className="font-medium">Participantes:</h4>
-                    <div className="grid gap-2">
+                  {/* Participants: colapsável no mobile, sempre visível no desktop */}
+                  <div className="space-y-2 sm:space-y-3">
+                    <button
+                      type="button"
+                      onClick={() => toggleParticipants(expense.id)}
+                      className="flex items-center gap-2 text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground sm:hidden"
+                    >
+                      {expandedParticipantsIds.has(expense.id) ? (
+                        <ChevronUp className="h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4" />
+                      )}
+                      Ver participantes ({expense.participants.length})
+                    </button>
+                    <h4 className="font-medium text-sm hidden sm:block">Participantes:</h4>
+                    <div
+                      className={`grid gap-2 w-full min-w-0 ${
+                        expandedParticipantsIds.has(expense.id) ? "block" : "hidden sm:grid"
+                      }`}
+                    >
                       {expense.participants.map((participant) => (
                         <div
                           key={participant.userId}
-                          className="flex items-center justify-between p-3 border rounded-lg"
+                          className="flex items-center gap-2 p-2 sm:p-3 border rounded-lg w-full min-w-0"
                         >
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                              <span className="text-sm font-medium text-primary">
+                          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                            <div className="w-6 h-6 sm:w-8 sm:h-8 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
+                              <span className="text-xs sm:text-sm font-medium text-primary">
                                 {participant.userName.charAt(0).toUpperCase()}
                               </span>
                             </div>
-                            <div>
-                              <p className="font-medium">
+                            <div className="min-w-0 flex-1">
+                              <p className="font-medium text-xs sm:text-sm truncate">
                                 {participant.userName}
                               </p>
-                              <p className="text-sm text-muted-foreground">
+                              <p className="text-xs text-muted-foreground truncate">
                                 {participant.userEmail}
                               </p>
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-3">
-                            <span className="font-semibold">
+                          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                            <span className="font-semibold text-xs sm:text-sm whitespace-nowrap">
                               {formatCurrency(participant.amount)}
                             </span>
                             {participant.paid ? (
-                              <Badge variant="default" className="text-xs">
+                              <Badge variant="default" className="text-xs shrink-0">
                                 <CheckCircle className="h-3 w-3 mr-1" />
                                 Pago
                               </Badge>
@@ -399,14 +434,17 @@ export default function SharedExpenses() {
                               <Button
                                 size="sm"
                                 variant="outline"
+                                title="Marcar como Pago"
                                 onClick={() =>
                                   handleMarkAsPaid(
                                     expense.id,
                                     participant.userId,
                                   )
                                 }
+                                className="h-8 w-8 md:h-9 md:w-auto md:px-3 shrink-0 p-0 md:p-2"
                               >
-                                Marcar como Pago
+                                <Check className="h-4 w-4 md:hidden" />
+                                <span className="hidden md:inline">Marcar como Pago</span>
                               </Button>
                             )}
                           </div>
@@ -417,10 +455,10 @@ export default function SharedExpenses() {
 
                   {/* Actions */}
                   {expense.status === "pending" && isFullyPaid && (
-                    <div className="pt-4 border-t">
+                    <div className="pt-3 sm:pt-4 border-t">
                       <Button
                         onClick={() => handleSettleExpense(expense.id)}
-                        className="w-full"
+                        className="w-full h-9 text-sm"
                       >
                         <CheckCircle className="h-4 w-4 mr-2" />
                         Quitar Despesa
@@ -428,6 +466,32 @@ export default function SharedExpenses() {
                     </div>
                   )}
                 </CardContent>
+                <AlertDialog
+                  open={deleteConfirmExpenseId === expense.id}
+                  onOpenChange={(open) => !open && setDeleteConfirmExpenseId(null)}
+                >
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Excluir Despesa</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Tem certeza que deseja excluir esta despesa compartilhada?
+                        Esta ação não pode ser desfeita.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => {
+                          handleDeleteExpense(expense.id);
+                          setDeleteConfirmExpenseId(null);
+                        }}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Excluir
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </Card>
             );
           })}
@@ -462,6 +526,6 @@ export default function SharedExpenses() {
           }}
         />
       )}
-    </div>
+    </PageLayout>
   );
 }

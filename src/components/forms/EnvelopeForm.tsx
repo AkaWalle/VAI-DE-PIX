@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useFinancialStore } from "@/stores/financial-store";
+import { useSyncStore } from "@/stores/sync-store";
 import { envelopesService } from "@/services/envelopes.service";
 import { FormDialog } from "@/components/ui/form-dialog";
 import { ActionButton } from "@/components/ui/action-button";
@@ -104,7 +105,7 @@ export function EnvelopeForm({ trigger }: EnvelopeFormProps) {
         description: created.description ?? undefined,
       };
       setEnvelopes([...envelopes, newEnvelope]);
-
+      useSyncStore.getState().setSynced();
       toast({
         title: "Caixinha criada!",
         description: `Caixinha "${formData.name}" criada com sucesso.`,
@@ -120,6 +121,7 @@ export function EnvelopeForm({ trigger }: EnvelopeFormProps) {
 
       setIsOpen(false);
     } catch {
+      useSyncStore.getState().setError("Não foi possível criar a caixinha.");
       toast({
         title: "Erro ao criar caixinha",
         description: "Ocorreu um erro inesperado. Tente novamente.",
@@ -144,6 +146,7 @@ export function EnvelopeForm({ trigger }: EnvelopeFormProps) {
       open={isOpen}
       onOpenChange={setIsOpen}
       submitLabel="Criar Caixinha"
+      mobileVariant="sheet"
     >
       <div className="space-y-2">
         <Label htmlFor="name">Nome da Caixinha *</Label>
@@ -155,7 +158,7 @@ export function EnvelopeForm({ trigger }: EnvelopeFormProps) {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="balance">Saldo Inicial</Label>
           <CurrencyInput
@@ -179,7 +182,7 @@ export function EnvelopeForm({ trigger }: EnvelopeFormProps) {
 
       <div className="space-y-2">
         <Label htmlFor="color">Cor da Caixinha</Label>
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {colorOptions.map((option) => (
             <button
               key={option.value}

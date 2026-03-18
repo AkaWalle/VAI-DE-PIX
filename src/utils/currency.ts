@@ -72,11 +72,11 @@ function roundToTwoDecimals(value: number): number {
  * Não usar para enviar ao backend.
  */
 export function formatBrazilianCurrency(
-  value: number,
+  value: number | null | undefined,
   options?: { showSymbol?: boolean },
 ): string {
   const { showSymbol = true } = options ?? {};
-  if (!Number.isFinite(value)) return showSymbol ? "R$ 0,00" : "0,00";
+  if (value == null || !Number.isFinite(value)) return showSymbol ? "R$ 0,00" : "0,00";
   const fixed = roundToTwoDecimals(value).toFixed(DECIMAL_PLACES);
   const [intPart, decPart] = fixed.split(".");
   const withThousands = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");

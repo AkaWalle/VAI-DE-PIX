@@ -39,10 +39,12 @@ def test_replay_slightly_different_payload_same_key_returns_cached_or_400(
         postgres_db, account_balance=1000.0
     )
     postgres_db.commit()
+    def override_get_db():
+        yield postgres_db
     try:
+        app.dependency_overrides[get_db] = override_get_db
         token = create_access_token(data={"sub": user.email})
         client = TestClient(app)
-        client.dependency_overrides[get_db] = lambda: iter([postgres_db])
         client.headers["Authorization"] = f"Bearer {token}"
         idem_key = "threat-replay-key-001"
 
@@ -51,12 +53,12 @@ def test_replay_slightly_different_payload_same_key_returns_cached_or_400(
             "account_id": account.id,
             "category_id": category.id,
             "type": "expense",
-            "amount": 10.0,
+            "amount_cents": 1000,
             "description": "Test",
         }
         payload2 = {
             "description": "Test",
-            "amount": 10.0,
+            "amount_cents": 1000,
             "type": "expense",
             "category_id": category.id,
             "account_id": account.id,
@@ -67,7 +69,7 @@ def test_replay_slightly_different_payload_same_key_returns_cached_or_400(
             "account_id": account.id,
             "category_id": category.id,
             "type": "expense",
-            "amount": 10.00,
+            "amount_cents": 1000,
             "description": "Test",
         }
 
@@ -97,6 +99,7 @@ def test_replay_slightly_different_payload_same_key_returns_cached_or_400(
         )
         assert count_tx == 1, "Replay com mesmo hash não duplica transação"
     finally:
+        app.dependency_overrides.clear()
         cleanup_test_user(postgres_db, user.id)
 
 
@@ -113,10 +116,12 @@ def test_replay_different_amount_same_key_returns_400_or_409(
         postgres_db, account_balance=1000.0
     )
     postgres_db.commit()
+    def override_get_db():
+        yield postgres_db
     try:
+        app.dependency_overrides[get_db] = override_get_db
         token = create_access_token(data={"sub": user.email})
         client = TestClient(app)
-        client.dependency_overrides[get_db] = lambda: iter([postgres_db])
         client.headers["Authorization"] = f"Bearer {token}"
         idem_key = "threat-replay-amount-key"
 
@@ -127,7 +132,7 @@ def test_replay_different_amount_same_key_returns_400_or_409(
                 "account_id": account.id,
                 "category_id": category.id,
                 "type": "expense",
-                "amount": 10.0,
+                "amount_cents": 1000,
                 "description": "Test amount",
             },
             headers={"Idempotency-Key": idem_key},
@@ -141,7 +146,7 @@ def test_replay_different_amount_same_key_returns_400_or_409(
                 "account_id": account.id,
                 "category_id": category.id,
                 "type": "expense",
-                "amount": 20.0,
+                "amount_cents": 2000,
                 "description": "Test amount",
             },
             headers={"Idempotency-Key": idem_key},
@@ -156,6 +161,7 @@ def test_replay_different_amount_same_key_returns_400_or_409(
         )
         assert count_tx == 1, "Não deve existir segunda transação com valor diferente"
     finally:
+        app.dependency_overrides.clear()
         cleanup_test_user(postgres_db, user.id)
 
 
@@ -174,10 +180,12 @@ def test_idempotency_key_scope_per_endpoint(
         postgres_db, account_balance=1000.0
     )
     postgres_db.commit()
+    def override_get_db():
+        yield postgres_db
     try:
+        app.dependency_overrides[get_db] = override_get_db
         token = create_access_token(data={"sub": user.email})
         client = TestClient(app)
-        client.dependency_overrides[get_db] = lambda: iter([postgres_db])
         client.headers["Authorization"] = f"Bearer {token}"
         idem_key = "threat-key-both-endpoints"
 
@@ -188,7 +196,7 @@ def test_idempotency_key_scope_per_endpoint(
                 "account_id": account.id,
                 "category_id": category.id,
                 "type": "expense",
-                "amount": 5.0,
+                "amount_cents": 500,
                 "description": "Tx",
             },
             headers={"Idempotency-Key": idem_key},
@@ -208,6 +216,7 @@ def test_idempotency_key_scope_per_endpoint(
         assert r_goal.status_code in (200, 201)
         assert r_tx.json().get("id") != r_goal.json().get("id")
     finally:
+        app.dependency_overrides.clear()
         cleanup_test_user(postgres_db, user.id)
 
 
@@ -229,10 +238,12 @@ def test_transfer_cross_user_rejected(
         postgres_db, account_balance=500.0
     )
     postgres_db.commit()
+    def override_get_db():
+        yield postgres_db
     try:
+        app.dependency_overrides[get_db] = override_get_db
         token_a = create_access_token(data={"sub": user_a.email})
         client = TestClient(app)
-        client.dependency_overrides[get_db] = lambda: iter([postgres_db])
         client.headers["Authorization"] = f"Bearer {token_a}"
 
         r = client.post(
@@ -242,12 +253,13 @@ def test_transfer_cross_user_rejected(
                 "account_id": account_b.id,
                 "category_id": category_a.id,
                 "type": "expense",
-                "amount": 10.0,
+                "amount_cents": 1000,
                 "description": "Cross user",
             },
         )
         assert r.status_code == 404, "Conta de outro usuário não deve ser aceita"
     finally:
+        app.dependency_overrides.clear()
         cleanup_test_user(postgres_db, user_a.id)
         cleanup_test_user(postgres_db, user_b.id)
 
@@ -267,17 +279,19 @@ def test_aggressive_retry_100x_no_duplication(
         postgres_db, account_balance=10000.0
     )
     postgres_db.commit()
+    def override_get_db():
+        yield postgres_db
     try:
+        app.dependency_overrides[get_db] = override_get_db
         token = create_access_token(data={"sub": user.email})
         client = TestClient(app)
-        client.dependency_overrides[get_db] = lambda: iter([postgres_db])
         client.headers["Authorization"] = f"Bearer {token}"
         payload = {
             "date": "2025-01-15T10:00:00",
             "account_id": account.id,
             "category_id": category.id,
             "type": "expense",
-            "amount": 1.0,
+            "amount_cents": 100,
             "description": "Aggressive retry",
         }
         idem_key = "threat-retry-100"
@@ -304,6 +318,7 @@ def test_aggressive_retry_100x_no_duplication(
         )
         assert count_ledger == 1
     finally:
+        app.dependency_overrides.clear()
         cleanup_test_user(postgres_db, user.id)
 
 
@@ -348,5 +363,6 @@ def test_parallel_same_job_only_one_executes(
             "Apenas uma execução do job deve escrever cache (lock evita paralelo)"
         )
     finally:
+        app.dependency_overrides.clear()
         os.environ["ENABLE_INSIGHTS"] = env_insights
         cleanup_test_user(postgres_db, user.id)

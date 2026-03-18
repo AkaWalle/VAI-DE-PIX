@@ -69,8 +69,8 @@ def to_cents(value: Decimal) -> int:
 
 
 def from_cents(cents: int) -> Decimal:
-    """Converte centavos (int) para reais (Decimal)."""
-    return (Decimal(cents) / 100).quantize(QUANTIZE, rounding=ROUND_HALF_UP)
+    """Converte centavos (int) para reais (Decimal). Nunca float; preserva dígitos."""
+    return (Decimal(cents) / Decimal(100)).quantize(QUANTIZE, rounding=ROUND_HALF_UP)
 
 
 def amount_from_api(raw: object) -> Optional[Decimal]:
