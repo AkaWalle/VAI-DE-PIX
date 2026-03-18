@@ -23,6 +23,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 import {
   fetchInsights,
   postInsightFeedback,
@@ -81,7 +82,10 @@ export default function Dashboard() {
   const totalBalance = getTotalBalance();
   const monthlyIncome = getIncomeThisMonth();
   const monthlyExpenses = getExpensesThisMonth();
-  const cashflowData = getCashflow(6);
+  const [cashflowPeriod, setCashflowPeriod] = useState<6 | 12 | "all">(6);
+  const cashflowData = getCashflow(
+    cashflowPeriod === "all" ? 999 : cashflowPeriod,
+  );
 
   // Category spending data
   const categoryData = useMemo(() => {
@@ -393,11 +397,34 @@ export default function Dashboard() {
         {/* Cashflow Chart */}
         <Card className="bg-gradient-card shadow-card-custom">
           <CardHeader className="p-3 sm:p-6">
-            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-              <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-              Fluxo de Caixa (6 meses)
-            </CardTitle>
-            <CardDescription className="text-xs sm:text-sm">Evolução de receitas e despesas</CardDescription>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                  Fluxo de Caixa
+                </CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
+                  Evolução de receitas e despesas
+                </CardDescription>
+              </div>
+              <div className="flex gap-1.5">
+                {([6, 12, "all"] as const).map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setCashflowPeriod(p)}
+                    className={cn(
+                      "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                      cashflowPeriod === p
+                        ? "border border-primary/20 bg-primary/15 text-primary"
+                        : "border border-white/[0.08] bg-white/5 text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {p === "all" ? "Tudo" : p === 6 ? "6M" : "1A"}
+                  </button>
+                ))}
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="p-3 sm:p-6 pt-0">
             {!hasCashflowData ? (
@@ -501,6 +528,22 @@ export default function Dashboard() {
                 />
                 </AreaChart>
               </ResponsiveContainer>
+              </div>
+              <div className="mt-3 flex items-center gap-4 text-xs">
+                <span className="flex items-center gap-1.5 text-primary">
+                  <span
+                    className="h-2.5 w-2.5 shrink-0 rounded-sm bg-primary"
+                    aria-hidden
+                  />
+                  Receitas ↑
+                </span>
+                <span className="flex items-center gap-1.5 text-expense">
+                  <span
+                    className="h-2.5 w-2.5 shrink-0 rounded-sm bg-expense"
+                    aria-hidden
+                  />
+                  Despesas ↓
+                </span>
               </div>
             </div>
             )}
