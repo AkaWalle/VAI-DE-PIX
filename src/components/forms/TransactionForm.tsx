@@ -3,7 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { FormDialog } from "@/components/ui/form-dialog";
 import { ActionButton } from "@/components/ui/action-button";
-import { Plus } from "lucide-react";
+import { Plus, ArrowLeftRight } from "lucide-react";
 import { TransactionFields } from "@/components/forms/transaction/TransactionFields";
 import { SharedExpenseToggle } from "@/components/forms/transaction/SharedExpenseToggle";
 import { SharedExpenseSection } from "@/components/forms/transaction/SharedExpenseSection";
@@ -249,7 +249,12 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
   return (
     <FormDialog
       trigger={trigger || defaultTrigger}
-      title="Nova Transação"
+      title={
+        <span className="flex items-center gap-2">
+          <ArrowLeftRight className="h-5 w-5" />
+          Nova Transação
+        </span>
+      }
       description="Adicione uma nova receita ou despesa ao seu controle financeiro."
       onSubmit={handleSubmit(handleValidSubmit)}
       isLoading={isLoading}

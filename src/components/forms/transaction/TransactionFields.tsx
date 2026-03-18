@@ -179,7 +179,7 @@ export function TransactionFields({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="date">Data</Label>
+        <Label htmlFor="date">Data *</Label>
         <Input
           id="date"
           type="date"
