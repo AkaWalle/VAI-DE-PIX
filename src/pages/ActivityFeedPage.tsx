@@ -1,13 +1,24 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ActivityFeedPanel } from "@/components/activity/ActivityFeedPanel";
 import { useActivityFeedStore } from "@/stores/activity-feed-store";
 import { Badge } from "@/components/ui/badge";
-import { Wifi, WifiOff } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Wifi, WifiOff, Mail, CreditCard, Settings, LayoutGrid } from "lucide-react";
+import { cn } from "@/lib/utils";
+import type { FeedFilter } from "@/components/activity/ActivityFeedPanel";
+
+const FILTER_OPTIONS: { value: FeedFilter; label: string; icon: typeof Mail }[] = [
+  { value: "all", label: "Todos", icon: LayoutGrid },
+  { value: "convites", label: "Convites", icon: Mail },
+  { value: "pagamentos", label: "Pagamentos", icon: CreditCard },
+  { value: "sistema", label: "Sistema", icon: Settings },
+];
 
 export default function ActivityFeedPage() {
   const { loadFeed, connectRealtime, disconnectRealtime, isConnectedRealtime, unreadCount } =
     useActivityFeedStore();
+  const [filter, setFilter] = useState<FeedFilter>("all");
 
   useEffect(() => {
     loadFeed();
@@ -48,7 +59,24 @@ export default function ActivityFeedPage() {
           <CardTitle>Timeline</CardTitle>
         </CardHeader>
         <CardContent>
-          <ActivityFeedPanel />
+          <div className="flex flex-wrap gap-2 mb-4">
+            {FILTER_OPTIONS.map((opt) => {
+              const Icon = opt.icon;
+              return (
+                <Button
+                  key={opt.value}
+                  variant={filter === opt.value ? "default" : "outline"}
+                  size="sm"
+                  className="h-8"
+                  onClick={() => setFilter(opt.value)}
+                >
+                  <Icon className={cn("h-3.5 w-3.5 mr-1.5", filter === opt.value && "text-primary-foreground")} />
+                  {opt.label}
+                </Button>
+              );
+            })}
+          </div>
+          <ActivityFeedPanel filter={filter} />
         </CardContent>
       </Card>
     </div>

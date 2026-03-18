@@ -760,6 +760,75 @@ export default function Automations() {
         </Card>
       </div>
 
+      {/* Templates prontos */}
+      {!showNewRule && (
+        <Card className="bg-gradient-card shadow-card-custom border-dashed">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Começar com um template
+            </CardTitle>
+            <CardDescription>
+              Use um modelo pronto e personalize conforme necessário
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9"
+                onClick={() => {
+                  setNewRule((prev) => ({
+                    ...prev,
+                    type: "low_balance_alert",
+                    name: "Alerta de saldo baixo",
+                    description: "Receba notificação quando o saldo da conta ficar abaixo do valor definido.",
+                  }));
+                  setShowNewRule(true);
+                }}
+              >
+                <Wallet className="h-4 w-4 mr-2" />
+                Alerta de saldo
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9"
+                onClick={() => {
+                  setNewRule((prev) => ({
+                    ...prev,
+                    type: "payment_reminder",
+                    name: "Lembrete de cobrança",
+                    description: "Lembrete para cobrar participantes X dias após criar a despesa compartilhada.",
+                  }));
+                  setShowNewRule(true);
+                }}
+              >
+                <Bell className="h-4 w-4 mr-2" />
+                Lembrete de cobrança
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9"
+                onClick={() => {
+                  setNewRule((prev) => ({
+                    ...prev,
+                    type: "category_limit",
+                    name: "Limite por categoria",
+                    description: "Alerta quando os gastos em uma categoria ultrapassarem o limite mensal.",
+                  }));
+                  setShowNewRule(true);
+                }}
+              >
+                <PieChart className="h-4 w-4 mr-2" />
+                Limite por categoria
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* New/Edit Rule Form */}
       {showNewRule && (
         <div

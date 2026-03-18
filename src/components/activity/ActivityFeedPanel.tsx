@@ -6,6 +6,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2 } from "lucide-react";
 import type { ActivityFeedItem } from "@/services/activityFeedApi";
 
+export type FeedFilter = "all" | "convites" | "pagamentos" | "sistema";
+
 function groupByDate(items: ActivityFeedItem[]): Record<string, ActivityFeedItem[]> {
   const groups: Record<string, ActivityFeedItem[]> = {};
   for (const item of items) {
@@ -16,7 +18,28 @@ function groupByDate(items: ActivityFeedItem[]): Record<string, ActivityFeedItem
   return groups;
 }
 
-export function ActivityFeedPanel() {
+function filterItems(items: ActivityFeedItem[], filter: FeedFilter): ActivityFeedItem[] {
+  if (filter === "all") return items;
+  if (filter === "convites") {
+    return items.filter((i) => i.type?.startsWith("expense_share_"));
+  }
+  if (filter === "pagamentos") {
+    return items.filter((i) =>
+      i.type?.includes("payment") || i.type?.includes("pagamento"),
+    );
+  }
+  if (filter === "sistema") {
+    return items.filter(
+      (i) =>
+        !i.type?.startsWith("expense_share_") &&
+        !i.type?.includes("payment") &&
+        !i.type?.includes("pagamento"),
+    );
+  }
+  return items;
+}
+
+export function ActivityFeedPanel({ filter = "all" }: { filter?: FeedFilter }) {
   const {
     items,
     unreadCount,
@@ -25,7 +48,8 @@ export function ActivityFeedPanel() {
     markAllRead,
   } = useActivityFeedStore();
 
-  const grouped = groupByDate(items);
+  const filtered = filterItems(items, filter);
+  const grouped = groupByDate(filtered);
 
   if (loading) {
     return (
@@ -49,13 +73,22 @@ export function ActivityFeedPanel() {
         )}
       </div>
       <ScrollArea className="h-[400px] pr-4">
-        {items.length === 0 ? (
+        {filtered.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted-foreground">Nenhuma atividade recente.</p>
         ) : (
           <div className="space-y-6">
-            {Object.entries(grouped).map(([dateLabel, dateItems]) => (
+            {Object.entries(grouped).map(([dateLabel, dateItems]) => {
+              const hasUnread = dateItems.some((i) => !i.is_read);
+              return (
               <div key={dateLabel}>
-                <p className="mb-2 text-xs font-medium text-muted-foreground">{dateLabel}</p>
+                <div className="mb-2 flex items-center gap-2">
+                  <p className="text-xs font-medium text-muted-foreground">{dateLabel}</p>
+                  {hasUnread && (
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                      novos
+                    </Badge>
+                  )}
+                </div>
                 <ul className="space-y-2">
                   {dateItems.map((item) => (
                     <li
@@ -87,7 +120,8 @@ export function ActivityFeedPanel() {
                   ))}
                 </ul>
               </div>
-            ))}
+            );
+            })}
           </div>
         )}
       </ScrollArea>
