@@ -304,9 +304,13 @@ export default function Reports() {
                 <Legend
                   verticalAlign="top"
                   align="left"
-                  iconType="plainline"
+                  iconType="square"
                   formatter={(value) =>
-                    value === "income" ? "Receitas" : value === "expense" ? "Despesas" : value
+                    value === "income"
+                      ? "Receitas ↑"
+                      : value === "expense"
+                        ? "Despesas ↓"
+                        : value
                   }
                   wrapperStyle={{ paddingBottom: 8 }}
                 />
@@ -346,11 +350,17 @@ export default function Reports() {
                   }}
                   offset={20}
                 />
-                <Bar dataKey="income" fill="hsl(var(--income))" name="income" />
+                <Bar
+                  dataKey="income"
+                  fill="hsl(var(--income))"
+                  name="income"
+                  radius={[4, 4, 0, 0]}
+                />
                 <Bar
                   dataKey="expense"
                   fill="hsl(var(--expense))"
                   name="expense"
+                  radius={[4, 4, 0, 0]}
                 />
               </BarChart>
             </ResponsiveContainer>
@@ -400,8 +410,10 @@ export default function Reports() {
                       data={categoryExpenses.slice(0, 6)}
                       cx="50%"
                       cy="50%"
-                      labelLine={false}
-                      label={false}
+                      labelLine={{ stroke: "hsl(var(--muted-foreground))" }}
+                      label={({ name, percent }) =>
+                        percent >= 0.05 ? `${name} ${(percent * 100).toFixed(0)}%` : ""
+                      }
                       outerRadius={100}
                       fill="#8884d8"
                       dataKey="value"

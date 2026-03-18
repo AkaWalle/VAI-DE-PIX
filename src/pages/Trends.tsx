@@ -344,9 +344,13 @@ export default function Trends() {
                 <Legend
                   verticalAlign="top"
                   align="left"
-                  iconType="plainline"
+                  iconType="line"
                   formatter={(value) =>
-                    value === "income" ? "Receitas" : value === "expense" ? "Despesas" : value
+                    value === "income"
+                      ? "Receitas ↑"
+                      : value === "expense"
+                        ? "Despesas ↓"
+                        : value
                   }
                   wrapperStyle={{ paddingBottom: 8 }}
                 />
@@ -422,6 +426,14 @@ export default function Trends() {
                         ? "Receitas"
                         : "Despesas",
                   ]}
+                />
+                <Legend
+                  verticalAlign="top"
+                  align="left"
+                  formatter={(value) =>
+                    value === "balance" ? "Saldo (área)" : value
+                  }
+                  wrapperStyle={{ paddingBottom: 8 }}
                 />
                 <Area
                   type="monotone"
