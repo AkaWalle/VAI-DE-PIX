@@ -124,7 +124,17 @@ export async function detectApiUrl(): Promise<ApiConfig> {
  * Prioridade: localStorage > env > padrão baseado em ambiente
  */
 export function getApiUrl(): string {
-  // Em produção (ex.: Vercel), mesma origem = /api (evita loop no celular)
+  // localStorage (em dev; em prod ignorar se for localhost)
+  const storedUrl = localStorage.getItem("vai-de-pix-api-url");
+  if (storedUrl) {
+    const invalidInProd = import.meta.env.PROD && (storedUrl.includes("localhost") || storedUrl.includes("127.0.0.1"));
+    if (!invalidInProd) return storedUrl;
+  }
+
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl) return envUrl;
+
+  // Em produção (ex.: Vercel), mesma origem = /api (evita CORS e simplifica rede)
   if (import.meta.env.PROD && typeof window !== "undefined") {
     const hostname = window.location.hostname;
     if (hostname !== "localhost" && hostname !== "127.0.0.1") {
@@ -136,16 +146,6 @@ export function getApiUrl(): string {
     }
     return "/api";
   }
-
-  // localStorage (em dev; em prod ignorar se for localhost)
-  const storedUrl = localStorage.getItem("vai-de-pix-api-url");
-  if (storedUrl) {
-    const invalidInProd = import.meta.env.PROD && (storedUrl.includes("localhost") || storedUrl.includes("127.0.0.1"));
-    if (!invalidInProd) return storedUrl;
-  }
-
-  const envUrl = import.meta.env.VITE_API_URL;
-  if (envUrl) return envUrl;
 
   return "http://localhost:8000/api";
 }
