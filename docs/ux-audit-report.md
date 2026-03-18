@@ -178,7 +178,23 @@
 - **Configurações**: 🟡 reforçar “sem movimentação real” em contas; 🟢 links Termos/Privacidade.
 - **Auth**: 🟡 contraste do link “Esqueci minha senha”; 🟢 microcopy de privacidade.
 
+## Status das melhorias (Top 10)
+
+| # | Status |
+|---|--------|
+| 1 | ✅ feito |
+| 2 | ✅ feito |
+| 3 | ✅ feito |
+| 4 | ✅ feito |
+| 5 | ✅ feito |
+| 6 | ✅ feito |
+| 7 | ✅ feito (já atendida) |
+| 8 | ✅ feito |
+| 9 | ✅ feito |
+| 10 | ✅ feito |
+
 ## Top 10 melhorias prioritárias
+
 | # | Tela | Problema | Impacto | Esforço |
 |---|------|----------|---------|---------|
 | 1 | Transações | 🔴 Ação destrutiva “Apagar todas” muito exposta | Alto (evita perda de dados) | Médio |
