@@ -12,7 +12,8 @@ import { useSharedExpensesStore } from "@/stores/shared-expenses-store";
 import { SharedExpenseRespondModal } from "@/components/shared-expenses/SharedExpenseRespondModal";
 import { soundService } from "@/services/soundService";
 import { formatCurrency } from "@/utils/format";
-import { CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { CheckCircle, XCircle, Loader2, UserPlus } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 export default function SharedExpensePendingPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -78,9 +79,9 @@ export default function SharedExpensePendingPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Pendências de despesas compartilhadas</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Pendências</h1>
         <p className="text-muted-foreground">
-          Convites que você ainda não aceitou ou recusou.
+          Convites de despesa que você ainda não aceitou ou recusou.
         </p>
       </div>
 
@@ -110,6 +111,12 @@ export default function SharedExpensePendingPage() {
             return (
               <Card key={share.id}>
                 <CardHeader className="pb-2">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Badge variant="secondary" className="text-xs font-normal">
+                      <UserPlus className="h-3 w-3 mr-1" />
+                      Convite de despesa
+                    </Badge>
+                  </div>
                   <CardTitle className="text-base">{share.expense_description}</CardTitle>
                   <p className="text-sm text-muted-foreground">
                     Criado por <span className="font-medium text-foreground">{share.creator_name}</span>
@@ -119,46 +126,45 @@ export default function SharedExpensePendingPage() {
                   <p className="text-lg font-semibold">
                     {formatCurrency(share.expense_amount, { showSign: false })}
                   </p>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap items-center gap-3 pt-1">
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <span className="inline-block">
-                          <Button
-                            size="sm"
-                            onClick={() => openModal(share)}
-                            disabled={isSubmitting}
-                          >
-                            {isResponding ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <>
-                                <CheckCircle className="mr-1 h-4 w-4" />
-                                Aceitar
-                              </>
-                            )}
-                          </Button>
-                        </span>
+                        <Button
+                          size="default"
+                          className="min-h-[44px] min-w-[44px] touch-manipulation px-4"
+                          onClick={() => openModal(share)}
+                          disabled={isSubmitting}
+                        >
+                          {isResponding ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <>
+                              <CheckCircle className="mr-2 h-4 w-4" />
+                              Aceitar
+                            </>
+                          )}
+                        </Button>
                       </TooltipTrigger>
                       <TooltipContent>
-                        {isSubmitting ? "Processando sua resposta..." : "Aceitar este convite"}
+                        {isSubmitting ? "Processando sua resposta..." : "Aceitar e adicionar à sua lista"}
                       </TooltipContent>
                     </Tooltip>
+                    <span className="h-6 w-px bg-border flex-shrink-0" aria-hidden />
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <span className="inline-block">
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => openModal(share)}
-                            disabled={isSubmitting}
-                          >
-                            <XCircle className="mr-1 h-4 w-4" />
-                            Recusar
-                          </Button>
-                        </span>
+                        <Button
+                          size="default"
+                          variant="outline"
+                          className="min-h-[44px] min-w-[44px] touch-manipulation px-4 text-destructive border-destructive/50 hover:bg-destructive/10 hover:text-destructive"
+                          onClick={() => openModal(share)}
+                          disabled={isSubmitting}
+                        >
+                          <XCircle className="mr-2 h-4 w-4" />
+                          Recusar
+                        </Button>
                       </TooltipTrigger>
                       <TooltipContent>
-                        {isSubmitting ? "Processando sua resposta..." : "Recusar este convite"}
+                        {isSubmitting ? "Processando sua resposta..." : "Recusar e não adicionar à sua lista"}
                       </TooltipContent>
                     </Tooltip>
                   </div>
