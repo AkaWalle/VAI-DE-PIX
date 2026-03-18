@@ -8,7 +8,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/utils/format";
+import { EmptyState } from "@/components/ui/empty-state";
+import { TransactionForm } from "@/components/forms/TransactionForm";
+import { BankImportDialog } from "@/components/forms/BankImportDialog";
 import {
   TrendingUp,
   TrendingDown,
@@ -133,6 +137,11 @@ export default function Trends() {
       .filter((item) => item.currentTotal > 0 || item.lastTotal > 0)
       .sort((a, b) => Math.abs(b.change) - Math.abs(a.change));
   }, [transactions, categories]);
+
+  const hasTrendData = last6MonthsData.some(
+    (d) => Number(d.income) > 0 || Number(d.expense) > 0,
+  );
+  const hasCategoryTrends = categoryTrends.length > 0;
 
   // Previsões simples baseadas em tendências
   const predictions = useMemo(() => {
@@ -301,6 +310,27 @@ export default function Trends() {
             <CardDescription>Tendência de receitas e despesas</CardDescription>
           </CardHeader>
           <CardContent>
+            {!hasTrendData ? (
+              <EmptyState
+                icon={TrendingUp}
+                title="Nenhum dado para tendências"
+                description="Adicione receitas e despesas ou importe um extrato para ver a evolução."
+                action={
+                  <div className="flex flex-wrap justify-center gap-2">
+                    <TransactionForm
+                      trigger={<Button size="sm">Adicionar transação</Button>}
+                    />
+                    <BankImportDialog
+                      trigger={
+                        <Button size="sm" variant="outline">
+                          Importar extrato
+                        </Button>
+                      }
+                    />
+                  </div>
+                }
+              />
+            ) : (
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={last6MonthsData}>
                 <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
@@ -347,6 +377,7 @@ export default function Trends() {
                 />
               </LineChart>
             </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
 
@@ -360,6 +391,18 @@ export default function Trends() {
             <CardDescription>Panorama completo do ano</CardDescription>
           </CardHeader>
           <CardContent>
+            {!hasTrendData ? (
+              <EmptyState
+                icon={Calendar}
+                title="Nenhum dado para visão anual"
+                description="Registre transações para ver o panorama de 12 meses."
+                action={
+                  <TransactionForm
+                    trigger={<Button size="sm">Adicionar transação</Button>}
+                  />
+                }
+              />
+            ) : (
             <ResponsiveContainer width="100%" height={300}>
               <AreaChart data={last12MonthsData}>
                 <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
@@ -390,6 +433,7 @@ export default function Trends() {
                 />
               </AreaChart>
             </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -403,6 +447,18 @@ export default function Trends() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {!hasCategoryTrends ? (
+            <EmptyState
+              icon={Target}
+              title="Nenhuma tendência por categoria"
+              description="Adicione despesas em categorias para ver as variações."
+              action={
+                <TransactionForm
+                  trigger={<Button size="sm">Adicionar transação</Button>}
+                />
+              }
+            />
+          ) : (
           <div className="space-y-4">
             {categoryTrends.slice(0, 8).map((trend) => (
               <div
@@ -450,6 +506,7 @@ export default function Trends() {
               </div>
             ))}
           </div>
+          )}
         </CardContent>
       </Card>
 

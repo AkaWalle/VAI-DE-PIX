@@ -31,6 +31,9 @@ import {
 import { notificationsService } from "@/services/notifications.service";
 import { Button } from "@/components/ui/button";
 import { PageLayout } from "@/components/layout/PageLayout";
+import { EmptyState } from "@/components/ui/empty-state";
+import { TransactionForm } from "@/components/forms/TransactionForm";
+import { BankImportDialog } from "@/components/forms/BankImportDialog";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import {
   AreaChart,
@@ -199,6 +202,10 @@ export default function Dashboard() {
 
   const isMobile = useIsMobile();
   const chartHeight = isMobile ? 192 : 256;
+
+  const hasCashflowData = cashflowData.some(
+    (d) => Number(d.income) > 0 || Number(d.expense) > 0,
+  );
   const chartFontSize = isMobile ? 10 : 12;
 
   // Banner: notificações de insights não lidas (C2)
@@ -392,6 +399,29 @@ export default function Dashboard() {
             <CardDescription className="text-xs sm:text-sm">Evolução de receitas e despesas</CardDescription>
           </CardHeader>
           <CardContent className="p-3 sm:p-6 pt-0">
+            {!hasCashflowData ? (
+              <EmptyState
+                icon={TrendingUp}
+                title="Nenhum dado no fluxo de caixa"
+                description="Adicione receitas e despesas ou importe um extrato para ver a evolução mensal."
+                action={
+                  <div className="flex flex-wrap justify-center gap-2">
+                    <TransactionForm
+                      trigger={
+                        <Button size="sm">Adicionar transação</Button>
+                      }
+                    />
+                    <BankImportDialog
+                      trigger={
+                        <Button size="sm" variant="outline">
+                          Importar extrato
+                        </Button>
+                      }
+                    />
+                  </div>
+                }
+              />
+            ) : (
             <div className="overflow-x-auto -mx-1">
               <div className="min-w-[280px]" style={{ height: chartHeight }}>
                 <ResponsiveContainer width="100%" height="100%">
@@ -472,6 +502,7 @@ export default function Dashboard() {
               </ResponsiveContainer>
               </div>
             </div>
+            )}
           </CardContent>
         </Card>
 
@@ -555,18 +586,27 @@ export default function Dashboard() {
                 </div>
               </div>
             ) : (
-              <div className="flex items-center justify-center h-[300px] text-muted-foreground">
-                <div className="text-center">
-                  <CreditCard className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg font-medium mb-2">
-                    Nenhum gasto registrado
-                  </p>
-                  <p className="text-sm">
-                    Adicione transações de despesas para ver a distribuição por
-                    categoria
-                  </p>
-                </div>
-              </div>
+              <EmptyState
+                icon={CreditCard}
+                title="Nenhum gasto registrado"
+                description="Adicione transações de despesas para ver a distribuição por categoria."
+                action={
+                  <div className="flex flex-wrap justify-center gap-2">
+                    <TransactionForm
+                      trigger={
+                        <Button size="sm">Adicionar transação</Button>
+                      }
+                    />
+                    <BankImportDialog
+                      trigger={
+                        <Button size="sm" variant="outline">
+                          Importar extrato
+                        </Button>
+                      }
+                    />
+                  </div>
+                }
+              />
             )}
           </CardContent>
         </Card>
