@@ -17,6 +17,10 @@ import {
 } from "@/components/ui/select";
 import { formatCurrency } from "@/utils/format";
 import { useToast } from "@/hooks/use-toast";
+import { EmptyState } from "@/components/ui/empty-state";
+import { TransactionForm } from "@/components/forms/TransactionForm";
+import { BankImportDialog } from "@/components/forms/BankImportDialog";
+import { Button } from "@/components/ui/button";
 import {
   FileText,
   Download,
@@ -88,6 +92,10 @@ export default function Reports() {
 
   // Dados para gráficos
   const cashflowData = getCashflow(parseInt(selectedPeriod));
+  const hasCashflowData = cashflowData.some(
+    (d) => Number(d.income) > 0 || Number(d.expense) > 0,
+  );
+  const hasCategoryData = categoryExpenses.length > 0;
 
   const handleExportReport = async () => {
     setIsExporting(true);
@@ -262,6 +270,27 @@ export default function Reports() {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {!hasCashflowData ? (
+              <EmptyState
+                icon={BarChart3}
+                title="Nenhum dado no fluxo de caixa"
+                description="Adicione receitas e despesas ou importe um extrato para ver o relatório."
+                action={
+                  <div className="flex flex-wrap justify-center gap-2">
+                    <TransactionForm
+                      trigger={<Button size="sm">Adicionar transação</Button>}
+                    />
+                    <BankImportDialog
+                      trigger={
+                        <Button size="sm" variant="outline">
+                          Importar extrato
+                        </Button>
+                      }
+                    />
+                  </div>
+                }
+              />
+            ) : (
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={cashflowData}>
                 <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
@@ -325,6 +354,7 @@ export default function Reports() {
                 />
               </BarChart>
             </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
 
@@ -340,6 +370,27 @@ export default function Reports() {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {!hasCategoryData ? (
+              <EmptyState
+                icon={PieChart}
+                title="Nenhuma despesa por categoria"
+                description="Adicione transações de despesas para ver a distribuição no relatório."
+                action={
+                  <div className="flex flex-wrap justify-center gap-2">
+                    <TransactionForm
+                      trigger={<Button size="sm">Adicionar transação</Button>}
+                    />
+                    <BankImportDialog
+                      trigger={
+                        <Button size="sm" variant="outline">
+                          Importar extrato
+                        </Button>
+                      }
+                    />
+                  </div>
+                }
+              />
+            ) : (
             <div className="flex flex-col lg:flex-row gap-6">
               {/* Gráfico */}
               <div className="flex-1 min-w-0">
@@ -395,6 +446,7 @@ export default function Reports() {
                 })}
               </div>
             </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -408,6 +460,18 @@ export default function Reports() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {!hasCategoryData ? (
+            <EmptyState
+              icon={PieChart}
+              title="Nenhuma categoria com gastos"
+              description="Registre despesas para ver as categorias com maior volume."
+              action={
+                <TransactionForm
+                  trigger={<Button size="sm">Adicionar transação</Button>}
+                />
+              }
+            />
+          ) : (
           <div className="space-y-4">
             {categoryExpenses.slice(0, 5).map((category, index) => (
               <div
@@ -438,6 +502,7 @@ export default function Reports() {
               </div>
             ))}
           </div>
+          )}
         </CardContent>
       </Card>
     </div>
