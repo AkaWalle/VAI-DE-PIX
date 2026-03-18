@@ -9,7 +9,7 @@ import {
 
 interface FormDialogProps {
   trigger: React.ReactNode;
-  title: string;
+  title: React.ReactNode;
   description?: string;
   children: React.ReactNode;
   onSubmit?: (e: React.FormEvent) => void | Promise<void>;
@@ -84,7 +84,7 @@ export function FormDialog({
               form={formId}
               variant="default"
               disabled={isLoading}
-              aria-label={`${submitLabel} - ${title.toLowerCase()}`}
+              aria-label={`${submitLabel} - ${typeof title === "string" ? title.toLowerCase() : "formulário"}`}
               fullWidthMobile
             >
               {isLoading ? (

@@ -359,7 +359,7 @@ export function SharedExpenseForm({
       mobileVariant="fullscreen"
       desktopContentClassName="flex max-h-[90vh] w-full max-w-lg flex-col overflow-x-hidden overflow-y-hidden md:max-w-2xl"
       mobileContentClassName="flex h-[100dvh] w-screen max-w-none flex-col rounded-none border-0 p-0"
-      bodyClassName="scrollbar-hide sm:px-6"
+      bodyClassName="scrollbar-hide px-4 pb-6 sm:px-6"
       footer={
         <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
           <Button
@@ -387,7 +387,7 @@ export function SharedExpenseForm({
         </div>
       }
     >
-      <form id={formId} onSubmit={handleSubmit} className="space-y-6">
+      <form id={formId} onSubmit={handleSubmit} className="space-y-4">
             {/* Basic Information */}
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
