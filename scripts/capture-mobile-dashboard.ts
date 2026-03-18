@@ -1,10 +1,24 @@
 /**
  * Captura screenshots de todas as telas em viewport mobile (390×844) com emulação
- * completa de dispositivo (iPhone). Uso: definir CAPTURE_EMAIL e CAPTURE_PASSWORD
- * no ambiente e rodar: npx tsx scripts/capture-mobile-dashboard.ts
+ * completa de dispositivo (iPhone).
  *
- * Requer app rodando localmente (npm run dev) ou defina CAPTURE_BASE_URL.
- * Salva em: docs/screenshots-prod/01-dashboard-mobile.png ... 11-settings-mobile.png
+ * Fluxo:
+ *  - Fase 1: login em produção, captura de sessão (token + estado auth) em memória
+ *  - Fase 2: injeção dessa sessão no localhost e captura das telas mobile
+ *
+ * Uso:
+ *  - Terminal 1: npm run dev            (app local em http://localhost:5000)
+ *  - Terminal 2:
+ *      $env:CAPTURE_EMAIL='SEU_EMAIL'; `
+ *      $env:CAPTURE_PASSWORD='SUA_SENHA'; `
+ *      npx tsx scripts/capture-mobile-dashboard.ts
+ *
+ * Variáveis opcionais:
+ *  - CAPTURE_PROD_URL  (default: https://vai-de-pix.vercel.app)
+ *  - CAPTURE_BASE_URL  (default: http://localhost:5000)
+ *
+ * Saída:
+ *  - docs/screenshots-prod/01-dashboard-mobile.png ... 11-settings-mobile.png
  */
 import { chromium } from "playwright";
 import path from "path";
@@ -47,36 +61,112 @@ async function main() {
     process.exit(1);
   }
 
+  const prodUrl = process.env.CAPTURE_PROD_URL || "https://vai-de-pix.vercel.app";
   const baseUrl = process.env.CAPTURE_BASE_URL || "http://localhost:5000";
-  console.log("Base URL:", baseUrl);
+
+  console.log("Fase 1: fazendo login em produção...");
+  console.log("  PROD URL :", prodUrl);
+  console.log("  LOCAL URL:", baseUrl);
 
   const browser = await chromium.launch({ headless: true });
-  const context = await browser.newContext({
-    ...MOBILE_DEVICE,
-    ignoreHTTPSErrors: true,
-  });
 
-  const page = await context.newPage();
+  let prodToken: string | null = null;
+  let prodAuthState: string | null = null;
 
   try {
-    await page.goto(`${baseUrl}/auth`, { waitUntil: "networkidle" });
+    // FASE 1 — Login em produção e captura de sessão
+    const prodContext = await browser.newContext({
+      ...MOBILE_DEVICE,
+      ignoreHTTPSErrors: true,
+    });
+    const prodPage = await prodContext.newPage();
 
-    await page.locator("#login-email").fill(email);
-    await page.locator("#login-password").fill(password);
-    await page.locator('button[type="submit"]').click();
+    await prodPage.goto(`${prodUrl}/auth`, { waitUntil: "networkidle" });
 
-    await page.waitForURL((url) => url.pathname === "/" || url.pathname === "/auth", { timeout: 20000 }).catch(() => {});
-    if (page.url().includes("/auth")) {
-      console.error("Login falhou: ainda em", page.url());
-      await page.screenshot({
-        path: path.join(PROJECT_ROOT, "debug-login-failed.png"),
-      });
-      console.error("Screenshot salvo em debug-login-failed.png");
+    await prodPage.locator("#login-email").fill(email);
+    await prodPage.locator("#login-password").fill(password);
+    await prodPage.locator('button[type="submit"]').click();
+
+    await prodPage
+      .waitForURL(
+        (url) => url.pathname === "/" || url.pathname === "/auth",
+        { timeout: 20000 },
+      )
+      .catch(() => {});
+
+    if (prodPage.url().includes("/auth")) {
+      console.error("Login em produção falhou: ainda em", prodPage.url());
+      await prodContext.close();
       await browser.close();
       process.exit(1);
     }
 
-    console.log("Login OK. Capturando telas...");
+    // Captura de sessão em memória (localStorage da aba de produção)
+    const storage = await prodPage.evaluate(() => {
+      const result: Record<string, string | null> = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!key) continue;
+        result[key] = localStorage.getItem(key);
+      }
+      return result;
+    });
+
+    prodToken = storage["vai-de-pix-token"] ?? null;
+    prodAuthState = storage["vai-de-pix-auth"] ?? null;
+
+    if (!prodToken) {
+      console.error("Nenhum token encontrado em localStorage['vai-de-pix-token'] após login em produção.");
+      await prodContext.close();
+      await browser.close();
+      process.exit(1);
+    }
+
+    console.log("Token capturado com sucesso.");
+    if (prodAuthState) {
+      console.log("Estado de auth (vai-de-pix-auth) também capturado.");
+    } else {
+      console.log("Aviso: vai-de-pix-auth não encontrado; app local irá re-hidratar user via /auth/me.");
+    }
+
+    await prodContext.close();
+
+    // FASE 2 — Injetar sessão em localhost e capturar telas
+    console.log("Fase 2: injetando sessão em localhost...");
+
+    const localContext = await browser.newContext({
+      ...MOBILE_DEVICE,
+      ignoreHTTPSErrors: true,
+    });
+
+    await localContext.addInitScript(
+      ([token, authState]) => {
+        if (!token) return;
+        try {
+          localStorage.setItem("vai-de-pix-token", token);
+          if (authState) {
+            localStorage.setItem("vai-de-pix-auth", authState);
+          }
+        } catch {
+          // Ignorar erros de localStorage
+        }
+      },
+      [prodToken, prodAuthState],
+    );
+
+    const page = await localContext.newPage();
+
+    await page.goto(`${baseUrl}/`, { waitUntil: "networkidle" });
+
+    if (page.url().includes("/auth")) {
+      console.error("Sessão injetada mas app local redirecionou para /auth. Verifique API local.");
+      await localContext.close();
+      await browser.close();
+      process.exit(1);
+    }
+
+    console.log("Sessão injetada. App autenticado em localhost.");
+    console.log("Capturando telas...");
 
     for (const { path: route, filename } of SCREENS) {
       const url = `${baseUrl}${route}`;
@@ -84,10 +174,12 @@ async function main() {
       await page.waitForTimeout(500);
       const outputPath = path.join(SCREENSHOTS_DIR, `${filename}.png`);
       await page.screenshot({ path: outputPath, fullPage: false });
-      console.log("  ", filename + ".png");
+      console.log(`  ${filename}.png ✓`);
     }
 
-    console.log("Concluído. Screenshots em docs/screenshots-prod/");
+    console.log("Concluído. 11 screenshots em docs/screenshots-prod/");
+
+    await localContext.close();
   } finally {
     await browser.close();
   }
