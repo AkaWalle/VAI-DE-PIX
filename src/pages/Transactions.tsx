@@ -26,6 +26,7 @@ import {
   Calendar,
   X,
   ArrowLeftRight,
+  SlidersHorizontal,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -64,6 +65,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 
 export default function Transactions() {
   const {
@@ -85,6 +93,7 @@ export default function Transactions() {
   const [selectedTransactions, setSelectedTransactions] = useState<Set<string>>(
     new Set(),
   );
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   // Filtros de data
   const [dateFilter, setDateFilter] = useState<
@@ -480,8 +489,194 @@ export default function Transactions() {
         </div>
       }
     >
-      {/* Filters */}
-      <Card className="bg-gradient-card shadow-card-custom">
+      {/* Filters (mobile: em Sheet; desktop: inline) */}
+      <div className="sm:hidden">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setFiltersOpen(true)}
+          className="w-full flex items-center justify-center gap-2"
+          aria-label="Abrir filtros"
+        >
+          <SlidersHorizontal className="h-4 w-4" aria-hidden />
+          Filtros
+        </Button>
+
+        <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
+          <SheetContent side="bottom" className="rounded-t-2xl pb-20">
+            <SheetHeader className="text-left">
+              <SheetTitle>Filtros</SheetTitle>
+              <SheetDescription>Refine sua busca por transações</SheetDescription>
+            </SheetHeader>
+
+            <div className="mt-4 flex items-center justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={clearFilters}
+                className="flex items-center gap-2"
+              >
+                <X className="h-4 w-4" />
+                Limpar Filtros
+              </Button>
+            </div>
+
+            <div className="mt-4 space-y-4">
+              {/* Primeira linha: Busca e Tipo */}
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    type="search"
+                    aria-label="Buscar transações"
+                    placeholder="Buscar transações..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+                  <Button
+                    variant={selectedType === "all" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedType("all")}
+                  >
+                    Todas
+                  </Button>
+                  <Button
+                    variant={selectedType === "income" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedType("income")}
+                  >
+                    Receitas
+                  </Button>
+                  <Button
+                    variant={selectedType === "expense" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedType("expense")}
+                  >
+                    Despesas
+                  </Button>
+                </div>
+              </div>
+
+              {/* Segunda linha: Filtros de Data */}
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">Filtro por Data:</span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+                  <Button
+                    variant={dateFilter === "all" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setDateFilter("all")}
+                  >
+                    Todas as Datas
+                  </Button>
+                  <Button
+                    variant={dateFilter === "specific" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setDateFilter("specific")}
+                  >
+                    Data Específica
+                  </Button>
+                  <Button
+                    variant={dateFilter === "month" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setDateFilter("month")}
+                  >
+                    Por Mês
+                  </Button>
+                  <Button
+                    variant={dateFilter === "year" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setDateFilter("year")}
+                  >
+                    Por Ano
+                  </Button>
+                </div>
+              </div>
+
+              {/* Terceira linha: Controles de Data */}
+              {dateFilter !== "all" && (
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                  {dateFilter === "specific" && (
+                    <div className="flex items-center gap-2">
+                      <label
+                        htmlFor="filter-specific-date"
+                        className="text-sm font-medium"
+                      >
+                        Data:
+                      </label>
+                      <Input
+                        id="filter-specific-date"
+                        type="date"
+                        value={specificDate}
+                        onChange={(e) => setSpecificDate(e.target.value)}
+                        className="w-auto"
+                      />
+                    </div>
+                  )}
+
+                  {dateFilter === "month" && (
+                    <div className="flex items-center gap-2">
+                      <label htmlFor="filter-month" className="text-sm font-medium">
+                        Mês:
+                      </label>
+                      <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                        <SelectTrigger id="filter-month" className="w-full sm:w-[200px]">
+                          <SelectValue placeholder="Selecione o mês" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableMonths.map((month) => {
+                            const [year, monthNum] = month.split("-");
+                            const monthName = new Date(
+                              parseInt(year),
+                              parseInt(monthNum) - 1,
+                            ).toLocaleDateString("pt-BR", {
+                              month: "long",
+                              year: "numeric",
+                            });
+                            return (
+                              <SelectItem key={month} value={month}>
+                                {monthName}
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {dateFilter === "year" && (
+                    <div className="flex items-center gap-2">
+                      <label htmlFor="filter-year" className="text-sm font-medium">
+                        Ano:
+                      </label>
+                      <Select value={selectedYear} onValueChange={setSelectedYear}>
+                        <SelectTrigger id="filter-year" className="w-full sm:w-[120px]">
+                          <SelectValue placeholder="Selecione o ano" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableYears.map((year) => (
+                            <SelectItem key={year} value={year.toString()}>
+                              {year}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </SheetContent>
+        </Sheet>
+      </div>
+
+      <Card className="bg-gradient-card shadow-card-custom hidden sm:block">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
@@ -492,7 +687,7 @@ export default function Transactions() {
               variant="outline"
               size="sm"
               onClick={clearFilters}
-                className="flex items-center gap-2"
+              className="flex items-center gap-2"
             >
               <X className="h-4 w-4" />
               Limpar Filtros
