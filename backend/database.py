@@ -3,6 +3,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from fastapi import HTTPException
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 import sys
 
@@ -15,7 +16,11 @@ if sys.platform == 'win32':
     if hasattr(sys.stderr, 'reconfigure'):
         sys.stderr.reconfigure(encoding='utf-8')
 
-load_dotenv(encoding='utf-8')
+load_dotenv(
+    dotenv_path=Path(__file__).parent / ".env",
+    override=True,
+    encoding="utf-8",
+)
 
 # Detectar ambiente de produção
 is_production = (

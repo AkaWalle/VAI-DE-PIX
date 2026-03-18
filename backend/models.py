@@ -26,6 +26,7 @@ class User(Base):
     automation_rules = relationship("AutomationRule", back_populates="user", cascade="all, delete-orphan")
     notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
     sessions = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")
+    password_reset_tokens = relationship("PasswordResetToken", back_populates="user", cascade="all, delete-orphan")
     shared_expenses_created = relationship("SharedExpense", back_populates="creator", cascade="all, delete-orphan")
     expense_shares = relationship("ExpenseShare", back_populates="user", cascade="all, delete-orphan")
     expense_share_events = relationship("ExpenseShareEvent", back_populates="performer", cascade="all, delete-orphan")
@@ -475,6 +476,27 @@ class UserSession(Base):
 
     __table_args__ = (
         Index("idx_user_sessions_user_expires", "user_id", "expires_at"),
+    )
+
+
+class PasswordResetToken(Base):
+    """
+    Token de redefinição de senha. Uso único; expira em PASSWORD_RESET_EXPIRE_MINUTES.
+    token_hash: SHA-256 do token enviado por e-mail (nunca armazenar em claro).
+    """
+    __tablename__ = "password_reset_tokens"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    token_hash = Column(String(64), nullable=False, unique=True, index=True)
+    expires_at = Column(DateTime(timezone=True), nullable=False, index=True)
+    used_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    user = relationship("User", back_populates="password_reset_tokens")
+
+    __table_args__ = (
+        Index("idx_password_reset_tokens_user_expires", "user_id", "expires_at"),
     )
 
 

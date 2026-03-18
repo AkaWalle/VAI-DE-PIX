@@ -9,13 +9,14 @@ from sqlalchemy.orm import Session
 import os
 import hashlib
 import secrets
+from pathlib import Path
 from dotenv import load_dotenv
 
 from database import get_db
 from models import User, UserSession
 from services.default_data_service import ensure_user_default_data
 
-load_dotenv()
+load_dotenv(dotenv_path=Path(__file__).parent / ".env", override=True)
 
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")

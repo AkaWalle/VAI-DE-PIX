@@ -5,8 +5,9 @@ Execute: python production_server.py
 """
 
 import os
+from pathlib import Path
 from dotenv import load_dotenv
-load_dotenv()
+load_dotenv(dotenv_path=Path(__file__).parent / ".env", override=True)
 
 # Sentry (opcional): só inicializa se SENTRY_DSN estiver definido
 if os.getenv("SENTRY_DSN"):

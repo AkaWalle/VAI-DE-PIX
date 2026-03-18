@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/stores/auth-store-index";
 import { hasSessionToken } from "@/lib/auth-session";
 import { Button } from "@/components/ui/button";
@@ -230,6 +230,14 @@ export default function Auth() {
                         }
                         disabled={isLoading}
                       />
+                      <div className="flex justify-end pt-0.5">
+                        <Link
+                          to="/auth/forgot-password"
+                          className="text-sm text-primary hover:underline"
+                        >
+                          Esqueci minha senha
+                        </Link>
+                      </div>
                     </div>
 
                     {error && (
@@ -253,12 +261,6 @@ export default function Auth() {
                       )}
                     </Button>
                   </form>
-
-                  <div className="mt-6 text-center text-sm text-muted-foreground">
-                    <p>Usuários de teste:</p>
-                    <p>joao@exemplo.com / maria@exemplo.com</p>
-                    <p>Senha: 123456</p>
-                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -372,6 +374,10 @@ export default function Auth() {
               </Card>
             </TabsContent>
           </Tabs>
+
+          <p className="text-center text-xs text-muted-foreground mt-4">
+            VAI DE PIX é um organizador financeiro. Não realizamos transações bancárias.
+          </p>
         </div>
       </div>
     </div>
