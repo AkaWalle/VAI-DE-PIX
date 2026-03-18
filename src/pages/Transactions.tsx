@@ -58,6 +58,7 @@ import {
 import { transactionsService } from "@/services/transactions.service";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { EmptyState } from "@/components/ui/empty-state";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -94,6 +95,7 @@ export default function Transactions() {
     new Set(),
   );
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   // Filtros de data
   const [dateFilter, setDateFilter] = useState<
@@ -357,14 +359,21 @@ export default function Transactions() {
   };
 
   return (
+    <>
     <PageLayout
       title="Transações"
       subtitle="Gerencie suas receitas e despesas"
       action={
         <div className="flex items-center gap-2">
+          {/* Em mobile: FAB fixo abaixo; em desktop: botão no header */}
           <TransactionForm
             trigger={
-              <ActionButton icon={Plus} variant="default" size="sm">
+              <ActionButton
+                icon={Plus}
+                variant="default"
+                size="sm"
+                className={isMobile ? "hidden sm:inline-flex" : ""}
+              >
                 Nova Transação
               </ActionButton>
             }
@@ -1137,5 +1146,23 @@ export default function Transactions() {
         </CardContent>
       </Card>
     </PageLayout>
+
+    {/* FAB: Nova Transação fixo no mobile para acesso rápido em listas longas */}
+    {isMobile && (
+      <div className="fixed bottom-20 right-4 z-40 md:hidden">
+        <TransactionForm
+          trigger={
+            <Button
+              size="icon"
+              className="h-14 w-14 rounded-full shadow-lg ring-4 ring-background/80"
+              aria-label="Nova transação"
+            >
+              <Plus className="h-6 w-6" />
+            </Button>
+          }
+        />
+      </div>
+    )}
+    </>
   );
 }
