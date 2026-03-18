@@ -66,6 +66,8 @@ export const API_ENDPOINTS = {
     register: "/auth/register",
     me: "/auth/me",
     logout: "/auth/logout",
+    forgotPassword: "/auth/forgot-password",
+    resetPassword: "/auth/reset-password",
   },
 
   // Snapshot do usuário (backup/restore — Fase 1 sync)

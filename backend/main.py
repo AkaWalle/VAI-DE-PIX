@@ -4,8 +4,11 @@ Execute: python main.py
 """
 
 import os
+from pathlib import Path
 from dotenv import load_dotenv
-load_dotenv()
+
+# Carregar .env explicitamente antes de importar módulos internos
+load_dotenv(dotenv_path=Path(__file__).parent / ".env", override=True)
 
 # Sentry (opcional): só inicializa se SENTRY_DSN estiver definido; não envia dados sensíveis
 _sentry_dsn = os.getenv("SENTRY_DSN")
@@ -44,7 +47,7 @@ from core.request_id_middleware import RequestIDMiddleware
 from core.prometheus_metrics import get_metrics_content, get_metrics_content_type
 
 # Load environment variables
-load_dotenv()
+load_dotenv(dotenv_path=Path(__file__).parent / ".env", override=True)
 
 # Rate limiter
 limiter = Limiter(key_func=get_remote_address)
