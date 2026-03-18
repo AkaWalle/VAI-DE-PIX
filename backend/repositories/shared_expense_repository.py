@@ -5,7 +5,7 @@ from typing import List, Optional
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_
 
-from models import SharedExpense, ExpenseShare
+from models import SharedExpense, ExpenseShare, User
 from repositories.base_repository import BaseRepository
 
 
@@ -75,3 +75,9 @@ class SharedExpenseRepository(BaseRepository[SharedExpense]):
         expense.status = "cancelled"
         self.db.flush()
         return expense
+
+    def get_users_by_ids(self, ids: List[str]) -> List[User]:
+        """Retorna usuários cujo id está em ids. Mesma query usada no router para performer names."""
+        if not ids:
+            return []
+        return self.db.query(User).filter(User.id.in_(ids)).all()

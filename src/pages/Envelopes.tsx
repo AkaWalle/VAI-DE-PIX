@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useFinancialStore } from "@/stores/financial-store";
+import { useSyncStore } from "@/stores/sync-store";
 import { envelopesService } from "@/services/envelopes.service";
 import {
   Card,
@@ -24,6 +25,8 @@ import {
   TrendingUp,
   Trash2,
 } from "lucide-react";
+import { PageLayout } from "@/components/layout/PageLayout";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export default function Envelopes() {
   const { envelopes, deleteEnvelope, transferBetweenEnvelopes } = useFinancialStore();
@@ -33,7 +36,7 @@ export default function Envelopes() {
   const [transferToId, setTransferToId] = useState("");
   const [transferAmountCents, setTransferAmountCents] = useState(0);
 
-  const handleTransfer = () => {
+  const handleTransfer = async () => {
     if (!transferFromId || !transferToId || transferFromId === transferToId) {
       toast({
         title: "Selecione as caixinhas",
@@ -59,23 +62,37 @@ export default function Envelopes() {
       });
       return;
     }
-    transferBetweenEnvelopes(transferFromId, transferToId, transferAmountCents);
-    toast({
-      title: "Transferência feita!",
-      description: `${formatCurrencyFromCents(transferAmountCents)} transferido.`,
-    });
-    setTransferAmountCents(0);
+    try {
+      await envelopesService.withdrawValueFromEnvelope(transferFromId, transferAmountCents);
+      await envelopesService.addValueToEnvelope(transferToId, transferAmountCents);
+      transferBetweenEnvelopes(transferFromId, transferToId, transferAmountCents);
+      useSyncStore.getState().setSynced();
+      toast({
+        title: "Transferência feita!",
+        description: `${formatCurrencyFromCents(transferAmountCents)} transferido.`,
+      });
+      setTransferAmountCents(0);
+    } catch {
+      useSyncStore.getState().setError("Não foi possível sincronizar a transferência.");
+      toast({
+        title: "Erro na transferência",
+        description: "Verifique sua conexão e tente novamente.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDeleteEnvelope = async (envelopeId: string, envelopeName: string) => {
     try {
       await envelopesService.deleteEnvelope(envelopeId);
       deleteEnvelope(envelopeId);
+      useSyncStore.getState().setSynced();
       toast({
         title: "Caixinha removida!",
         description: `A caixinha "${envelopeName}" foi removida com sucesso.`,
       });
     } catch {
+      useSyncStore.getState().setError("Não foi possível remover a caixinha.");
       toast({
         title: "Erro ao remover caixinha",
         description: "Não foi possível remover a caixinha. Tente novamente.",
@@ -84,41 +101,43 @@ export default function Envelopes() {
     }
   };
 
-  // Valores no store estão em centavos (number)
-  const totalBalance = envelopes.reduce((sum, env) => sum + env.balance, 0);
-  const totalTarget = envelopes.reduce(
-    (sum, env) => sum + (env.targetAmount ?? 0),
-    0,
-  );
+  // Valores no store estão em centavos (number) — memoizado
+  const { totalBalance, totalTarget } = useMemo(() => ({
+    totalBalance: envelopes.reduce((sum, env) => sum + env.balance, 0),
+    totalTarget: envelopes.reduce(
+      (sum, env) => sum + (env.targetAmount ?? 0),
+      0,
+    ),
+  }), [envelopes]);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Caixinhas</h1>
-          <p className="text-muted-foreground">
-            Sistema de envelopes para organizar seu orçamento
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <ActionButton variant="outline" icon={ArrowLeftRight}>
+    <PageLayout
+      title="Caixinhas"
+      subtitle="Sistema de envelopes para organizar seu orçamento"
+      action={
+        <>
+          <ActionButton
+            variant="outline"
+            icon={ArrowLeftRight}
+            size="sm"
+          >
             Transferir
           </ActionButton>
           <EnvelopeForm />
-        </div>
-      </div>
+        </>
+      }
+    >
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="bg-gradient-card shadow-card-custom">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <Card className="bg-gradient-card shadow-card-custom p-3 sm:p-6 transition-all hover:shadow-financial">
+          <CardHeader className="pb-2 p-0">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
               Total Alocado
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
+          <CardContent className="p-0 pt-1">
+            <div className="text-lg sm:text-2xl font-bold">
               {formatCurrencyFromCents(totalBalance)}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -127,14 +146,14 @@ export default function Envelopes() {
           </CardContent>
         </Card>
 
-        <Card className="bg-primary/5 border-primary/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-primary">
+        <Card className="bg-primary/5 border-primary/20 shadow-card-custom p-3 sm:p-6 transition-all hover:shadow-financial">
+          <CardHeader className="pb-2 p-0">
+            <CardTitle className="text-xs sm:text-sm font-medium text-primary">
               Meta Total
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
+          <CardContent className="p-0 pt-1">
+            <div className="text-lg sm:text-2xl font-bold">
               {formatCurrencyFromCents(totalTarget)}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -143,16 +162,16 @@ export default function Envelopes() {
           </CardContent>
         </Card>
 
-        <Card className="bg-success/5 border-success/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-success">
+        <Card className="bg-success/5 border-success/20 shadow-card-custom p-3 sm:p-6 transition-all hover:shadow-financial">
+          <CardHeader className="pb-2 p-0">
+            <CardTitle className="text-xs sm:text-sm font-medium text-success">
               Progresso Geral
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {totalTarget > 0
-                ? ((totalBalance / totalTarget) * 100).toFixed(1)
+          <CardContent className="p-0 pt-1">
+            <div className="text-lg sm:text-2xl font-bold">
+              {(totalTarget ?? 0) > 0
+                ? (((totalBalance ?? 0) / (totalTarget ?? 1)) * 100).toFixed(1)
                 : "0"}
               %
             </div>
@@ -163,23 +182,20 @@ export default function Envelopes() {
 
       {/* Envelopes Grid */}
       {envelopes.length === 0 ? (
-        <Card className="bg-gradient-card shadow-card-custom">
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <Wallet className="h-16 w-16 text-muted-foreground/50 mb-4" />
-            <h3 className="text-xl font-semibold mb-2">
-              Nenhuma caixinha criada
-            </h3>
-            <p className="text-muted-foreground text-center mb-6 max-w-sm">
-              Crie caixinhas para organizar seu orçamento por categoria ou
-              objetivo
-            </p>
+        <EmptyState
+          icon={Wallet}
+          title="Nenhuma caixinha criada"
+          description="Crie caixinhas para organizar seu orçamento por categoria ou objetivo."
+          action={
             <EnvelopeForm
               trigger={
-                <ActionButton icon={Plus}>Criar Primeira Caixinha</ActionButton>
+                <ActionButton variant="default" icon={Plus}>
+                  Criar Primeira Caixinha
+                </ActionButton>
               }
             />
-          </CardContent>
-        </Card>
+          }
+        />
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {envelopes.map((envelope) => {
@@ -235,7 +251,7 @@ export default function Envelopes() {
                         <span
                           className={`font-medium ${isOverTarget ? "text-warning" : ""}`}
                         >
-                          {progressPercentage.toFixed(1)}%
+                          {(progressPercentage ?? 0).toFixed(1)}%
                         </span>
                       </div>
                       <Progress
@@ -289,7 +305,7 @@ export default function Envelopes() {
                   </div>
 
                   {/* Actions */}
-                  <div className="flex gap-2 pt-2">
+                  <div className="flex flex-wrap items-center gap-2 pt-2">
                     <EnvelopeValueForm
                       envelopeId={envelope.id}
                       envelopeName={envelope.name}
@@ -307,7 +323,6 @@ export default function Envelopes() {
                         <ActionButton
                           variant="outline"
                           size="sm"
-                          className="px-2"
                         >
                           <Trash2 className="h-4 w-4" />
                         </ActionButton>
@@ -342,8 +357,9 @@ export default function Envelopes() {
           <CardContent>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <label className="text-sm font-medium">De:</label>
+                <label htmlFor="transfer-from" className="text-sm font-medium">De:</label>
                 <select
+                  id="transfer-from"
                   className="w-full p-2 border border-input rounded-md bg-background"
                   value={transferFromId}
                   onChange={(e) => setTransferFromId(e.target.value)}
@@ -357,8 +373,9 @@ export default function Envelopes() {
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Para:</label>
+                <label htmlFor="transfer-to" className="text-sm font-medium">Para:</label>
                 <select
+                  id="transfer-to"
                   className="w-full p-2 border border-input rounded-md bg-background"
                   value={transferToId}
                   onChange={(e) => setTransferToId(e.target.value)}
@@ -372,19 +389,23 @@ export default function Envelopes() {
                 </select>
               </div>
             </div>
-            <div className="mt-4 flex gap-2">
+            <div className="mt-4 flex flex-wrap items-center gap-2">
               <CurrencyInput
                 value={transferAmountCents}
                 onChange={setTransferAmountCents}
                 className="flex-1"
               />
-              <ActionButton icon={ArrowLeftRight} onClick={handleTransfer}>
+              <ActionButton
+                icon={ArrowLeftRight}
+                onClick={handleTransfer}
+                size="sm"
+              >
                 Transferir
               </ActionButton>
             </div>
           </CardContent>
         </Card>
       )}
-    </div>
+    </PageLayout>
   );
 }

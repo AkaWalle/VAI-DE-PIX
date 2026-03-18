@@ -4,8 +4,11 @@ Execute: python main.py
 """
 
 import os
+from pathlib import Path
 from dotenv import load_dotenv
-load_dotenv()
+
+# Carregar .env explicitamente antes de importar módulos internos
+load_dotenv(dotenv_path=Path(__file__).parent / ".env", override=True)
 
 # Sentry (opcional): só inicializa se SENTRY_DSN estiver definido; não envia dados sensíveis
 _sentry_dsn = os.getenv("SENTRY_DSN")
@@ -35,7 +38,7 @@ from datetime import datetime
 
 from database import get_db, engine
 from sqlalchemy import text
-from routers import auth, transactions, goals, envelopes, categories, accounts, reports, notifications, insights, privacy
+from routers import auth, transactions, goals, envelopes, categories, accounts, reports, notifications, insights, privacy, automations, me_data
 from routers import shared_expenses
 from auth_utils import verify_token
 from core.recurring_job import start_scheduler
@@ -44,7 +47,7 @@ from core.request_id_middleware import RequestIDMiddleware
 from core.prometheus_metrics import get_metrics_content, get_metrics_content_type
 
 # Load environment variables
-load_dotenv()
+load_dotenv(dotenv_path=Path(__file__).parent / ".env", override=True)
 
 # Rate limiter
 limiter = Limiter(key_func=get_remote_address)
@@ -123,6 +126,8 @@ app.include_router(notifications.router, prefix="/api/notifications", tags=["Not
 app.include_router(insights.router, prefix="/api/insights", tags=["Insights"])
 app.include_router(privacy.router, prefix="/api/privacy", tags=["Privacy"])
 app.include_router(shared_expenses.router, prefix="/api/shared-expenses", tags=["Shared Expenses"])
+app.include_router(automations.router, prefix="/api/automations", tags=["Automations"])
+app.include_router(me_data.router, prefix="/api", tags=["Me Data"])
 
 # API Routes
 @app.get("/")

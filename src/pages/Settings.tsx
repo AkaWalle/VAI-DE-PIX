@@ -42,12 +42,17 @@ import {
   Save,
   Lightbulb,
 } from "lucide-react";
-import { accountsService } from "@/services/accounts.service";
+import { accountsService, type AccountTypeApi } from "@/services/accounts.service";
+import { categoriesService } from "@/services/categories.service";
+import { useSyncStore } from "@/stores/sync-store";
 import { Switch } from "@/components/ui/switch";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { ResponsiveOverlay } from "@/components/ui/responsive-overlay";
 
 export default function Settings() {
+  const isMobile = useIsMobile();
   const { user, updateProfile } = useAuthStore();
-  const { categories, accounts, addAccount, addCategory, setAccounts } =
+  const { categories, accounts, addAccount, setAccounts, setCategories } =
     useFinancialStore();
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
@@ -119,19 +124,6 @@ export default function Settings() {
     "#ec4899",
   ];
 
-  const accountTypeLabels: Record<
-    "checking" | "savings" | "investment" | "credit" | "cash" | "refeicao" | "alimentacao",
-    string
-  > = {
-    checking: "Conta Corrente",
-    savings: "Poupança",
-    investment: "Investimento",
-    credit: "Cartão de Crédito",
-    cash: "Dinheiro",
-    refeicao: "Refeição",
-    alimentacao: "Alimentação",
-  };
-
   const storeAccountTypeLabels: Record<
     "bank" | "cash" | "card" | "refeicao" | "alimentacao",
     string
@@ -174,7 +166,7 @@ export default function Settings() {
     return "bank";
   };
 
-  const handleAddAccount = () => {
+  const handleAddAccount = async () => {
     if (!newAccount.name) {
       toast({
         title: "Nome obrigatório",
@@ -184,22 +176,39 @@ export default function Settings() {
       return;
     }
 
-    // Store/API de contas ainda esperam saldo em reais (float)
     const balanceReais = newAccount.balanceCents / 100;
-
-    addAccount({
-      name: newAccount.name,
-      type: apiTypeToStoreType(newAccount.type),
-      balance: balanceReais,
-    });
-
-    toast({
-      title: "Conta adicionada!",
-      description: `A conta "${newAccount.name}" foi criada com sucesso.`,
-    });
-
-    setNewAccount({ name: "", type: "checking", balanceCents: 0 });
-    setShowNewAccount(false);
+    try {
+      const created = await accountsService.createAccount({
+        name: newAccount.name,
+        type: newAccount.type as AccountTypeApi,
+        balance: balanceReais,
+      });
+      setAccounts([
+        ...accounts,
+        {
+          id: created.id,
+          name: created.name,
+          type: apiTypeToStoreType(newAccount.type),
+          balance: created.balance,
+          currency: "BRL",
+          color: "#3b82f6",
+        },
+      ]);
+      useSyncStore.getState().setSynced();
+      toast({
+        title: "Conta adicionada!",
+        description: `A conta "${newAccount.name}" foi criada com sucesso.`,
+      });
+      setNewAccount({ name: "", type: "checking", balanceCents: 0 });
+      setShowNewAccount(false);
+    } catch {
+      useSyncStore.getState().setError("Não foi possível criar a conta.");
+      toast({
+        title: "Erro ao criar conta",
+        description: "Verifique sua conexão e tente novamente.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDeleteAccount = async (accountId: string, accountName: string) => {
@@ -207,11 +216,13 @@ export default function Settings() {
       await accountsService.deleteAccount(accountId);
       const loaded = await accountsService.getAccounts();
       setAccounts(accountsService.mapApiAccountsToStore(loaded));
+      useSyncStore.getState().setSynced();
       toast({
         title: "Conta excluída",
         description: `"${accountName}" foi removida da lista.`,
       });
     } catch {
+      useSyncStore.getState().setError("Não foi possível excluir a conta.");
       toast({
         title: "Erro ao excluir conta",
         description: "Não foi possível excluir a conta. Tente novamente.",
@@ -220,7 +231,7 @@ export default function Settings() {
     }
   };
 
-  const handleAddCategory = () => {
+  const handleAddCategory = async () => {
     if (!newCategory.name) {
       toast({
         title: "Nome obrigatório",
@@ -230,20 +241,32 @@ export default function Settings() {
       return;
     }
 
-    addCategory({
-      name: newCategory.name,
-      type: newCategory.type,
-      color: newCategory.color,
-      icon: "💰", // Ícone padrão
-    });
-
-    toast({
-      title: "Categoria adicionada!",
-      description: `A categoria "${newCategory.name}" foi criada com sucesso.`,
-    });
-
-    setNewCategory({ name: "", type: "expense", color: "#3b82f6" });
-    setShowNewCategory(false);
+    try {
+      const created = await categoriesService.createCategory({
+        name: newCategory.name,
+        type: newCategory.type,
+        color: newCategory.color,
+        icon: "💰",
+      });
+      setCategories([
+        ...categories,
+        { id: created.id, name: created.name, type: created.type, icon: created.icon, color: created.color },
+      ]);
+      useSyncStore.getState().setSynced();
+      toast({
+        title: "Categoria adicionada!",
+        description: `A categoria "${newCategory.name}" foi criada com sucesso.`,
+      });
+      setNewCategory({ name: "", type: "expense", color: "#3b82f6" });
+      setShowNewCategory(false);
+    } catch {
+      useSyncStore.getState().setError("Não foi possível criar a categoria.");
+      toast({
+        title: "Erro ao criar categoria",
+        description: "Verifique sua conexão e tente novamente.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleExportData = async () => {
@@ -288,11 +311,160 @@ export default function Settings() {
     }
   };
 
+  const accountFormFields = (
+    <div className="space-y-4">
+      <div className="grid gap-4 md:grid-cols-3">
+        <div className="space-y-2">
+          <Label htmlFor="new-account-name">Nome da Conta</Label>
+          <Input
+            id="new-account-name"
+            value={newAccount.name}
+            onChange={(e) =>
+              setNewAccount((prev) => ({
+                ...prev,
+                name: e.target.value,
+              }))
+            }
+            placeholder="Ex: Conta Corrente"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="new-account-type">Tipo</Label>
+          <Select
+            value={newAccount.type}
+            onValueChange={(value: string) =>
+              setNewAccount((prev) => ({ ...prev, type: value }))
+            }
+          >
+            <SelectTrigger id="new-account-type">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="checking">Conta Corrente</SelectItem>
+              <SelectItem value="savings">Poupança</SelectItem>
+              <SelectItem value="investment">Investimento</SelectItem>
+              <SelectItem value="credit">Cartão de Crédito</SelectItem>
+              <SelectItem value="cash">Dinheiro</SelectItem>
+              <SelectItem value="refeicao">Refeição</SelectItem>
+              <SelectItem value="alimentacao">Alimentação</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="new-account-balance">Saldo Inicial</Label>
+          <CurrencyInput
+            id="new-account-balance"
+            value={newAccount.balanceCents}
+            onChange={(v) =>
+              setNewAccount((prev) => ({
+                ...prev,
+                balanceCents: v,
+              }))
+            }
+          />
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          onClick={handleAddAccount}
+          size="sm"
+          className="h-9 px-4 text-sm"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Adicionar
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowNewAccount(false)}
+          size="sm"
+        >
+          Cancelar
+        </Button>
+      </div>
+    </div>
+  );
+
+  const categoryFormFields = (
+    <div className="space-y-4">
+      <div className="grid gap-4 md:grid-cols-3">
+        <div className="space-y-2">
+          <Label>Nome</Label>
+          <Input
+            value={newCategory.name}
+            onChange={(e) =>
+              setNewCategory((prev) => ({
+                ...prev,
+                name: e.target.value,
+              }))
+            }
+            placeholder="Ex: Alimentação"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Tipo</Label>
+          <Select
+            value={newCategory.type}
+            onValueChange={(value: string) =>
+              setNewCategory((prev) => ({ ...prev, type: value }))
+            }
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="income">💰 Receita</SelectItem>
+              <SelectItem value="expense">💸 Despesa</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>Cor</Label>
+          <div className="flex flex-wrap gap-2">
+            {categoryColors.map((color) => (
+              <button
+                key={color}
+                type="button"
+                className={`w-8 h-8 rounded-full border-2 ${
+                  newCategory.color === color
+                    ? "border-primary"
+                    : "border-transparent"
+                }`}
+                style={{ backgroundColor: color }}
+                onClick={() =>
+                  setNewCategory((prev) => ({ ...prev, color }))
+                }
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          onClick={handleAddCategory}
+          size="sm"
+          className="h-9 px-4 text-sm"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Adicionar
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowNewCategory(false)}
+          size="sm"
+        >
+          Cancelar
+        </Button>
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-foreground">Configurações</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Configurações</h1>
         <p className="text-muted-foreground">
           Gerencie suas preferências e configurações do sistema
         </p>
@@ -313,6 +485,7 @@ export default function Settings() {
               <Label htmlFor="name">Nome completo</Label>
               <Input
                 id="name"
+                autoComplete="name"
                 value={profileForm.name}
                 onChange={(e) =>
                   setProfileForm((prev) => ({ ...prev, name: e.target.value }))
@@ -325,6 +498,7 @@ export default function Settings() {
               <Input
                 id="email"
                 type="email"
+                autoComplete="email"
                 value={profileForm.email}
                 onChange={(e) =>
                   setProfileForm((prev) => ({ ...prev, email: e.target.value }))
@@ -338,6 +512,7 @@ export default function Settings() {
             loading={isLoading}
             loadingText="Salvando..."
             icon={Save}
+            size="sm"
           >
             Salvar Alterações
           </ActionButton>
@@ -358,7 +533,7 @@ export default function Settings() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <Label>Variação por categoria</Label>
                 <p className="text-sm text-muted-foreground">
@@ -373,7 +548,7 @@ export default function Settings() {
                 disabled={insightPrefsLoading}
               />
             </div>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <Label>Metas em risco</Label>
                 <p className="text-sm text-muted-foreground">
@@ -402,7 +577,7 @@ export default function Settings() {
           <CardDescription>Personalize a aparência do sistema</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <Label>Tema</Label>
               <p className="text-sm text-muted-foreground">
@@ -410,7 +585,7 @@ export default function Settings() {
               </p>
             </div>
             <Select value={theme} onValueChange={setTheme}>
-              <SelectTrigger className="w-40">
+              <SelectTrigger className="h-9 w-40">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -435,7 +610,7 @@ export default function Settings() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-muted-foreground">
               {accounts.length} conta(s) configurada(s)
             </p>
@@ -449,84 +624,32 @@ export default function Settings() {
             </Button>
           </div>
 
-          {showNewAccount && (
-            <Card className="border-dashed">
-              <CardContent className="pt-4">
-                <div className="grid gap-4 md:grid-cols-3">
-                  <div className="space-y-2">
-                    <Label>Nome da Conta</Label>
-                    <Input
-                      value={newAccount.name}
-                      onChange={(e) =>
-                        setNewAccount((prev) => ({
-                          ...prev,
-                          name: e.target.value,
-                        }))
-                      }
-                      placeholder="Ex: Conta Corrente"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Tipo</Label>
-                    <Select
-                      value={newAccount.type}
-                      onValueChange={(value: string) =>
-                        setNewAccount((prev) => ({ ...prev, type: value }))
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="checking">Conta Corrente</SelectItem>
-                        <SelectItem value="savings">Poupança</SelectItem>
-                        <SelectItem value="investment">Investimento</SelectItem>
-                        <SelectItem value="credit">
-                          Cartão de Crédito
-                        </SelectItem>
-                        <SelectItem value="cash">Dinheiro</SelectItem>
-                        <SelectItem value="refeicao">Refeição</SelectItem>
-                        <SelectItem value="alimentacao">Alimentação</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Saldo Inicial</Label>
-                    <CurrencyInput
-                      value={newAccount.balanceCents}
-                      onChange={(v) =>
-                        setNewAccount((prev) => ({
-                          ...prev,
-                          balanceCents: v,
-                        }))
-                      }
-                    />
-                  </div>
-                </div>
-                <div className="flex gap-2 mt-4">
-                  <Button onClick={handleAddAccount} size="sm">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Adicionar
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowNewAccount(false)}
-                  >
-                    Cancelar
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          {showNewAccount &&
+            (isMobile ? (
+              <ResponsiveOverlay
+                open={showNewAccount}
+                onOpenChange={setShowNewAccount}
+                title="Nova Conta"
+                description="Cadastre uma nova conta sem sair das configurações."
+                mobileVariant="fullscreen"
+                mobileContentClassName="flex h-[100dvh] w-screen max-w-none flex-col rounded-none border-0 p-0"
+                bodyClassName="space-y-4"
+              >
+                {accountFormFields}
+              </ResponsiveOverlay>
+            ) : (
+              <Card className="border-dashed">
+                <CardContent className="pt-4">{accountFormFields}</CardContent>
+              </Card>
+            ))}
 
           <div className="space-y-2">
             {accounts.map((account) => (
               <div
                 key={account.id}
-                className="flex items-center justify-between p-3 border rounded-lg"
+                className="flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex min-w-0 items-center gap-3">
                   <div className="text-2xl">
                     {account.type === "bank"
                       ? "🏦"
@@ -540,8 +663,8 @@ export default function Settings() {
                               ? "🛒"
                               : "🏦"}
                   </div>
-                  <div>
-                    <p className="font-medium">{account.name}</p>
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{account.name}</p>
                     <p className="text-sm text-muted-foreground">
                       {
                         storeAccountTypeLabels[
@@ -551,7 +674,7 @@ export default function Settings() {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center justify-between gap-3 sm:justify-end">
                   <div className="text-right">
                     <p className="font-semibold">
                       {formatCurrency(account.balance)}
@@ -590,7 +713,7 @@ export default function Settings() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-muted-foreground">
               {categories.length} categoria(s) configurada(s)
             </p>
@@ -598,94 +721,42 @@ export default function Settings() {
               variant="outline"
               size="sm"
               onClick={() => setShowNewCategory(!showNewCategory)}
+              size="sm"
             >
               <Plus className="h-4 w-4 mr-2" />
               Nova Categoria
             </Button>
           </div>
 
-          {showNewCategory && (
-            <Card className="border-dashed">
-              <CardContent className="pt-4">
-                <div className="grid gap-4 md:grid-cols-3">
-                  <div className="space-y-2">
-                    <Label>Nome</Label>
-                    <Input
-                      value={newCategory.name}
-                      onChange={(e) =>
-                        setNewCategory((prev) => ({
-                          ...prev,
-                          name: e.target.value,
-                        }))
-                      }
-                      placeholder="Ex: Alimentação"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Tipo</Label>
-                    <Select
-                      value={newCategory.type}
-                      onValueChange={(value: string) =>
-                        setNewCategory((prev) => ({ ...prev, type: value }))
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="income">💰 Receita</SelectItem>
-                        <SelectItem value="expense">💸 Despesa</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Cor</Label>
-                    <div className="flex gap-1">
-                      {categoryColors.map((color) => (
-                        <button
-                          key={color}
-                          type="button"
-                          className={`w-8 h-8 rounded-full border-2 ${
-                            newCategory.color === color
-                              ? "border-primary"
-                              : "border-transparent"
-                          }`}
-                          style={{ backgroundColor: color }}
-                          onClick={() =>
-                            setNewCategory((prev) => ({ ...prev, color }))
-                          }
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex gap-2 mt-4">
-                  <Button onClick={handleAddCategory} size="sm">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Adicionar
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowNewCategory(false)}
-                  >
-                    Cancelar
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          {showNewCategory &&
+            (isMobile ? (
+              <ResponsiveOverlay
+                open={showNewCategory}
+                onOpenChange={setShowNewCategory}
+                title="Nova Categoria"
+                description="Cadastre uma categoria com toque e leitura confortáveis no mobile."
+                mobileVariant="fullscreen"
+                mobileContentClassName="flex h-[100dvh] w-screen max-w-none flex-col rounded-none border-0 p-0"
+                bodyClassName="space-y-4"
+              >
+                {categoryFormFields}
+              </ResponsiveOverlay>
+            ) : (
+              <Card className="border-dashed">
+                <CardContent className="pt-4">{categoryFormFields}</CardContent>
+              </Card>
+            ))}
 
           <div className="grid gap-2 md:grid-cols-2">
             {categories.map((category) => (
               <div
                 key={category.id}
-                className="flex items-center justify-between p-3 border rounded-lg"
+                className="flex items-center justify-between gap-3 rounded-lg border p-3"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex min-w-0 items-center gap-3">
                   <div className="text-xl">{category.icon}</div>
-                  <div>
-                    <p className="font-medium">{category.name}</p>
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{category.name}</p>
                     <Badge
                       variant={
                         category.type === "income" ? "default" : "secondary"
@@ -718,7 +789,7 @@ export default function Settings() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <Label>Backup dos Dados</Label>
               <p className="text-sm text-muted-foreground">
@@ -731,6 +802,7 @@ export default function Settings() {
               loading={isLoading}
               loadingText="Exportando..."
               icon={Download}
+              size="sm"
             >
               Fazer Backup
             </ActionButton>
@@ -738,7 +810,7 @@ export default function Settings() {
 
           <Separator />
 
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <Label className="text-destructive">Zona de Perigo</Label>
               <p className="text-sm text-muted-foreground">
@@ -747,7 +819,10 @@ export default function Settings() {
             </div>
             <ConfirmDialog
               trigger={
-                <Button variant="destructive" size="sm">
+                <Button
+                  variant="destructive"
+                  size="sm"
+                >
                   <Trash2 className="h-4 w-4 mr-2" />
                   Limpar Dados
                 </Button>

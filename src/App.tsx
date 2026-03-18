@@ -39,6 +39,8 @@ const Automations = lazy(() => import("./pages/Automations"));
 const Settings = lazy(() => import("./pages/Settings"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Auth = lazy(() => import("./pages/Auth"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 
 // Componente de loading para lazy loaded routes
 const PageLoader = () => (
@@ -64,8 +66,10 @@ const App = () => {
             <AuthBootstrap />
             <Suspense fallback={<PageLoader />}>
               <Routes>
-                {/* Public route for authentication */}
+                {/* Public routes for authentication */}
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+                <Route path="/auth/reset-password" element={<ResetPassword />} />
 
                 {/* Protected routes */}
                 <Route

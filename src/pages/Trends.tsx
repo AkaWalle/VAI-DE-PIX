@@ -28,53 +28,57 @@ import {
   Area,
 } from "recharts";
 
+function calculateTrend(data: { income: number; expense: number }[]) {
+  if (data.length < 3) return { trend: 0, direction: "neutral" as const };
+
+  const recentAvgBase = 3;
+  const recent =
+    data
+      .slice(-recentAvgBase)
+      .reduce(
+        (sum, item) =>
+          sum + (Number(item.income) - Math.abs(Number(item.expense))),
+        0,
+      ) / recentAvgBase;
+  const older =
+    data
+      .slice(0, recentAvgBase)
+      .reduce(
+        (sum, item) =>
+          sum + (Number(item.income) - Math.abs(Number(item.expense))),
+        0,
+      ) / recentAvgBase;
+
+  if (!Number.isFinite(older) || Math.abs(older) === 0) {
+    return { trend: 0, direction: "neutral" as const };
+  }
+
+  const trend = ((recent - older) / Math.abs(older)) * 100;
+  const direction = trend > 5 ? "up" : trend < -5 ? "down" : "neutral";
+
+  return { trend: Math.abs(trend), direction };
+}
+
 export default function Trends() {
   const { transactions, categories, getCashflow } = useFinancialStore();
 
-  // Análise de tendências
-  const last6MonthsData = getCashflow(6);
-  const last12MonthsData = getCashflow(12);
-  const last3MonthsData = getCashflow(3);
+  // Dados de cashflow memoizados; transactions na deps garante recálculo quando a lista mudar
+  /* eslint-disable react-hooks/exhaustive-deps -- getCashflow é estável; transactions força atualização ao mudar lista */
+  const last3MonthsData = useMemo(() => getCashflow(3), [getCashflow, transactions]);
+  const last6MonthsData = useMemo(() => getCashflow(6), [getCashflow, transactions]);
+  const last12MonthsData = useMemo(() => getCashflow(12), [getCashflow, transactions]);
+  /* eslint-enable react-hooks/exhaustive-deps */
 
-  // Calcular tendências
-  const calculateTrend = (data: { income: number; expense: number }[]) => {
-    if (data.length < 3) return { trend: 0, direction: "neutral" as const };
-
-    const recentAvgBase = 3;
-    const recent =
-      data
-        .slice(-recentAvgBase)
-        .reduce(
-          (sum, item) =>
-            sum + (Number(item.income) - Math.abs(Number(item.expense))),
-          0,
-        ) / recentAvgBase;
-    const older =
-      data
-        .slice(0, recentAvgBase)
-        .reduce(
-          (sum, item) =>
-            sum + (Number(item.income) - Math.abs(Number(item.expense))),
-          0,
-        ) / recentAvgBase;
-
-    if (!Number.isFinite(older) || Math.abs(older) === 0) {
-      return { trend: 0, direction: "neutral" as const };
-    }
-
-    const trend = ((recent - older) / Math.abs(older)) * 100;
-    const direction = trend > 5 ? "up" : trend < -5 ? "down" : "neutral";
-
-    return { trend: Math.abs(trend), direction };
-  };
-
-  const incomeTrend = calculateTrend(
-    last6MonthsData.map((d) => ({ income: d.income, expense: 0 })),
-  );
-  const expenseTrend = calculateTrend(
-    last6MonthsData.map((d) => ({ income: 0, expense: d.expense })),
-  );
-  const balanceTrend = calculateTrend(last6MonthsData);
+  // Tendências memoizadas (income, expense, balance)
+  const { incomeTrend, expenseTrend, balanceTrend } = useMemo(() => ({
+    incomeTrend: calculateTrend(
+      last6MonthsData.map((d) => ({ income: d.income, expense: 0 })),
+    ),
+    expenseTrend: calculateTrend(
+      last6MonthsData.map((d) => ({ income: 0, expense: d.expense })),
+    ),
+    balanceTrend: calculateTrend(last6MonthsData),
+  }), [last6MonthsData]);
 
   // Análise de categorias com maior crescimento/decrescimento
   const categoryTrends = useMemo(() => {
@@ -175,7 +179,7 @@ export default function Trends() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-foreground">Tendências</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Tendências</h1>
         <p className="text-muted-foreground">
           Análise de padrões e tendências dos seus gastos
         </p>
@@ -195,7 +199,7 @@ export default function Trends() {
               <div
                 className={`text-2xl font-bold ${incomeTrend.direction === "up" ? "text-income" : incomeTrend.direction === "down" ? "text-expense" : "text-muted-foreground"}`}
               >
-                {incomeTrend.trend.toFixed(1)}%
+                {(incomeTrend?.trend ?? 0).toFixed(1)}%
               </div>
               {incomeTrend.direction === "up" && (
                 <TrendingUp className="h-5 w-5 text-income" />
@@ -230,7 +234,7 @@ export default function Trends() {
               <div
                 className={`text-2xl font-bold ${expenseTrend.direction === "up" ? "text-expense" : expenseTrend.direction === "down" ? "text-income" : "text-muted-foreground"}`}
               >
-                {expenseTrend.trend.toFixed(1)}%
+                {(expenseTrend?.trend ?? 0).toFixed(1)}%
               </div>
               {expenseTrend.direction === "up" && (
                 <TrendingUp className="h-5 w-5 text-expense" />
@@ -265,7 +269,7 @@ export default function Trends() {
               <div
                 className={`text-2xl font-bold ${balanceTrend.direction === "up" ? "text-income" : balanceTrend.direction === "down" ? "text-expense" : "text-muted-foreground"}`}
               >
-                {balanceTrend.trend.toFixed(1)}%
+                {(balanceTrend?.trend ?? 0).toFixed(1)}%
               </div>
               {balanceTrend.direction === "up" && (
                 <TrendingUp className="h-5 w-5 text-income" />
@@ -415,7 +419,7 @@ export default function Trends() {
                     {trend.direction === "stable" && (
                       <Target className="h-3 w-3 mr-1" />
                     )}
-                    {Math.abs(trend.change).toFixed(0)}%
+                    {Math.abs(trend?.change ?? 0).toFixed(0)}%
                   </Badge>
                 </div>
                 <div className="text-right">

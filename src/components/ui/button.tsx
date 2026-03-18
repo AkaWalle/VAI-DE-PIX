@@ -20,10 +20,13 @@ const buttonVariants = cva(
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
-        default: "h-10 px-4 py-2",
+        default:
+          "h-10 min-h-[44px] px-4 py-2 touch-manipulation md:min-h-0",
         sm: "h-9 rounded-md px-3",
-        lg: "h-11 rounded-md px-8",
-        icon: "h-10 w-10",
+        lg:
+          "h-11 min-h-[44px] rounded-md px-8 touch-manipulation md:min-h-0",
+        icon:
+          "h-10 w-10 min-h-[44px] min-w-[44px] touch-manipulation md:min-h-0 md:min-w-0",
       },
     },
     defaultVariants: {
@@ -37,14 +40,30 @@ export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean;
+  /** Em mobile: largura total; em desktop: auto. Use em rodapés de dialog. */
+  fullWidthMobile?: boolean;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  (
+    {
+      className,
+      variant,
+      size,
+      asChild = false,
+      fullWidthMobile = false,
+      ...props
+    },
+    ref,
+  ) => {
     const Comp = asChild ? Slot : "button";
     return (
       <Comp
-        className={cn(buttonVariants({ variant, size, className }))}
+        className={cn(
+          buttonVariants({ variant, size }),
+          fullWidthMobile && "w-full sm:w-auto",
+          className,
+        )}
         ref={ref}
         {...props}
       />

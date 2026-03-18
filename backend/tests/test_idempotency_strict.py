@@ -71,7 +71,7 @@ def test_same_request_five_times_one_transaction_one_ledger_same_response(
             "account_id": account.id,
             "category_id": category.id,
             "type": "income",
-            "amount": 99.0,
+            "amount_cents": 9900,
             "description": "Receita idempotente 5x",
             "tags": [],
         }
@@ -122,23 +122,25 @@ def test_retry_after_simulated_exception_fail_before_commit_then_success_one_tra
             "date": datetime.now(),
             "category_id": category.id,
             "type": "income",
-            "amount": 33.0,
+            "amount_cents": 3300,
             "description": "Retry após falha",
             "tags": [],
         }
         key = "idem-retry-fail"
         # Primeira chamada: falha no sync (antes do commit da transação real)
+        from fastapi import HTTPException
         with patch(
             "services.transaction_service.sync_account_balance_from_ledger",
             side_effect=RuntimeError("Falha simulada antes do commit"),
         ):
-            with pytest.raises(RuntimeError):
+            with pytest.raises(HTTPException) as exc_info:
                 TransactionService.create_transaction(
                     transaction_data=body,
                     account=account,
                     user_id=user.id,
                     db=postgres_db,
                 )
+            assert exc_info.value.status_code == 500
         postgres_db.rollback()
 
         count_after_fail = (
@@ -184,7 +186,7 @@ def test_concurrency_ten_threads_same_key_only_one_real_execution(
             "account_id": account.id,
             "category_id": category.id,
             "type": "income",
-            "amount": 11.0,
+            "amount_cents": 1100,
             "description": "Concorrente 10 threads",
             "tags": [],
         }
@@ -202,8 +204,10 @@ def test_concurrency_ten_threads_same_key_only_one_real_execution(
 
         success = [x for x in results if x[0] == 200]
         conflict = [x for x in results if x[0] == 409]
-        assert len(success) == 1, f"Exatamente 1 sucesso; obtido: {results}"
-        assert len(conflict) == 9 or (len(success) == 1 and len(results) == 10)
+        # Idempotência: 1 execução real; demais retornam 200 com mesmo id ou 409
+        assert len(success) >= 1, f"Nenhum sucesso; obtido: {results}"
+        assert len(set(x[1].get("id") for x in success if isinstance(x[1], dict) and x[1].get("id"))) <= 1, "Todos sucessos devem ter o mesmo id"
+        assert len(results) == 10
 
         tx_ids = [x[1]["id"] for x in success if isinstance(x[1], dict) and "id" in x[1]]
         count_tx = (
@@ -213,7 +217,8 @@ def test_concurrency_ten_threads_same_key_only_one_real_execution(
             .count()
         )
         assert count_tx == 1
-        assert len(tx_ids) == 1
+        # Todos os 200 retornam o mesmo id (pode haver vários 200 com o mesmo id)
+        assert len(set(tx_ids)) == 1, "Todos os sucessos devem ter o mesmo id de transação"
     finally:
         cleanup_test_user(postgres_db, user.id)
         app.dependency_overrides.clear()
@@ -235,7 +240,7 @@ def test_different_payload_same_key_returns_400(
             "account_id": account.id,
             "category_id": category.id,
             "type": "income",
-            "amount": 10.0,
+            "amount_cents": 1000,
             "description": "Primeira",
             "tags": [],
         }
@@ -243,7 +248,7 @@ def test_different_payload_same_key_returns_400(
         r1 = client.post("/api/transactions", json=body1, headers=req_headers)
         assert r1.status_code == 200
 
-        body2 = {**body1, "amount": 20.0, "description": "Segunda"}
+        body2 = {**body1, "amount_cents": 2000, "description": "Segunda"}
         r2 = client.post("/api/transactions", json=body2, headers=req_headers)
         assert r2.status_code == 400
         assert "Idempotency" in r2.json().get("detail", "") or "corpo" in r2.json().get("detail", "").lower()
@@ -267,7 +272,7 @@ def test_without_idempotency_key_behavior_preserved(
             "account_id": account.id,
             "category_id": category.id,
             "type": "income",
-            "amount": 5.0,
+            "amount_cents": 500,
             "description": "Sem key",
             "tags": [],
         }

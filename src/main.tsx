@@ -1,7 +1,8 @@
-import * as Sentry from "@sentry/react";
 import { createRoot } from "react-dom/client";
 import { attachAuthDebugHooks } from "./lib/auth-debug";
 import { hydrateAuthMetricsFromStorage, startAuthMetricsExportSchedule } from "./lib/metrics/auth-metrics";
+import * as Sentry from "@sentry/react";
+import { logError } from "./lib/logger";
 import App from "./App.tsx";
 import "./index.css";
 
@@ -25,11 +26,17 @@ if (sentryDsn && typeof sentryDsn === "string") {
 
 // Error boundary para capturar erros
 window.addEventListener("error", (event) => {
-  console.error("❌ Erro capturado:", event.error);
+  logError(event.error ?? event.message ?? "Unknown window error", {
+    feature: "global-listener",
+    action: "window.error",
+  });
 });
 
 window.addEventListener("unhandledrejection", (event) => {
-  console.error("❌ Promise rejeitada:", event.reason);
+  logError(event.reason ?? "Unhandled promise rejection", {
+    feature: "global-listener",
+    action: "unhandledrejection",
+  });
 });
 
 const rootElement = document.getElementById("root");

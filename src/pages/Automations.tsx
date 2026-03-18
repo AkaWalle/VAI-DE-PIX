@@ -23,6 +23,8 @@ import { Badge } from "@/components/ui/badge";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { automationsService } from "@/services/automations.service";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 import {
   Zap,
   Plus,
@@ -34,31 +36,62 @@ import {
   Trash2,
   Settings,
   AlertCircle,
+  Wallet,
+  PieChart,
+  Mail,
+  PiggyBank,
+  Bell,
 } from "lucide-react";
+
+type AutomationRuleTypeOption =
+  | "recurring_transaction"
+  | "budget_alert"
+  | "goal_reminder"
+  | "webhook"
+  | "low_balance_alert"
+  | "category_limit"
+  | "weekly_report"
+  | "round_up"
+  | "payment_reminder";
 
 interface AutomationRule {
   id: string;
   name: string;
   description: string;
-  type: "recurring_transaction" | "budget_alert" | "goal_reminder" | "webhook";
+  type: AutomationRuleTypeOption;
   isActive: boolean;
   conditions: {
-    trigger: string;
+    trigger?: string;
     frequency?: string;
     amount?: number;
+    amount_cents?: number;
     category?: string;
+    category_id?: string;
     account?: string;
+    account_id?: string;
+    start_date?: string;
+    end_date?: string;
+    day_of_week?: number;
+    destination_email?: string;
+    envelope_id?: string;
+    round_to_cents?: number;
+    days_after_creation?: number;
   };
   actions: {
     type: string;
     value: string;
+    account_id?: string;
+    category_id?: string;
+    amount?: number;
+    amount_cents?: number;
   };
   lastRun?: string;
   nextRun?: string;
 }
 
 export default function Automations() {
-  const { categories } = useFinancialStore();
+  const isMobile = useIsMobile();
+  const { categories, accounts, envelopes } = useFinancialStore();
   const { toast } = useToast();
 
   const [automationRules, setAutomationRules] = useState<AutomationRule[]>([]);
@@ -69,14 +102,21 @@ export default function Automations() {
   const [newRule, setNewRule] = useState({
     name: "",
     description: "",
-    type: "recurring_transaction" as const,
+    type: "recurring_transaction" as AutomationRuleTypeOption,
     trigger: "monthly",
     frequency: "",
+    startDate: "",
+    endDate: "",
     amountCents: 0,
     category: "",
     account: "",
     actionType: "add_transaction",
     actionValue: "income",
+    destinationEmail: "",
+    dayOfWeek: 1,
+    envelopeId: "",
+    roundToCents: 100,
+    daysAfterCreation: 3,
   });
 
   // Carregar automações da API
@@ -166,6 +206,84 @@ export default function Automations() {
     }
   };
 
+  const buildConditionsAndActions = () => {
+    if (newRule.type === "low_balance_alert") {
+      return {
+        conditions: {
+          account_id: newRule.account || undefined,
+          amount_cents: newRule.amountCents || undefined,
+        },
+        actions: {},
+      };
+    }
+    if (newRule.type === "category_limit") {
+      return {
+        conditions: {
+          category_id: newRule.category || undefined,
+          amount_cents: newRule.amountCents || undefined,
+        },
+        actions: {},
+      };
+    }
+    if (newRule.type === "weekly_report") {
+      return {
+        conditions: {
+          day_of_week: newRule.dayOfWeek,
+          destination_email: newRule.destinationEmail || undefined,
+        },
+        actions: {},
+      };
+    }
+    if (newRule.type === "round_up") {
+      return {
+        conditions: {
+          envelope_id: newRule.envelopeId || undefined,
+          round_to_cents: newRule.roundToCents || 100,
+        },
+        actions: {},
+      };
+    }
+    if (newRule.type === "payment_reminder") {
+      return {
+        conditions: {
+          days_after_creation: newRule.daysAfterCreation ?? 3,
+        },
+        actions: {},
+      };
+    }
+    if (newRule.type === "recurring_transaction") {
+      return {
+        conditions: {
+          trigger: newRule.trigger,
+          frequency: newRule.trigger,
+          start_date: newRule.startDate || undefined,
+          end_date: newRule.endDate || undefined,
+        },
+        actions: {
+          type: newRule.actionType,
+          value: newRule.actionValue,
+          account_id: newRule.account || undefined,
+          category_id: newRule.category || undefined,
+          amount_cents: newRule.amountCents || undefined,
+          amount: newRule.amountCents ? newRule.amountCents / 100 : undefined,
+        },
+      };
+    }
+    return {
+      conditions: {
+        trigger: newRule.trigger,
+        frequency: newRule.frequency || undefined,
+        amount: newRule.amountCents ? newRule.amountCents / 100 : undefined,
+        category: newRule.category || undefined,
+        account: newRule.account || undefined,
+      },
+      actions: {
+        type: newRule.actionType,
+        value: newRule.actionValue,
+      },
+    };
+  };
+
   const handleCreateRule = async () => {
     if (!newRule.name || !newRule.description) {
       toast({
@@ -175,24 +293,56 @@ export default function Automations() {
       });
       return;
     }
+    if (newRule.type === "low_balance_alert" && !newRule.account) {
+      toast({
+        title: "Campo obrigatório",
+        description: "Selecione a conta para o alerta de saldo baixo.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (newRule.type === "category_limit" && !newRule.category) {
+      toast({
+        title: "Campo obrigatório",
+        description: "Selecione a categoria para o limite mensal.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (newRule.type === "weekly_report" && !newRule.destinationEmail?.trim()) {
+      toast({
+        title: "Campo obrigatório",
+        description: "Informe o e-mail de destino do relatório.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (newRule.type === "round_up" && !newRule.envelopeId) {
+      toast({
+        title: "Campo obrigatório",
+        description: "Selecione a caixinha de destino.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (newRule.type === "payment_reminder" && (newRule.daysAfterCreation == null || newRule.daysAfterCreation < 1)) {
+      toast({
+        title: "Campo obrigatório",
+        description: "Informe quantos dias após a criação (mín. 1).",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
+      const { conditions, actions } = buildConditionsAndActions();
       const createdRule = await automationsService.createAutomation({
         name: newRule.name,
         description: newRule.description,
         type: newRule.type,
         is_active: false,
-        conditions: {
-          trigger: newRule.trigger,
-          frequency: newRule.frequency || undefined,
-          amount: newRule.amountCents ? newRule.amountCents / 100 : undefined,
-          category: newRule.category || undefined,
-          account: newRule.account || undefined,
-        },
-        actions: {
-          type: newRule.actionType,
-          value: newRule.actionValue,
-        },
+        conditions,
+        actions,
       });
 
       setAutomationRules((prev) => [
@@ -221,11 +371,18 @@ export default function Automations() {
         type: "recurring_transaction",
         trigger: "monthly",
         frequency: "",
+        startDate: "",
+        endDate: "",
         amountCents: 0,
         category: "",
         account: "",
         actionType: "add_transaction",
         actionValue: "income",
+        destinationEmail: "",
+        dayOfWeek: 1,
+        envelopeId: "",
+        roundToCents: 100,
+        daysAfterCreation: 3,
       });
       setShowNewRule(false);
     } catch (error) {
@@ -242,18 +399,38 @@ export default function Automations() {
     const rule = automationRules.find((r) => r.id === ruleId);
     if (!rule) return;
 
+    const amountCents =
+      rule.conditions.amount_cents != null
+        ? Number(rule.conditions.amount_cents)
+        : rule.conditions.amount != null
+          ? Math.round(rule.conditions.amount * 100)
+          : 0;
+
     setEditingRuleId(ruleId);
     setNewRule({
       name: rule.name,
       description: rule.description,
       type: rule.type,
-      trigger: rule.conditions.trigger,
+      trigger: rule.conditions.trigger || "monthly",
       frequency: rule.conditions.frequency || "",
-      amountCents: rule.conditions.amount != null ? Math.round(rule.conditions.amount * 100) : 0,
-      category: rule.conditions.category || "",
-      account: rule.conditions.account || "",
+      startDate: rule.conditions.start_date?.slice(0, 10) || "",
+      endDate: rule.conditions.end_date?.slice(0, 10) || "",
+      amountCents,
+      category: rule.conditions.category_id || rule.conditions.category || "",
+      account: rule.conditions.account_id || rule.conditions.account || "",
       actionType: rule.actions.type,
       actionValue: rule.actions.value,
+      destinationEmail:
+        rule.conditions.destination_email || rule.conditions.email || "",
+      dayOfWeek:
+        rule.conditions.day_of_week !== undefined
+          ? Number(rule.conditions.day_of_week)
+          : 1,
+      envelopeId: rule.conditions.envelope_id || rule.actions.envelope_id || "",
+      roundToCents:
+        rule.conditions.round_to_cents ?? rule.actions.round_to_cents ?? 100,
+      daysAfterCreation:
+        rule.conditions.days_after_creation ?? 3,
     });
     setShowNewRule(true);
   };
@@ -270,23 +447,15 @@ export default function Automations() {
     }
 
     try {
+      const { conditions, actions } = buildConditionsAndActions();
       const updatedRule = await automationsService.updateAutomation(
         editingRuleId,
         {
           name: newRule.name,
           description: newRule.description,
           type: newRule.type,
-          conditions: {
-            trigger: newRule.trigger,
-            frequency: newRule.frequency || undefined,
-            amount: newRule.amountCents ? newRule.amountCents / 100 : undefined,
-            category: newRule.category || undefined,
-            account: newRule.account || undefined,
-          },
-          actions: {
-            type: newRule.actionType,
-            value: newRule.actionValue,
-          },
+          conditions,
+          actions,
         },
       );
 
@@ -320,11 +489,18 @@ export default function Automations() {
         type: "recurring_transaction",
         trigger: "monthly",
         frequency: "",
+        startDate: "",
+        endDate: "",
         amountCents: 0,
         category: "",
         account: "",
         actionType: "add_transaction",
         actionValue: "income",
+        destinationEmail: "",
+        dayOfWeek: 1,
+        envelopeId: "",
+        roundToCents: 100,
+        daysAfterCreation: 3,
       });
       setShowNewRule(false);
     } catch (error) {
@@ -346,11 +522,18 @@ export default function Automations() {
       type: "recurring_transaction",
       trigger: "monthly",
       frequency: "",
+      startDate: "",
+      endDate: "",
       amountCents: 0,
       category: "",
       account: "",
       actionType: "add_transaction",
       actionValue: "income",
+      destinationEmail: "",
+      dayOfWeek: 1,
+      envelopeId: "",
+      roundToCents: 100,
+      daysAfterCreation: 3,
     });
   };
 
@@ -364,6 +547,16 @@ export default function Automations() {
         return Target;
       case "webhook":
         return Webhook;
+      case "low_balance_alert":
+        return Wallet;
+      case "category_limit":
+        return PieChart;
+      case "weekly_report":
+        return Mail;
+      case "round_up":
+        return PiggyBank;
+      case "payment_reminder":
+        return Bell;
       default:
         return Zap;
     }
@@ -379,6 +572,16 @@ export default function Automations() {
         return "Lembrete de Meta";
       case "webhook":
         return "Webhook";
+      case "low_balance_alert":
+        return "Alerta de Saldo Baixo";
+      case "category_limit":
+        return "Limite por Categoria";
+      case "weekly_report":
+        return "Relatório Semanal";
+      case "round_up":
+        return "Arredondamento para Caixinha";
+      case "payment_reminder":
+        return "Lembrete de Cobrança";
       default:
         return "Automação";
     }
@@ -392,15 +595,20 @@ export default function Automations() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Automações</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Automações</h1>
           <p className="text-muted-foreground">
             Configure regras automáticas para seus dados financeiros
           </p>
         </div>
-        <Button onClick={() => setShowNewRule(!showNewRule)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Nova Automação
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            onClick={() => setShowNewRule(!showNewRule)}
+            className="h-9 px-4 text-sm"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            {showNewRule ? "Fechar Formulário" : "Nova Automação"}
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -453,8 +661,19 @@ export default function Automations() {
 
       {/* New/Edit Rule Form */}
       {showNewRule && (
-        <Card className="bg-gradient-card shadow-card-custom border-dashed">
-          <CardHeader>
+        <div
+          className={cn(
+            isMobile &&
+              "fixed inset-0 z-50 overflow-y-auto bg-background/95 p-3 pb-24 backdrop-blur-sm",
+          )}
+        >
+          <Card
+            className={cn(
+              "bg-gradient-card shadow-card-custom border-dashed",
+              isMobile && "min-h-[calc(100dvh-1.5rem)]",
+            )}
+          >
+          <CardHeader className={cn(isMobile && "sticky top-0 z-10 border-b bg-background/95 backdrop-blur")}>
             <CardTitle>
               {editingRuleId ? "Editar Automação" : "Nova Automação"}
             </CardTitle>
@@ -464,11 +683,12 @@ export default function Automations() {
                 : "Configure uma nova regra de automação"}
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 pb-6">
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label>Nome da Regra</Label>
+                <Label htmlFor="automation-rule-name">Nome da Regra</Label>
                 <Input
+                  id="automation-rule-name"
                   value={newRule.name}
                   onChange={(e) =>
                     setNewRule((prev) => ({ ...prev, name: e.target.value }))
@@ -477,14 +697,14 @@ export default function Automations() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Tipo</Label>
+                <Label htmlFor="automation-rule-type">Tipo</Label>
                 <Select
                   value={newRule.type}
                   onValueChange={(value: string) =>
                     setNewRule((prev) => ({ ...prev, type: value }))
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="automation-rule-type">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -498,14 +718,30 @@ export default function Automations() {
                       🎯 Lembrete de Meta
                     </SelectItem>
                     <SelectItem value="webhook">🔗 Webhook</SelectItem>
+                    <SelectItem value="low_balance_alert">
+                      💳 Alerta de Saldo Baixo
+                    </SelectItem>
+                    <SelectItem value="category_limit">
+                      📊 Limite por Categoria
+                    </SelectItem>
+                    <SelectItem value="weekly_report">
+                      📧 Relatório Semanal
+                    </SelectItem>
+                    <SelectItem value="round_up">
+                      🐷 Arredondamento para Caixinha
+                    </SelectItem>
+                    <SelectItem value="payment_reminder">
+                      🔔 Lembrete de Cobrança
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label>Descrição</Label>
+              <Label htmlFor="automation-rule-description">Descrição</Label>
               <Input
+                id="automation-rule-description"
                 value={newRule.description}
                 onChange={(e) =>
                   setNewRule((prev) => ({
@@ -518,16 +754,16 @@ export default function Automations() {
             </div>
 
             {newRule.type === "recurring_transaction" && (
-              <div className="grid gap-4 md:grid-cols-4">
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <div className="space-y-2">
-                  <Label>Frequência</Label>
+                  <Label htmlFor="automation-trigger">Frequência</Label>
                   <Select
                     value={newRule.trigger}
                     onValueChange={(value) =>
                       setNewRule((prev) => ({ ...prev, trigger: value }))
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="automation-trigger">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -539,21 +775,37 @@ export default function Automations() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Dia/Data</Label>
+                  <Label htmlFor="automation-start-date">Data início</Label>
                   <Input
-                    value={newRule.frequency}
+                    id="automation-start-date"
+                    type="date"
+                    value={newRule.startDate}
                     onChange={(e) =>
                       setNewRule((prev) => ({
                         ...prev,
-                        frequency: e.target.value,
+                        startDate: e.target.value,
                       }))
                     }
-                    placeholder="Ex: 5 (dia 5)"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Valor</Label>
+                  <Label htmlFor="automation-end-date">Data fim (opcional)</Label>
+                  <Input
+                    id="automation-end-date"
+                    type="date"
+                    value={newRule.endDate}
+                    onChange={(e) =>
+                      setNewRule((prev) => ({
+                        ...prev,
+                        endDate: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="automation-recurring-amount">Valor</Label>
                   <CurrencyInput
+                    id="automation-recurring-amount"
                     value={newRule.amountCents}
                     onChange={(v) =>
                       setNewRule((prev) => ({
@@ -564,14 +816,14 @@ export default function Automations() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Tipo</Label>
+                  <Label htmlFor="automation-action-type">Tipo</Label>
                   <Select
                     value={newRule.actionValue}
                     onValueChange={(value) =>
                       setNewRule((prev) => ({ ...prev, actionValue: value }))
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="automation-action-type">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -580,21 +832,15 @@ export default function Automations() {
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
-            )}
-
-            {(newRule.type === "budget_alert" ||
-              newRule.type === "goal_reminder") && (
-              <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Categoria</Label>
+                  <Label htmlFor="automation-recurring-category">Categoria</Label>
                   <Select
                     value={newRule.category}
                     onValueChange={(value) =>
                       setNewRule((prev) => ({ ...prev, category: value }))
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="automation-recurring-category">
                       <SelectValue placeholder="Selecione a categoria" />
                     </SelectTrigger>
                     <SelectContent>
@@ -607,8 +853,54 @@ export default function Automations() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Limite</Label>
+                  <Label htmlFor="automation-recurring-account">Conta</Label>
+                  <Select
+                    value={newRule.account}
+                    onValueChange={(value) =>
+                      setNewRule((prev) => ({ ...prev, account: value }))
+                    }
+                  >
+                    <SelectTrigger id="automation-recurring-account">
+                      <SelectValue placeholder="Selecione a conta" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {accounts.map((account) => (
+                        <SelectItem key={account.id} value={account.id}>
+                          {account.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+
+            {newRule.type === "low_balance_alert" && (
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="automation-low-balance-account">Conta</Label>
+                  <Select
+                    value={newRule.account}
+                    onValueChange={(value) =>
+                      setNewRule((prev) => ({ ...prev, account: value }))
+                    }
+                  >
+                    <SelectTrigger id="automation-low-balance-account">
+                      <SelectValue placeholder="Selecione a conta" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {accounts.map((account) => (
+                        <SelectItem key={account.id} value={account.id}>
+                          {account.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="automation-low-balance-amount">Valor mínimo (alerta quando saldo ficar abaixo)</Label>
                   <CurrencyInput
+                    id="automation-low-balance-amount"
                     value={newRule.amountCents}
                     onChange={(v) =>
                       setNewRule((prev) => ({
@@ -621,19 +913,225 @@ export default function Automations() {
               </div>
             )}
 
-            <div className="flex gap-2">
+            {newRule.type === "category_limit" && (
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="automation-category-limit-category">Categoria</Label>
+                  <Select
+                    value={newRule.category}
+                    onValueChange={(value) =>
+                      setNewRule((prev) => ({ ...prev, category: value }))
+                    }
+                  >
+                    <SelectTrigger id="automation-category-limit-category">
+                      <SelectValue placeholder="Selecione a categoria" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories
+                        .filter((c) => c.type === "expense")
+                        .map((category) => (
+                          <SelectItem key={category.id} value={category.id}>
+                            {category.icon} {category.name}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="automation-category-limit-amount">Limite mensal (toast ao ultrapassar)</Label>
+                  <CurrencyInput
+                    id="automation-category-limit-amount"
+                    value={newRule.amountCents}
+                    onChange={(v) =>
+                      setNewRule((prev) => ({
+                        ...prev,
+                        amountCents: v,
+                      }))
+                    }
+                  />
+                </div>
+              </div>
+            )}
+
+            {newRule.type === "weekly_report" && (
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="automation-weekly-day">Dia da semana para enviar</Label>
+                  <Select
+                    value={String(newRule.dayOfWeek)}
+                    onValueChange={(value) =>
+                      setNewRule((prev) => ({
+                        ...prev,
+                        dayOfWeek: parseInt(value, 10),
+                      }))
+                    }
+                  >
+                    <SelectTrigger id="automation-weekly-day">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">Segunda-feira</SelectItem>
+                      <SelectItem value="1">Terça-feira</SelectItem>
+                      <SelectItem value="2">Quarta-feira</SelectItem>
+                      <SelectItem value="3">Quinta-feira</SelectItem>
+                      <SelectItem value="4">Sexta-feira</SelectItem>
+                      <SelectItem value="5">Sábado</SelectItem>
+                      <SelectItem value="6">Domingo</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="automation-weekly-email">E-mail de destino</Label>
+                  <Input
+                    id="automation-weekly-email"
+                    type="email"
+                    value={newRule.destinationEmail}
+                    onChange={(e) =>
+                      setNewRule((prev) => ({
+                        ...prev,
+                        destinationEmail: e.target.value,
+                      }))
+                    }
+                    placeholder="seu@email.com"
+                  />
+                </div>
+              </div>
+            )}
+
+            {newRule.type === "payment_reminder" && (
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="automation-payment-reminder-days">Lembrar após (dias)</Label>
+                  <Input
+                    id="automation-payment-reminder-days"
+                    type="number"
+                    min={1}
+                    max={365}
+                    value={newRule.daysAfterCreation}
+                    onChange={(e) =>
+                      setNewRule((prev) => ({
+                        ...prev,
+                        daysAfterCreation: parseInt(e.target.value, 10) || 1,
+                      }))
+                    }
+                    placeholder="Ex: 3, 7, 15"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Criar notificação para você cobrar participantes X dias após criar a despesa.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {newRule.type === "round_up" && (
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="automation-roundup-envelope">Caixinha destino</Label>
+                  <Select
+                    value={newRule.envelopeId}
+                    onValueChange={(value) =>
+                      setNewRule((prev) => ({ ...prev, envelopeId: value }))
+                    }
+                  >
+                    <SelectTrigger id="automation-roundup-envelope">
+                      <SelectValue placeholder="Selecione a caixinha" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {envelopes.map((env) => (
+                        <SelectItem key={env.id} value={env.id}>
+                          {env.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="automation-roundup-amount">Arredondar para</Label>
+                  <Select
+                    value={String(newRule.roundToCents)}
+                    onValueChange={(value) =>
+                      setNewRule((prev) => ({
+                        ...prev,
+                        roundToCents: parseInt(value, 10),
+                      }))
+                    }
+                  >
+                    <SelectTrigger id="automation-roundup-amount">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="100">R$ 1</SelectItem>
+                      <SelectItem value="500">R$ 5</SelectItem>
+                      <SelectItem value="1000">R$ 10</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+
+            {(newRule.type === "budget_alert" ||
+              newRule.type === "goal_reminder") && (
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="automation-budget-category">Categoria</Label>
+                  <Select
+                    value={newRule.category}
+                    onValueChange={(value) =>
+                      setNewRule((prev) => ({ ...prev, category: value }))
+                    }
+                  >
+                    <SelectTrigger id="automation-budget-category">
+                      <SelectValue placeholder="Selecione a categoria" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.icon} {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="automation-budget-limit">Limite</Label>
+                  <CurrencyInput
+                    id="automation-budget-limit"
+                    value={newRule.amountCents}
+                    onChange={(v) =>
+                      setNewRule((prev) => ({
+                        ...prev,
+                        amountCents: v,
+                      }))
+                    }
+                  />
+                </div>
+              </div>
+            )}
+
+            <div
+              className={cn(
+                "flex flex-wrap items-center gap-2",
+                isMobile && "sticky bottom-0 border-t bg-background/95 py-3 backdrop-blur-sm",
+              )}
+            >
               <Button
                 onClick={editingRuleId ? handleUpdateRule : handleCreateRule}
+                className="h-9 px-4 text-sm"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 {editingRuleId ? "Salvar Alterações" : "Criar Automação"}
               </Button>
-              <Button variant="outline" onClick={handleCancelEdit}>
+              <Button
+                variant="outline"
+                onClick={handleCancelEdit}
+                size="sm"
+              >
                 Cancelar
               </Button>
             </div>
           </CardContent>
-        </Card>
+          </Card>
+        </div>
       )}
 
       {/* Automation Rules */}
@@ -718,7 +1216,10 @@ export default function Automations() {
 
                       <ConfirmDialog
                         trigger={
-                          <Button variant="outline" size="sm">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                          >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         }
@@ -747,7 +1248,10 @@ export default function Automations() {
               Crie regras automáticas para facilitar o gerenciamento das suas
               finanças
             </p>
-            <Button onClick={() => setShowNewRule(true)}>
+            <Button
+              onClick={() => setShowNewRule(true)}
+              className="h-9 px-4 text-sm"
+            >
               <Plus className="h-4 w-4 mr-2" />
               Criar Primeira Automação
             </Button>

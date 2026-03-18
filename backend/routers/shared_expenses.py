@@ -27,12 +27,12 @@ from services.shared_expense_service import (
     get_share_events,
     get_expense_full_details,
     get_read_model,
+    get_users_by_ids,
     SharedExpenseServiceError,
     SharedExpenseDataIntegrityError,
 )
 from services.activity_feed_service import feed_item_to_dict
 from repositories.expense_share_repository import ExpenseShareRepository
-from models import User as UserModel
 from realtime.feed_ws_manager import get_feed_ws_manager
 
 router = APIRouter()
@@ -167,10 +167,7 @@ async def get_share_events_route(
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
     performer_ids = {e.performed_by for e in events}
-    performers = (
-        db.query(UserModel).filter(UserModel.id.in_(performer_ids)).all()
-        if performer_ids else []
-    )
+    performers = get_users_by_ids(db, list(performer_ids))
     name_by_id = {u.id: u.name for u in performers}
     return [
         ExpenseShareEventSchema(
@@ -203,10 +200,7 @@ async def get_expense_full_details_route(
     performer_ids = set()
     for events in events_by_share.values():
         performer_ids.update(e.performed_by for e in events)
-    performers = (
-        db.query(UserModel).filter(UserModel.id.in_(performer_ids)).all()
-        if performer_ids else []
-    )
+    performers = get_users_by_ids(db, list(performer_ids))
     name_by_id = {u.id: u.name for u in performers}
     events_schema_by_share = {
         sid: [

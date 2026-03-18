@@ -41,7 +41,7 @@ def test_slow_db_no_partial_commit_retry_no_duplication(
             "date": datetime.now(),
             "category_id": category.id,
             "type": "income",
-            "amount": 25.0,
+            "amount_cents": 2500,
             "description": "Receita após latência",
             "tags": [],
         }

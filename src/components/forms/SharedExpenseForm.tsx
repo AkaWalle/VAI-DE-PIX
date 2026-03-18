@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useId } from "react";
 import { useFinancialStore } from "@/stores/financial-store";
 import { useAuthStore } from "@/stores/auth-store-index";
 import { useSharedExpensesStore } from "@/stores/shared-expenses-store";
@@ -14,26 +14,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/utils/format";
-import { fromCents, toCents, formatCurrencyFromCents, calculateSplit, getInvitedEmail, parseCurrencyInput } from "@/utils/currency";
+import {
+  fromCents,
+  toCents,
+  formatCurrencyFromCents,
+  calculateSplit,
+  getInvitedEmail,
+} from "@/utils/currency";
 import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import {
-  X,
   Plus,
   Trash2,
   Users,
-  DollarSign,
   Calculator,
   UserPlus,
 } from "lucide-react";
+import { ResponsiveOverlay } from "@/components/ui/responsive-overlay";
+import { logError } from "@/lib/logger";
 
 interface SharedExpenseFormProps {
   expenseId?: string;
@@ -54,8 +53,8 @@ export function SharedExpenseForm({
   onClose,
   onSuccess,
 }: SharedExpenseFormProps) {
-  const { sharedExpenses, categories, addSharedExpense, updateSharedExpense } =
-    useFinancialStore();
+  const formId = useId();
+  const { sharedExpenses, categories, updateSharedExpense } = useFinancialStore();
   const { user } = useAuthStore();
   const { createExpense } = useSharedExpensesStore();
   const { toast } = useToast();
@@ -91,6 +90,7 @@ export function SharedExpenseForm({
     ? sharedExpenses.find((e) => e.id === expenseId)
     : null;
 
+  // Sincroniza formulário ao editar; apenas expense é dependência (user não é usado aqui)
   useEffect(() => {
     if (expense) {
       const totalAmountCents = toCents(expense.totalAmount);
@@ -116,7 +116,7 @@ export function SharedExpenseForm({
         ...prev.slice(1),
       ];
     });
-  }, [user?.id, user?.email, user?.name, expense]);
+  }, [user, expense]);
 
   const handleInputChange = (field: string, value: string | number) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -283,7 +283,6 @@ export function SharedExpenseForm({
       toast({ title: "Despesa criada com sucesso" });
       onSuccess();
     } catch (err: unknown) {
-      console.error(err);
       const status = (err as { response?: { status?: number } })?.response?.status;
       const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
       const detailStr = typeof detail === "string" ? detail : detail ? JSON.stringify(detail) : "";
@@ -320,39 +319,75 @@ export function SharedExpenseForm({
           variant: "destructive",
         });
       }
+
+      logError(err, {
+        feature: "shared-expense-form",
+        action: "submit",
+        isEditing,
+        splitType: formData.splitType,
+        participantCount: participants.length,
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const expenseCategories = categories.filter((c) => c.type === "expense");
+  const expenseCategories = useMemo(
+    () => categories.filter((c) => c.type === "expense"),
+    [categories],
+  );
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-2xl max-h-[90vh] overflow-hidden">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                {isEditing
-                  ? "Editar Despesa Compartilhada"
-                  : "Nova Despesa Compartilhada"}
-              </CardTitle>
-              <CardDescription>
-                {isEditing
-                  ? "Atualize os detalhes da despesa"
-                  : "Crie uma nova despesa para dividir entre múltiplas pessoas"}
-              </CardDescription>
-            </div>
-            <Button variant="ghost" size="sm" onClick={onClose} className="min-h-[44px] min-w-[44px] touch-manipulation" aria-label="Fechar">
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        </CardHeader>
-
-        <CardContent className="overflow-y-auto max-h-[calc(90vh-120px)] scrollbar-hide">
-          <form onSubmit={handleSubmit} className="space-y-6">
+    <ResponsiveOverlay
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      title={
+        <span className="flex items-center gap-2">
+          <Users className="h-5 w-5" />
+          {isEditing
+            ? "Editar Despesa Compartilhada"
+            : "Nova Despesa Compartilhada"}
+        </span>
+      }
+      description={
+        isEditing
+          ? "Atualize os detalhes da despesa"
+          : "Crie uma nova despesa para dividir entre múltiplas pessoas"
+      }
+      mobileVariant="fullscreen"
+      desktopContentClassName="flex max-h-[90vh] w-full max-w-lg flex-col overflow-x-hidden overflow-y-hidden md:max-w-2xl"
+      mobileContentClassName="flex h-[100dvh] w-screen max-w-none flex-col rounded-none border-0 p-0"
+      bodyClassName="scrollbar-hide sm:px-6"
+      footer={
+        <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            fullWidthMobile
+          >
+            Cancelar
+          </Button>
+          <Button
+            type="submit"
+            form={formId}
+            variant="default"
+            fullWidthMobile
+            disabled={isSubmitDisabled}
+          >
+            {isSubmitting
+              ? "Salvando..."
+              : isEditing
+                ? "Atualizar"
+                : "Criar"}{" "}
+            Despesa
+          </Button>
+        </div>
+      }
+    >
+      <form id={formId} onSubmit={handleSubmit} className="space-y-6">
             {/* Basic Information */}
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
@@ -363,6 +398,7 @@ export function SharedExpenseForm({
                   onChange={(e) => handleInputChange("title", e.target.value)}
                   placeholder="Ex: Jantar no restaurante"
                   required
+                  className="w-full"
                 />
               </div>
 
@@ -374,7 +410,7 @@ export function SharedExpenseForm({
                     handleInputChange("category", value)
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="min-h-[44px] w-full">
                     <SelectValue placeholder="Selecione uma categoria" />
                   </SelectTrigger>
                   <SelectContent>
@@ -401,6 +437,7 @@ export function SharedExpenseForm({
                 }
                 placeholder="Detalhes adicionais sobre a despesa..."
                 rows={3}
+                className="w-full"
               />
             </div>
 
@@ -412,6 +449,7 @@ export function SharedExpenseForm({
                   value={formData.totalAmountCents}
                   onChange={(v) => handleInputChange("totalAmountCents", v)}
                   placeholder="0,00"
+                  className="w-full"
                 />
               </div>
 
@@ -423,6 +461,7 @@ export function SharedExpenseForm({
                   value={formData.date}
                   onChange={(e) => handleInputChange("date", e.target.value)}
                   required
+                  className="min-h-[44px] w-full"
                 />
               </div>
             </div>
@@ -436,7 +475,7 @@ export function SharedExpenseForm({
                   handleInputChange("splitType", value)
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger className="min-h-[44px] w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -458,8 +497,10 @@ export function SharedExpenseForm({
                   O e-mail identifica a pessoa. Por enquanto a despesa fica só no seu dispositivo; ela verá a dívida quando a sincronização por e-mail estiver disponível.
                 </p>
               )}
-              <div className="grid gap-2 md:grid-cols-3">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                 <Input
+                  id="participant-name"
+                  aria-label="Nome do participante"
                   placeholder="Nome"
                   value={newParticipant.name}
                   onChange={(e) =>
@@ -468,10 +509,14 @@ export function SharedExpenseForm({
                       name: e.target.value,
                     }))
                   }
+                  className="w-full"
                 />
                 <Input
+                  id="participant-email"
+                  aria-label="Email do participante"
                   placeholder="Email"
                   type="email"
+                  autoComplete="email"
                   value={newParticipant.email}
                   onChange={(e) =>
                     setNewParticipant((prev) => ({
@@ -479,12 +524,13 @@ export function SharedExpenseForm({
                       email: e.target.value,
                     }))
                   }
+                  className="w-full"
                 />
                 <Button
                   type="button"
                   onClick={addParticipant}
                   variant="outline"
-                  className="min-h-[44px] touch-manipulation"
+                  fullWidthMobile
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Adicionar
@@ -503,7 +549,7 @@ export function SharedExpenseForm({
                 {participants.map((participant) => (
                   <div
                     key={participant.userId}
-                    className="flex items-center gap-3 p-3 border rounded-lg"
+                    className="flex flex-col gap-3 rounded-lg border p-3 md:flex-row md:items-center"
                   >
                     <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
                       <span className="text-sm font-medium text-primary">
@@ -520,24 +566,17 @@ export function SharedExpenseForm({
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <div className="relative">
-                        <DollarSign className="absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                          type="text"
-                          inputMode="decimal"
-                          value={
-                            participant.amount === 0
-                              ? ""
-                              : formatCurrency(participant.amount, { showSign: false })
-                          }
-                          onChange={(e) =>
+                    <div className="flex w-full flex-wrap items-center gap-2 md:w-auto md:flex-nowrap">
+                      <div className="flex-1 md:flex-none">
+                        <CurrencyInput
+                          value={toCents(participant.amount)}
+                          onChange={(value) =>
                             updateParticipantAmount(
                               participant.userId,
-                              parseCurrencyInput(e.target.value),
+                              fromCents(value),
                             )
                           }
-                          className="w-24 pl-6 text-sm"
+                          className="min-h-[44px] w-full min-w-0 text-sm md:w-32"
                           disabled={formData.splitType === "equal"}
                         />
                       </div>
@@ -548,6 +587,7 @@ export function SharedExpenseForm({
                           variant="ghost"
                           size="sm"
                           onClick={() => removeParticipant(participant.userId)}
+                          className="min-h-[44px] min-w-[44px] shrink-0"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -566,22 +606,22 @@ export function SharedExpenseForm({
               </div>
 
               <div className="grid gap-2 text-sm">
-                <div className="flex justify-between">
+                <div className="flex items-start justify-between gap-4">
                   <span>Valor Total:</span>
-                  <span className="font-semibold">
+                  <span className="text-right font-semibold">
                     {formatCurrencyFromCents(formData.totalAmountCents)}
                   </span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex items-start justify-between gap-4">
                   <span>Total Dividido:</span>
-                  <span className="font-semibold">
+                  <span className="text-right font-semibold">
                     {formatCurrency(splitInfo.totalSplit)}
                   </span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex items-start justify-between gap-4">
                   <span>Diferença:</span>
                   <span
-                    className={`font-semibold ${splitInfo.isValid ? "text-green-500" : "text-red-500"}`}
+                    className={`text-right font-semibold ${splitInfo.isValid ? "text-green-500" : "text-red-500"}`}
                   >
                     {formatCurrency(splitInfo.difference)}
                   </span>
@@ -598,33 +638,7 @@ export function SharedExpenseForm({
                 </Badge>
               )}
             </div>
-
-            {/* Actions - altura mínima para toque no mobile */}
-            <div className="flex gap-2 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onClose}
-                className="flex-1 min-h-[44px] touch-manipulation"
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                className="flex-1 min-h-[44px] touch-manipulation"
-                disabled={isSubmitDisabled}
-              >
-                {isSubmitting
-                  ? "Salvando..."
-                  : isEditing
-                    ? "Atualizar"
-                    : "Criar"}{" "}
-                Despesa
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+      </form>
+    </ResponsiveOverlay>
   );
 }

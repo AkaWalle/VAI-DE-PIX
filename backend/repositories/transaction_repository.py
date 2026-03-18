@@ -4,7 +4,7 @@ Repository para transações
 from typing import List, Optional
 from datetime import date, datetime
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import and_, extract, or_
+from sqlalchemy import and_, extract, or_, func
 
 from models import Transaction, TransactionTag
 from repositories.base_repository import BaseRepository
@@ -106,4 +106,71 @@ class TransactionRepository(BaseRepository[Transaction]):
                 Transaction.date <= end_date
             )
         ).all()
+
+    def get_by_user_and_idempotency_key(
+        self, user_id: str, idempotency_key: str
+    ) -> Optional[Transaction]:
+        """Busca transação por user_id e idempotency_key (não deletada)."""
+        return self.db.query(Transaction).filter(
+            Transaction.user_id == user_id,
+            Transaction.idempotency_key == idempotency_key,
+            Transaction.deleted_at.is_(None),
+        ).first()
+
+    def get_monthly_summary_aggregates(
+        self, user_id: str, year: int, month: int
+    ) -> dict:
+        """
+        Agregações SQL para resumo mensal (COUNT, SUM, GROUP BY).
+        Retorna dict: total_transactions, total_income, total_expenses, net_balance, category_breakdown.
+        """
+        base_filter = [
+            Transaction.user_id == user_id,
+            Transaction.deleted_at.is_(None),
+            extract("year", Transaction.date) == year,
+            extract("month", Transaction.date) == month,
+        ]
+        total_transactions = (
+            self.db.query(func.count(Transaction.id))
+            .filter(*base_filter)
+            .scalar() or 0
+        )
+        total_income = (
+            self.db.query(func.coalesce(func.sum(Transaction.amount), 0))
+            .filter(*base_filter, Transaction.type == "income")
+            .scalar() or 0
+        )
+        total_expenses = (
+            self.db.query(func.coalesce(func.sum(Transaction.amount), 0))
+            .filter(*base_filter, Transaction.type == "expense")
+            .scalar() or 0
+        )
+        total_income = float(total_income)
+        total_expenses = float(total_expenses)
+        net_balance = total_income - total_expenses
+        rows = (
+            self.db.query(
+                Transaction.category_id,
+                Transaction.type,
+                func.sum(Transaction.amount).label("total"),
+            )
+            .filter(*base_filter)
+            .group_by(Transaction.category_id, Transaction.type)
+            .all()
+        )
+        category_breakdown: dict = {}
+        for cat_id, ttype, total in rows:
+            if cat_id not in category_breakdown:
+                category_breakdown[cat_id] = {"income": 0, "expense": 0}
+            if ttype == "income":
+                category_breakdown[cat_id]["income"] = float(total)
+            else:
+                category_breakdown[cat_id]["expense"] = float(total)
+        return {
+            "total_transactions": total_transactions,
+            "total_income": total_income,
+            "total_expenses": total_expenses,
+            "net_balance": net_balance,
+            "category_breakdown": category_breakdown,
+        }
 

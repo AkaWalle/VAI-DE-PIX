@@ -10,13 +10,12 @@ import type { SharedExpense, SharedExpenseParticipant } from "@/stores/financial
 import { useFinancialStore } from "@/stores/financial-store";
 import { isAuthReady, ensureValidSession } from "@/lib/auth-runtime-guard";
 
-const SYNC_LOG_PREFIX = "[SharedExpensesSync]";
-
 /** Backoff: esperar antes de retry após falha (ms) */
 const SYNC_RETRY_DELAY_MS = 2000;
 const SYNC_MAX_RETRIES = 2;
 
-function mapReadItemToStore(item: SharedExpenseItemRead): SharedExpense {
+/** Mapeia item do read-model (API/me/data) para formato do store. Exportado para uso em me-data.service. */
+export function mapReadItemToStore(item: SharedExpenseItemRead): SharedExpense {
   const createdAt = typeof item.created_at === "string" ? item.created_at : new Date(item.created_at).toISOString();
   const updatedAt = (item.updated_at && (typeof item.updated_at === "string" ? item.updated_at : new Date(item.updated_at).toISOString())) || createdAt;
   const date = createdAt.slice(0, 10);
@@ -61,31 +60,20 @@ export async function syncSharedExpensesFromBackend(): Promise<boolean> {
   if (typeof window === "undefined") return false;
 
   if (!isAuthReady()) {
-    console.warn(`${SYNC_LOG_PREFIX} SYNC_BLOCKED_AUTH_NOT_READY`);
     return false;
   }
 
   const sessionOk = await ensureValidSession();
   if (!sessionOk) {
-    console.warn(`${SYNC_LOG_PREFIX} SYNC_BLOCKED_AUTH_NOT_READY (no valid session)`);
     return false;
   }
-
-  console.log(`${SYNC_LOG_PREFIX} SYNC_START`);
 
   for (let attempt = 1; attempt <= SYNC_MAX_RETRIES; attempt++) {
     try {
       const data = await sharedExpenseApi.getReadModel();
       applyReadModelToStore(data);
-      console.log(`${SYNC_LOG_PREFIX} SYNC_SUCCESS`, { count: data.expenses.length, totals: data.totals });
       return true;
-    } catch (err) {
-      const is401 = (err as { response?: { status?: number } })?.response?.status === 401;
-      if (is401) {
-        console.warn(`${SYNC_LOG_PREFIX} SYNC_FAIL_401`);
-      } else {
-        console.warn(`${SYNC_LOG_PREFIX} SYNC_FAIL`, err);
-      }
+    } catch {
       if (attempt < SYNC_MAX_RETRIES) {
         await new Promise((r) => setTimeout(r, SYNC_RETRY_DELAY_MS));
       } else {

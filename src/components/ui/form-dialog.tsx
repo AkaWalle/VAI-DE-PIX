@@ -1,14 +1,11 @@
-import { useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import {
+  ResponsiveOverlay,
+  type MobileOverlayVariant,
+} from "@/components/ui/responsive-overlay";
 
 interface FormDialogProps {
   trigger: React.ReactNode;
@@ -22,6 +19,9 @@ interface FormDialogProps {
   submitLabel?: string;
   cancelLabel?: string;
   showFooter?: boolean;
+  contentClassName?: string;
+  mobileContentClassName?: string;
+  mobileVariant?: MobileOverlayVariant;
 }
 
 export function FormDialog({
@@ -36,8 +36,12 @@ export function FormDialog({
   submitLabel = "Salvar",
   cancelLabel = "Cancelar",
   showFooter = true,
+  contentClassName,
+  mobileContentClassName,
+  mobileVariant = "sheet",
 }: FormDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false);
+  const formId = useId();
 
   const isOpen = open !== undefined ? open : internalOpen;
   const setIsOpen = onOpenChange || setInternalOpen;
@@ -50,45 +54,59 @@ export function FormDialog({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          {description && <DialogDescription>{description}</DialogDescription>}
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-4 py-4">{children}</div>
-
-          {showFooter && (
-            <div className="flex gap-2 justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsOpen(false)}
-                disabled={isLoading}
-              >
-                {cancelLabel}
-              </Button>
-              <Button
-                type="submit"
-                disabled={isLoading}
-                aria-label={`${submitLabel} - ${title.toLowerCase()}`}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Salvando...
-                  </>
-                ) : (
-                  submitLabel
-                )}
-              </Button>
-            </div>
-          )}
-        </form>
-      </DialogContent>
-    </Dialog>
+    <ResponsiveOverlay
+      open={isOpen}
+      onOpenChange={setIsOpen}
+      trigger={trigger}
+      title={title}
+      description={description}
+      mobileVariant={mobileVariant}
+      desktopContentClassName={cn(
+        "flex w-full max-h-[90vh] flex-col overflow-x-hidden overflow-y-hidden sm:max-w-lg",
+        contentClassName,
+      )}
+      mobileContentClassName={mobileContentClassName}
+      bodyClassName="px-4 pb-6 space-y-4"
+      footer={
+        showFooter ? (
+          <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsOpen(false)}
+              disabled={isLoading}
+              fullWidthMobile
+            >
+              {cancelLabel}
+            </Button>
+            <Button
+              type="submit"
+              form={formId}
+              variant="default"
+              disabled={isLoading}
+              aria-label={`${submitLabel} - ${title.toLowerCase()}`}
+              fullWidthMobile
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                submitLabel
+              )}
+            </Button>
+          </div>
+        ) : null
+      }
+    >
+      <form
+        id={formId}
+        onSubmit={handleSubmit}
+        className="flex min-h-0 flex-col space-y-4"
+      >
+        {children}
+      </form>
+    </ResponsiveOverlay>
   );
 }

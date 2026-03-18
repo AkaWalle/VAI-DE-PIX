@@ -66,6 +66,21 @@ export const API_ENDPOINTS = {
     register: "/auth/register",
     me: "/auth/me",
     logout: "/auth/logout",
+    forgotPassword: "/auth/forgot-password",
+    resetPassword: "/auth/reset-password",
+  },
+
+  // Snapshot do usuário (backup/restore — Fase 1 sync)
+  meData: {
+    get: "/me/data",
+    post: "/me/data",
+    put: "/me/data",
+  },
+
+  // Sync incremental (Fase 2 — Story 2.3)
+  meSync: {
+    get: "/me/sync",
+    post: "/me/sync",
   },
 
   // Transactions
@@ -74,6 +89,7 @@ export const API_ENDPOINTS = {
     create: "/transactions",
     update: (id: string) => `/transactions/${id}`,
     delete: (id: string) => `/transactions/${id}`,
+    deleteBatch: "/transactions",
     summary: "/transactions/summary/monthly",
   },
 
@@ -142,6 +158,14 @@ export const API_ENDPOINTS = {
     unreadCount: "/activity-feed/unread-count",
     markRead: (id: string) => `/activity-feed/${id}/read`,
     markAllRead: "/activity-feed/read-all",
+  },
+
+  automations: {
+    list: "/automations",
+    get: (id: string) => `/automations/${id}`,
+    create: "/automations",
+    update: (id: string) => `/automations/${id}`,
+    delete: (id: string) => `/automations/${id}`,
   },
 } as const;
 

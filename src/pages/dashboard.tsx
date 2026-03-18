@@ -22,6 +22,7 @@ import {
   Lightbulb,
   AlertTriangle,
 } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   fetchInsights,
   postInsightFeedback,
@@ -29,6 +30,7 @@ import {
 } from "@/services/insights.service";
 import { notificationsService } from "@/services/notifications.service";
 import { Button } from "@/components/ui/button";
+import { PageLayout } from "@/components/layout/PageLayout";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import {
   AreaChart,
@@ -135,13 +137,16 @@ export default function Dashboard() {
 
   // Goal progress
   const goalProgress = useMemo(() => {
-    return goals.map((goal) => ({
-      ...goal,
-      progressPercentage: Math.min(
-        (goal.currentAmount / goal.targetAmount) * 100,
-        100,
-      ),
-    }));
+    return goals.map((goal) => {
+      const target = goal.targetAmount ?? 0;
+      const current = goal.currentAmount ?? 0;
+      const progressPercentage =
+        target > 0 ? Math.min((current / target) * 100, 100) : 0;
+      return {
+        ...goal,
+        progressPercentage,
+      };
+    });
   }, [goals]);
 
   // Insights (variação mensal por categoria, metas em risco)
@@ -192,6 +197,10 @@ export default function Dashboard() {
   const categoryVariation = insights?.category_monthly_variation ?? [];
   const goalsAtRisk = insights?.goals_at_risk?.filter((g) => g.at_risk) ?? [];
 
+  const isMobile = useIsMobile();
+  const chartHeight = isMobile ? 192 : 256;
+  const chartFontSize = isMobile ? 10 : 12;
+
   // Banner: notificações de insights não lidas (C2)
   const [unreadInsightCount, setUnreadInsightCount] = useState(0);
   useEffect(() => {
@@ -202,14 +211,11 @@ export default function Dashboard() {
   }, []);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground">
-          Visão geral da sua situação financeira
-        </p>
-      </div>
+    <PageLayout
+      title="Dashboard"
+      subtitle="Visão geral da sua situação financeira"
+      className="space-y-3 sm:space-y-6"
+    >
 
       {/* Banner: notificações de insights não lidas */}
       {unreadInsightCount > 0 && (
@@ -224,7 +230,7 @@ export default function Dashboard() {
       )}
 
       {/* Financial Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-2 lg:grid-cols-4">
         <FinancialCard
           title="Saldo Total"
           value={formatCurrency(totalBalance)}
@@ -264,19 +270,17 @@ export default function Dashboard() {
 
       {/* Insights Section */}
       {(categoryVariation.length > 0 || goalsAtRisk.length > 0) && !insightsLoading && (
-        <div id="insights" className="grid gap-6 md:grid-cols-2">
+        <div id="insights" className="grid gap-3 sm:gap-6 md:grid-cols-2">
           {categoryVariation.length > 0 && (
             <Card className="bg-gradient-card shadow-card-custom">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Lightbulb className="h-5 w-5 text-primary" />
+              <CardHeader className="p-3 sm:p-6">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <Lightbulb className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                   Variação por categoria
                 </CardTitle>
-                <CardDescription>
-                  Este mês vs mês anterior (despesas). Explicável e sem IA opaca.
-                </CardDescription>
+                <CardDescription className="text-xs sm:text-sm">Este mês vs mês anterior (despesas). Explicável e sem IA opaca.</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="p-3 sm:p-6 pt-0 space-y-3">
                 {categoryVariation.slice(0, 5).map((item) => (
                   <div
                     key={item.category_id}
@@ -286,15 +290,15 @@ export default function Dashboard() {
                       <span className="font-medium">{item.category_name}</span>
                       <span
                         className={
-                          item.variation_pct > 0
+                          (item.variation_pct ?? 0) > 0
                             ? "text-expense"
-                            : item.variation_pct < 0
+                            : (item.variation_pct ?? 0) < 0
                               ? "text-success"
                               : "text-muted-foreground"
                         }
                       >
-                        {item.variation_pct > 0 ? "+" : ""}
-                        {item.variation_pct.toFixed(1)}%
+                        {(item.variation_pct ?? 0) > 0 ? "+" : ""}
+                        {(item.variation_pct ?? 0).toFixed(1)}%
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground">
@@ -307,16 +311,14 @@ export default function Dashboard() {
           )}
           {goalsAtRisk.length > 0 && (
             <Card className="bg-gradient-card shadow-card-custom">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5 text-warning" />
+              <CardHeader className="p-3 sm:p-6">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-warning" />
                   Metas em risco
                 </CardTitle>
-                <CardDescription>
-                  Metas que podem não ser atingidas no prazo. Critério explicável.
-                </CardDescription>
+                <CardDescription className="text-xs sm:text-sm">Metas que podem não ser atingidas no prazo. Critério explicável.</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="p-3 sm:p-6 pt-0 space-y-3">
                 {goalsAtRisk.slice(0, 5).map((item, index) => (
                   <div
                     key={item.goal_id}
@@ -338,11 +340,10 @@ export default function Dashboard() {
                       {item.days_left} dias restantes
                     </div>
                     {item.insight_hash && (
-                      <div className="mt-2 flex gap-2">
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="h-7 text-xs"
                           disabled={feedbackLoading === item.insight_hash}
                           onClick={() =>
                             handleInsightFeedback(
@@ -357,7 +358,7 @@ export default function Dashboard() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="h-7 text-xs text-muted-foreground"
+                          className="text-muted-foreground"
                           disabled={feedbackLoading === item.insight_hash}
                           onClick={() =>
                             handleInsightFeedback(
@@ -380,27 +381,34 @@ export default function Dashboard() {
       )}
 
       {/* Charts Section */}
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-3 sm:gap-6 md:grid-cols-2">
         {/* Cashflow Chart */}
         <Card className="bg-gradient-card shadow-card-custom">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-primary" />
+          <CardHeader className="p-3 sm:p-6">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
               Fluxo de Caixa (6 meses)
             </CardTitle>
-            <CardDescription>Evolução de receitas e despesas</CardDescription>
+            <CardDescription className="text-xs sm:text-sm">Evolução de receitas e despesas</CardDescription>
           </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={cashflowData}>
-                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                <YAxis
-                  tick={{ fontSize: 12 }}
-                  tickFormatter={(value) =>
-                    formatCurrency(value, { abbreviated: true })
-                  }
-                />
+          <CardContent className="p-3 sm:p-6 pt-0">
+            <div className="overflow-x-auto -mx-1">
+              <div className="min-w-[280px]" style={{ height: chartHeight }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={cashflowData}>
+                    <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                    <XAxis
+                      dataKey="month"
+                      tick={{ fontSize: chartFontSize }}
+                      interval={isMobile ? 2 : 0}
+                    />
+                    <YAxis
+                      width={isMobile ? 55 : 70}
+                      tick={{ fontSize: chartFontSize }}
+                      tickFormatter={(value) =>
+                        formatCurrency(value, { abbreviated: true })
+                      }
+                    />
                 <Tooltip
                   formatter={(value, name) => [
                     formatCurrency(Number(value)),
@@ -423,17 +431,20 @@ export default function Dashboard() {
                     opacity: 1,
                     backdropFilter: "none",
                     zIndex: 1000,
+                    fontSize: isMobile ? 11 : undefined,
                   }}
                   labelStyle={{
                     color: "hsl(var(--card-foreground))",
                     marginBottom: 4,
                     fontWeight: 500,
+                    fontSize: isMobile ? 11 : undefined,
                   }}
                   itemStyle={{
                     color: "hsl(var(--card-foreground))",
                     padding: 0,
                     lineHeight: 1.2,
                     fontWeight: 600,
+                    fontSize: isMobile ? 11 : undefined,
                   }}
                   wrapperStyle={{
                     outline: "none",
@@ -457,34 +468,37 @@ export default function Dashboard() {
                   fill="hsl(var(--expense))"
                   fillOpacity={0.6}
                 />
-              </AreaChart>
-            </ResponsiveContainer>
+                </AreaChart>
+              </ResponsiveContainer>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
         {/* Category Spending Chart */}
         <Card className="bg-gradient-card shadow-card-custom">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5 text-primary" />
+          <CardHeader className="p-3 sm:p-6">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
               Gastos por Categoria
             </CardTitle>
-            <CardDescription>Distribuição dos gastos deste mês</CardDescription>
+            <CardDescription className="text-xs sm:text-sm">Distribuição dos gastos deste mês</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 sm:p-6 pt-0">
             {categoryData.length > 0 ? (
-              <div className="flex flex-col lg:flex-row gap-6">
-                {/* Gráfico */}
-                <div className="flex-1 min-w-0">
-                  <ResponsiveContainer width="100%" height={300}>
+              <div className="flex flex-col lg:flex-row gap-3 sm:gap-6">
+                {/* Gráfico: legenda abaixo no mobile (vertical), pizza menor no mobile */}
+                <div className="flex-1 min-w-0 overflow-x-auto min-w-[280px]">
+                  <div style={{ height: chartHeight }} className="min-w-[280px]">
+                    <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
                         data={categoryData}
                         cx="50%"
                         cy="50%"
-                        labelLine={false}
                         label={false}
-                        outerRadius={100}
+                        labelLine={false}
+                        outerRadius={isMobile ? 90 : 120}
                         fill="#8884d8"
                         dataKey="value"
                       >
@@ -497,42 +511,47 @@ export default function Dashboard() {
                       </Pie>
                     </PieChart>
                   </ResponsiveContainer>
+                  </div>
                 </div>
 
-                {/* Legenda */}
+                {/* Legenda: abaixo do gráfico, layout vertical, text-xs no mobile */}
                 <div className="flex flex-col justify-center gap-3 w-full lg:w-auto lg:min-w-[200px]">
-                  <h4 className="text-sm font-semibold text-muted-foreground mb-2">
+                  <h4 className="text-xs sm:text-sm font-semibold text-muted-foreground mb-2">
                     Legenda
                   </h4>
-                  {categoryData.map((entry, index) => {
-                    const percentage = (
-                      (entry.value /
-                        categoryData.reduce(
-                          (sum, item) => sum + item.value,
-                          0,
-                        )) *
-                      100
-                    ).toFixed(1);
-                    return (
-                      <div key={index} className="flex items-center gap-3">
+                  <div className="flex flex-col gap-2">
+                    {categoryData.map((entry, index) => {
+                      const total = categoryData.reduce(
+                        (sum, item) => sum + (item.value ?? 0),
+                        0,
+                      );
+                      const percentage = (
+                        ((entry.value ?? 0) / (total || 1)) * 100
+                      ).toFixed(1);
+                      return (
                         <div
-                          className="w-4 h-4 rounded-full flex-shrink-0"
-                          style={{
-                            backgroundColor:
-                              entry.color || COLORS[index % COLORS.length],
-                          }}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium truncate">
-                            {entry.name}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {formatCurrency(entry.value)} ({percentage}%)
+                          key={index}
+                          className="flex items-center gap-3 text-xs sm:text-sm"
+                        >
+                          <div
+                            className="w-4 h-4 rounded-full flex-shrink-0"
+                            style={{
+                              backgroundColor:
+                                entry.color || COLORS[index % COLORS.length],
+                            }}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium truncate">
+                              {entry.name}
+                            </div>
+                            <div className="text-muted-foreground">
+                              {formatCurrency(entry.value)} ({percentage}%)
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             ) : (
@@ -554,19 +573,17 @@ export default function Dashboard() {
       </div>
 
       {/* Goals and Recent Activity */}
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-3 sm:gap-6 lg:grid-cols-3">
         {/* Goals Progress */}
         <Card className="lg:col-span-2 bg-gradient-card shadow-card-custom">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Target className="h-5 w-5 text-primary" />
+          <CardHeader className="p-3 sm:p-6">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <Target className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
               Progresso das Metas
             </CardTitle>
-            <CardDescription>
-              Acompanhe o progresso dos seus objetivos
-            </CardDescription>
+            <CardDescription className="text-xs sm:text-sm">Acompanhe o progresso dos seus objetivos</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="p-3 sm:p-6 pt-0 space-y-4">
             {goalProgress.map((goal) => (
               <div key={goal.id} className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
@@ -578,7 +595,7 @@ export default function Dashboard() {
                 </div>
                 <Progress value={goal.progressPercentage} className="h-2" />
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>{goal.progressPercentage.toFixed(1)}% concluído</span>
+                  <span>{(goal.progressPercentage ?? 0).toFixed(1)}% concluído</span>
                   <span
                     className={`flex items-center gap-1 ${
                       goal.status === "on_track"
@@ -612,11 +629,11 @@ export default function Dashboard() {
 
         {/* Recent Transactions */}
         <Card className="bg-gradient-card shadow-card-custom">
-          <CardHeader>
-            <CardTitle>Transações Recentes</CardTitle>
-            <CardDescription>Últimas movimentações</CardDescription>
+          <CardHeader className="p-3 sm:p-6">
+            <CardTitle className="text-base sm:text-lg">Transações Recentes</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">Últimas movimentações</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="p-3 sm:p-6 pt-0 space-y-3">
             {transactions.slice(0, 5).map((transaction) => {
               const category = categories.find(
                 (c) => c.id === transaction.category,
@@ -653,6 +670,6 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </PageLayout>
   );
 }

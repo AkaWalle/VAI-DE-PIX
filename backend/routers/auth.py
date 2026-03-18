@@ -1,17 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from typing import Optional
+import hashlib
+import secrets
 from pydantic import BaseModel, EmailStr, validator
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
-from slowapi.errors import RateLimitExceeded
 import re
 import os
 
 from database import get_db
-from models import User, Category, Account
+from models import User, Category, Account, PasswordResetToken
 from auth_utils import (
     create_access_token,
     verify_password,
@@ -26,8 +24,72 @@ from auth_utils import (
     clear_refresh_cookie,
 )
 from core.default_categories import DEFAULT_CATEGORIES
+from core.logging_config import get_logger
+from services.email_service import send_password_reset_email, is_email_configured
 
 router = APIRouter()
+logger = get_logger(__name__)
+
+# Expiração do link de redefinição de senha (minutos)
+PASSWORD_RESET_EXPIRE_MINUTES = int(os.getenv("PASSWORD_RESET_EXPIRE_MINUTES", "60"))
+
+# flake8: noqa E501
+
+
+def _password_reset_email_html(reset_link: str, expire_minutes: int) -> str:
+    """Template do e-mail de redefinição de senha (texto e estrutura aprovados)."""
+    return f"""
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Redefinir sua senha - VAI DE PIX</title>
+  <style>
+    body {{ margin: 0; padding: 0; background: #0f172a; font-family: system-ui, sans-serif; color: #e2e8f0; }}
+    .wrapper {{ width: 100%; padding: 24px 0; }}
+    .container {{ max-width: 480px; margin: 0 auto; background: #1e293b; border-radius: 12px; padding: 24px; border: 1px solid #334155; }}
+    .logo {{ font-weight: 800; font-size: 18px; letter-spacing: 0.05em; color: #22c55e; margin-bottom: 16px; }}
+    h1 {{ font-size: 20px; margin: 0 0 16px; color: #f8fafc; }}
+    p {{ margin: 0 0 12px; font-size: 14px; line-height: 1.5; color: #cbd5e1; }}
+    .btn {{ display: inline-block; background: #22c55e; color: #020617 !important; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px; margin: 8px 0; }}
+    .link {{ font-size: 12px; word-break: break-all; color: #94a3b8; }}
+    .divider {{ height: 1px; background: #334155; margin: 16px 0; }}
+    .footer {{ font-size: 12px; color: #64748b; }}
+    .security {{ font-size: 12px; color: #22c55e; }}
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="container">
+      <div class="logo">VAI DE PIX</div>
+      <h1>Redefinir sua senha</h1>
+      <p>Recebemos uma solicitação para redefinir a senha da sua conta.</p>
+      <p>Se foi você, clique no botão abaixo para continuar:</p>
+      <a href="{reset_link}" class="btn">Redefinir senha</a>
+      <p class="link">
+        Se o botão não funcionar, copie e cole este link:<br>
+        {reset_link}
+      </p>
+      <div class="divider"></div>
+      <p class="footer">
+        Este link expira em <strong>{expire_minutes} minutos</strong>.
+      </p>
+      <p class="footer">
+        Se você não solicitou essa alteração, ignore este e-mail.
+      </p>
+      <p class="security">🔒 Ambiente seguro</p>
+      <div class="divider"></div>
+      <p class="footer" style="text-align:center;">VAI DE PIX • Organizador financeiro</p>
+    </div>
+  </div>
+</body>
+</html>
+"""
+
+
+def _hash_reset_token(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 # Rate limiter será criado e injetado do app principal
 limiter = None
@@ -359,6 +421,113 @@ async def get_current_user_profile(
 class UserUpdate(BaseModel):
     name: Optional[str] = None
     email: Optional[str] = None
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
+    @validator("new_password")
+    def validate_password(cls, v):
+        if not v or len(v) < 8:
+            raise ValueError("Senha deve ter pelo menos 8 caracteres")
+        if len(v) > 128:
+            raise ValueError("Senha deve ter no máximo 128 caracteres")
+        return v
+
+
+@router.post("/forgot-password")
+async def forgot_password(
+    body: ForgotPasswordRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Envia e-mail com link para redefinir senha (se o e-mail existir).
+    Resposta sempre igual por segurança (não revela se o e-mail está cadastrado).
+    Requer RESEND_API_KEY ou SMTP configurado para envio real.
+    """
+    logger.info("forgot-password chamado", extra={"email": str(body.email)})
+
+    email_lower = body.email.lower().strip()
+    user = db.query(User).filter(User.email == email_lower).first()
+
+    logger.info(
+        "forgot-password status",
+        extra={
+            "email": email_lower,
+            "user_found": bool(user),
+            "user_active": bool(user.is_active) if user else False,
+            "email_configured": is_email_configured(),
+        },
+    )
+
+    if user and user.is_active and is_email_configured():
+        raw_token = secrets.token_urlsafe(32)
+        token_hash = _hash_reset_token(raw_token)
+        expires_at = datetime.utcnow() + timedelta(minutes=PASSWORD_RESET_EXPIRE_MINUTES)
+        reset_record = PasswordResetToken(
+            user_id=user.id,
+            token_hash=token_hash,
+            expires_at=expires_at,
+        )
+        db.add(reset_record)
+        db.commit()
+
+        send_password_reset_email(
+            to_email=user.email,
+            reset_token=raw_token,
+            name=user.name,
+        )
+
+    return {"message": "Se o e-mail estiver cadastrado, você receberá as instruções em instantes."}
+
+
+@router.post("/reset-password")
+async def reset_password(
+    body: ResetPasswordRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Redefine a senha usando o token recebido por e-mail. Token é de uso único.
+    """
+    token_hash = _hash_reset_token(body.token.strip())
+    now = datetime.utcnow()
+
+    record = (
+        db.query(PasswordResetToken)
+        .filter(
+            PasswordResetToken.token_hash == token_hash,
+            PasswordResetToken.used_at.is_(None),
+            PasswordResetToken.expires_at > now,
+        )
+        .first()
+    )
+
+    if not record:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Link inválido ou expirado. Solicite uma nova redefinição de senha.",
+        )
+
+    user = db.query(User).filter(User.id == record.user_id).first()
+    if not user or not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Link inválido ou expirado.",
+        )
+
+    user.hashed_password = get_password_hash(body.new_password)
+    record.used_at = now
+    db.add(user)
+    db.add(record)
+    db.commit()
+
+    return {"message": "Senha alterada com sucesso. Faça login com a nova senha."}
+
 
 @router.put("/me", response_model=UserResponse)
 async def update_profile(

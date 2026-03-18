@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useFinancialStore } from "@/stores/financial-store";
 import {
   Card,
@@ -46,37 +46,47 @@ export default function Reports() {
   const [selectedPeriod, setSelectedPeriod] = useState("6");
   const [isExporting, setIsExporting] = useState(false);
 
-  // Análises de dados
-  const totalTransactions = transactions.length;
-  const totalIncome = transactions
-    .filter((t) => t.type === "income")
-    .reduce((sum, t) => sum + t.amount, 0);
-  const totalExpenses = transactions
-    .filter((t) => t.type === "expense")
-    .reduce((sum, t) => sum + Math.abs(t.amount), 0);
-  const netBalance = totalIncome - totalExpenses;
+  // Análises de dados (memoizado para evitar recálculo a cada render)
+  const reportSummary = useMemo(() => {
+    const totalIncome = transactions
+      .filter((t) => t.type === "income")
+      .reduce((sum, t) => sum + t.amount, 0);
+    const totalExpenses = transactions
+      .filter((t) => t.type === "expense")
+      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    const categoryExpenses = categories
+      .filter((c) => c.type === "expense")
+      .map((category) => {
+        const categoryTransactions = transactions.filter(
+          (t) => t.category === category.id && t.type === "expense",
+        );
+        const total = categoryTransactions.reduce(
+          (sum, t) => sum + Math.abs(t.amount),
+          0,
+        );
+        return {
+          name: category.name,
+          value: total,
+          color: category.color,
+        };
+      })
+      .filter((item) => item.value > 0)
+      .sort((a, b) => b.value - a.value);
+
+    return {
+      totalTransactions: transactions.length,
+      totalIncome,
+      totalExpenses,
+      netBalance: totalIncome - totalExpenses,
+      categoryExpenses,
+    };
+  }, [transactions, categories]);
+
+  const { totalTransactions, totalIncome, totalExpenses, netBalance, categoryExpenses } =
+    reportSummary;
 
   // Dados para gráficos
   const cashflowData = getCashflow(parseInt(selectedPeriod));
-
-  const categoryExpenses = categories
-    .filter((c) => c.type === "expense")
-    .map((category) => {
-      const categoryTransactions = transactions.filter(
-        (t) => t.category === category.id && t.type === "expense",
-      );
-      const total = categoryTransactions.reduce(
-        (sum, t) => sum + Math.abs(t.amount),
-        0,
-      );
-      return {
-        name: category.name,
-        value: total,
-        color: category.color,
-      };
-    })
-    .filter((item) => item.value > 0)
-    .sort((a, b) => b.value - a.value);
 
   const handleExportReport = async () => {
     setIsExporting(true);
@@ -140,14 +150,14 @@ export default function Reports() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Relatórios</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Relatórios</h1>
           <p className="text-muted-foreground">
             Análises detalhadas e exportações dos seus dados financeiros
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="h-9 w-40">
               <SelectValue placeholder="Período" />
             </SelectTrigger>
             <SelectContent>
@@ -161,6 +171,7 @@ export default function Reports() {
             loading={isExporting}
             loadingText="Exportando..."
             onClick={handleExportReport}
+            size="sm"
           >
             Exportar Relatório
           </ActionButton>
@@ -348,13 +359,12 @@ export default function Reports() {
                   Legenda
                 </h4>
                 {categoryExpenses.slice(0, 6).map((entry, index) => {
+                  const total = categoryExpenses.reduce(
+                    (sum, item) => sum + (item.value ?? 0),
+                    0,
+                  );
                   const percentage = (
-                    (entry.value /
-                      categoryExpenses.reduce(
-                        (sum, item) => sum + item.value,
-                        0,
-                      )) *
-                    100
+                    ((entry.value ?? 0) / (total || 1)) * 100
                   ).toFixed(1);
                   return (
                     <div key={index} className="flex items-center gap-3">
@@ -411,7 +421,7 @@ export default function Reports() {
                     {formatCurrency(category.value)}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {((category.value / totalExpenses) * 100).toFixed(1)}% do
+                    {(((category.value ?? 0) / (totalExpenses || 1)) * 100).toFixed(1)}% do
                     total
                   </div>
                 </div>

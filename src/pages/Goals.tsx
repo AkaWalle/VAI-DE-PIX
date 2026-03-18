@@ -1,4 +1,5 @@
 import { useFinancialStore } from "@/stores/financial-store";
+import { useSyncStore } from "@/stores/sync-store";
 import { goalsService } from "@/services/goals.service";
 import {
   Card,
@@ -34,11 +35,13 @@ export default function Goals() {
     try {
       await goalsService.deleteGoal(goalId);
       deleteGoal(goalId);
+      useSyncStore.getState().setSynced();
       toast({
         title: "Meta removida!",
         description: `A meta "${goalName}" foi removida com sucesso.`,
       });
     } catch {
+      useSyncStore.getState().setError("Não foi possível remover a meta.");
       toast({
         title: "Erro ao remover meta",
         description: "Não foi possível remover a meta. Tente novamente.",
@@ -115,7 +118,7 @@ export default function Goals() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
             Metas Financeiras
           </h1>
           <p className="text-muted-foreground">
@@ -210,10 +213,10 @@ export default function Goals() {
           {goals.map((goal) => {
             const statusConfig = getStatusConfig(goal.status);
             const StatusIcon = statusConfig.icon;
-            const progressPercentage = Math.min(
-              (goal.currentAmount / goal.targetAmount) * 100,
-              100,
-            );
+            const target = goal.targetAmount ?? 0;
+            const current = goal.currentAmount ?? 0;
+            const progressPercentage =
+              target > 0 ? Math.min((current / target) * 100, 100) : 0;
             const remaining = Math.max(
               goal.targetAmount - goal.currentAmount,
               0,
@@ -247,7 +250,7 @@ export default function Goals() {
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Progresso</span>
                       <span className="font-medium">
-                        {progressPercentage.toFixed(1)}%
+                        {(progressPercentage ?? 0).toFixed(1)}%
                       </span>
                     </div>
                     <Progress value={progressPercentage} className="h-2" />
@@ -284,12 +287,12 @@ export default function Goals() {
                   )}
 
                   {/* Actions */}
-                  <div className="flex gap-2 pt-2">
+                  <div className="flex flex-wrap items-center gap-2 pt-2">
                     <ActionButton
                       variant="outline"
                       size="sm"
                       icon={Edit}
-                      className="flex-1"
+                className="flex-1 sm:flex-initial"
                     >
                       Editar
                     </ActionButton>
@@ -299,7 +302,6 @@ export default function Goals() {
                         <ActionButton
                           variant="outline"
                           size="sm"
-                          className="px-2"
                         >
                           <Trash2 className="h-4 w-4" />
                         </ActionButton>

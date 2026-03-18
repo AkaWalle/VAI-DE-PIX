@@ -17,8 +17,6 @@ import {
   waitForRefreshResultFromOtherTab,
 } from "./cross-tab-refresh-coordinator";
 
-const LOCK_LOG_PREFIX = "[RefreshLock]";
-
 let refreshPromise: Promise<boolean> | null = null;
 
 /**
@@ -34,16 +32,9 @@ export async function runRefreshWithLock(): Promise<boolean> {
   // Cross-tab: se outra aba já tem o lock, aguardamos o resultado (sem UI freeze; async).
   if (typeof window !== "undefined" && !tryAcquireCrossTabLock()) {
     const result = await waitForRefreshResultFromOtherTab();
-    if (import.meta.env.DEV) {
-      console.log(`${LOCK_LOG_PREFIX} REFRESH_WAITED_OTHER_TAB`, result);
-    }
     return result;
   }
 
-  if (typeof window !== "undefined") {
-    console.log(`${LOCK_LOG_PREFIX} REFRESH_LOCK_ACQUIRED`);
-    console.log(`${LOCK_LOG_PREFIX} TOKEN_REFRESH_START`);
-  }
   broadcastRefreshStarted();
   incrementRefreshCalls();
 
@@ -57,9 +48,6 @@ export async function runRefreshWithLock(): Promise<boolean> {
   refreshPromise = (async () => {
     try {
       refreshResult = await refreshAccessTokenInternal();
-      if (typeof window !== "undefined") {
-        console.log(`${LOCK_LOG_PREFIX} TOKEN_REFRESH_${refreshResult ? "SUCCESS" : "FAIL"}`);
-      }
       return refreshResult;
     } finally {
       broadcastRefreshDone(refreshResult);
@@ -68,9 +56,6 @@ export async function runRefreshWithLock(): Promise<boolean> {
         (window as unknown as { __REFRESH_LOCK_STATE__?: { hasActiveRefresh: boolean } }).__REFRESH_LOCK_STATE__ = {
           hasActiveRefresh: false,
         };
-      }
-      if (typeof window !== "undefined") {
-        console.log(`${LOCK_LOG_PREFIX} REFRESH_LOCK_RELEASED`);
       }
       refreshPromise = null;
     }
