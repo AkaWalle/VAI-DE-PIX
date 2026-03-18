@@ -67,15 +67,17 @@ export default function Envelopes() {
       await envelopesService.addValueToEnvelope(transferToId, transferAmountCents);
       transferBetweenEnvelopes(transferFromId, transferToId, transferAmountCents);
       useSyncStore.getState().setSynced();
+      const fromName = envelopes.find((e) => e.id === transferFromId)?.name ?? "origem";
+      const toName = envelopes.find((e) => e.id === transferToId)?.name ?? "destino";
       toast({
-        title: "Transferência feita!",
-        description: `${formatCurrencyFromCents(transferAmountCents)} transferido.`,
+        title: "Transferência entre caixinhas feita!",
+        description: `${formatCurrencyFromCents(transferAmountCents)} de "${fromName}" para "${toName}".`,
       });
       setTransferAmountCents(0);
     } catch {
       useSyncStore.getState().setError("Não foi possível sincronizar a transferência.");
       toast({
-        title: "Erro na transferência",
+        title: "Erro ao transferir entre caixinhas",
         description: "Verifique sua conexão e tente novamente.",
         variant: "destructive",
       });
@@ -121,7 +123,7 @@ export default function Envelopes() {
             icon={ArrowLeftRight}
             size="sm"
           >
-            Transferir
+            Transferir entre caixinhas
           </ActionButton>
           <EnvelopeForm />
         </>
@@ -348,10 +350,10 @@ export default function Envelopes() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <ArrowLeftRight className="h-5 w-5 text-primary" />
-              Transferências Rápidas
+              Transferir entre caixinhas
             </CardTitle>
             <CardDescription>
-              Mova valores entre suas caixinhas facilmente
+              Mova valores entre suas caixinhas (não é transferência bancária)
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -400,7 +402,7 @@ export default function Envelopes() {
                 onClick={handleTransfer}
                 size="sm"
               >
-                Transferir
+                Transferir entre caixinhas
               </ActionButton>
             </div>
           </CardContent>
