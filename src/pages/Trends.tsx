@@ -23,6 +23,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  Legend,
   ResponsiveContainer,
   AreaChart,
   Area,
@@ -310,6 +311,15 @@ export default function Trends() {
                     formatCurrency(value, { abbreviated: true })
                   }
                 />
+                <Legend
+                  verticalAlign="top"
+                  align="left"
+                  iconType="plainline"
+                  formatter={(value) =>
+                    value === "income" ? "Receitas" : value === "expense" ? "Despesas" : value
+                  }
+                  wrapperStyle={{ paddingBottom: 8 }}
+                />
                 <Tooltip
                   formatter={(value, name) => [
                     formatCurrency(Number(value) || 0),
@@ -321,6 +331,8 @@ export default function Trends() {
                   dataKey="income"
                   stroke="hsl(var(--income))"
                   strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 4 }}
                   name="income"
                 />
                 <Line
@@ -328,6 +340,9 @@ export default function Trends() {
                   dataKey="expense"
                   stroke="hsl(var(--expense))"
                   strokeWidth={2}
+                  strokeDasharray="6 4"
+                  dot={false}
+                  activeDot={{ r: 4 }}
                   name="expense"
                 />
               </LineChart>

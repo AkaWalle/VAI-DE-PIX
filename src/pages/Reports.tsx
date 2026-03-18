@@ -33,6 +33,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  Legend,
   ResponsiveContainer,
   PieChart as RechartsPieChart,
   Pie,
@@ -270,6 +271,15 @@ export default function Reports() {
                   tickFormatter={(value) =>
                     formatCurrency(value, { abbreviated: true })
                   }
+                />
+                <Legend
+                  verticalAlign="top"
+                  align="left"
+                  iconType="plainline"
+                  formatter={(value) =>
+                    value === "income" ? "Receitas" : value === "expense" ? "Despesas" : value
+                  }
+                  wrapperStyle={{ paddingBottom: 8 }}
                 />
                 <Tooltip
                   formatter={(value, name) => [
