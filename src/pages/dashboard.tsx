@@ -35,6 +35,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { TransactionForm } from "@/components/forms/TransactionForm";
 import { BankImportDialog } from "@/components/forms/BankImportDialog";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { InsightsRow } from "@/components/dashboard/InsightsRow";
 import {
   AreaChart,
   Area,
@@ -611,6 +612,14 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Insights proativos */}
+      <InsightsRow
+        monthlyIncome={monthlyIncome}
+        monthlyExpenses={monthlyExpenses}
+        categoryData={categoryData}
+        goalProgress={goalProgress}
+      />
 
       {/* Goals and Recent Activity */}
       <div className="grid gap-3 sm:gap-6 lg:grid-cols-3">
