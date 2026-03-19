@@ -44,7 +44,7 @@ export function IconPicker({ value, onChange, label }: IconPickerProps) {
     <Button
       type="button"
       variant="outline"
-      className="h-11 w-20 p-0 border hover:border-primary/50 transition-colors"
+      className="h-11 w-20 p-0 border hover:border-[rgba(200,255,0,0.30)] transition-colors"
       title="Selecionar ícone"
     >
       <span className="text-2xl">{value || "😀"}</span>
@@ -68,8 +68,8 @@ export function IconPicker({ value, onChange, label }: IconPickerProps) {
               w-10 h-10 rounded-lg flex items-center justify-center text-xl
               transition-all duration-150
               ${value === icon
-                ? "bg-primary/10 border-2 border-primary"
-                : "border border-border hover:border-primary/50 hover:bg-accent"
+                ? "bg-[rgba(200,255,0,0.08)] border-2 border-[#c8ff00]"
+                : "border border-border hover:border-[rgba(200,255,0,0.30)] hover:bg-accent"
               }
             `}
             title={icon}

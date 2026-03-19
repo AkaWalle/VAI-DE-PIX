@@ -899,9 +899,9 @@ export default function Transactions() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-primary/10 border-primary/20">
+        <Card className="bg-[rgba(200,255,0,0.06)] border-[rgba(200,255,0,0.15)]">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-primary">
+            <CardTitle className="text-sm font-medium text-[#c8ff00]">
               Saldo Líquido
             </CardTitle>
           </CardHeader>
@@ -949,7 +949,7 @@ export default function Transactions() {
                   key={transaction.id}
                   className={
                     selectedTransactions.has(transaction.id)
-                      ? "border-primary/40 bg-primary/5"
+                      ? "border-[rgba(200,255,0,0.25)] bg-[rgba(200,255,0,0.04)]"
                       : ""
                   }
                 >

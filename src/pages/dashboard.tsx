@@ -232,7 +232,7 @@ export default function Dashboard() {
 
       {/* Banner: notificações de insights não lidas */}
       {unreadInsightCount > 0 && (
-        <Alert className="border-primary/50 bg-primary/5">
+        <Alert className="border-[rgba(200,255,0,0.30)] bg-[rgba(200,255,0,0.04)]">
           <Lightbulb className="h-4 w-4" />
           <AlertTitle>Novos insights para você</AlertTitle>
           <AlertDescription>
@@ -288,7 +288,7 @@ export default function Dashboard() {
             <Card className="bg-gradient-card shadow-card-custom">
               <CardHeader className="p-3 sm:p-6">
                 <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                  <Lightbulb className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                  <Lightbulb className="h-4 w-4 sm:h-5 sm:w-5 text-[#c8ff00]" />
                   Variação por categoria
                 </CardTitle>
                 <CardDescription className="text-xs sm:text-sm">Este mês vs mês anterior (despesas). Explicável e sem IA opaca.</CardDescription>
@@ -340,7 +340,7 @@ export default function Dashboard() {
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-medium">{item.goal_name}</span>
                       {index === 0 && (
-                        <span className="rounded bg-primary/15 px-1.5 py-0.5 text-xs font-medium text-primary">
+                        <span className="rounded bg-[rgba(200,255,0,0.10)] px-1.5 py-0.5 text-xs font-medium text-[#c8ff00]">
                           Maior impacto
                         </span>
                       )}
@@ -401,7 +401,7 @@ export default function Dashboard() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                  <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                  <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-[#c8ff00]" />
                   Fluxo de Caixa
                 </CardTitle>
                 <CardDescription className="text-xs sm:text-sm">
@@ -531,9 +531,9 @@ export default function Dashboard() {
               </ResponsiveContainer>
               </div>
               <div className="mt-3 flex items-center gap-4 text-xs">
-                <span className="flex items-center gap-1.5 text-primary font-mono text-[9px] uppercase tracking-[0.05em]">
+                <span className="flex items-center gap-1.5 text-[#c8ff00] font-mono text-[9px] uppercase tracking-[0.05em]">
                   <span
-                    className="h-2.5 w-2.5 shrink-0 rounded-sm bg-primary"
+                    className="h-2.5 w-2.5 shrink-0 rounded-sm bg-[#c8ff00]"
                     aria-hidden
                   />
                   Receitas ↑
@@ -555,7 +555,7 @@ export default function Dashboard() {
         <Card className="bg-gradient-card shadow-card-custom">
           <CardHeader className="p-3 sm:p-6">
             <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-              <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+              <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-[#c8ff00]" />
               Gastos por Categoria
             </CardTitle>
             <CardDescription className="text-xs sm:text-sm">Distribuição dos gastos deste mês</CardDescription>

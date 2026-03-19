@@ -304,7 +304,7 @@ export default function Trends() {
         <Card className="bg-gradient-card shadow-card-custom">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-primary" />
+              <TrendingUp className="h-5 w-5 text-[#c8ff00]" />
               Evolução - 6 Meses
             </CardTitle>
             <CardDescription>Tendência de receitas e despesas</CardDescription>
@@ -389,7 +389,7 @@ export default function Trends() {
         <Card className="bg-gradient-card shadow-card-custom">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-primary" />
+              <Calendar className="h-5 w-5 text-[#c8ff00]" />
               Visão Anual - 12 Meses
             </CardTitle>
             <CardDescription>Panorama completo do ano</CardDescription>
@@ -523,10 +523,10 @@ export default function Trends() {
       </Card>
 
       {/* Predictions */}
-      <Card className="bg-gradient-card shadow-card-custom border-primary/20">
+      <Card className="bg-gradient-card shadow-card-custom border-[rgba(200,255,0,0.15)]">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Zap className="h-5 w-5 text-primary" />
+            <Zap className="h-5 w-5 text-[#c8ff00]" />
             Previsões para Próximo Mês
           </CardTitle>
           <CardDescription>

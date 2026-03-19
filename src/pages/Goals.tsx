@@ -66,9 +66,9 @@ export default function Goals() {
       case "on_track":
         return {
           icon: TrendingUp,
-          color: "text-primary",
-          bgColor: "bg-primary/10",
-          borderColor: "border-primary/20",
+          color: "text-[#c8ff00]",
+          bgColor: "bg-[rgba(200,255,0,0.08)]",
+          borderColor: "border-[rgba(200,255,0,0.15)]",
           label: "No ritmo",
           variant: "default" as const,
         };
@@ -168,9 +168,9 @@ export default function Goals() {
           </CardContent>
         </Card>
 
-        <Card className="bg-primary/5 border-primary/20">
+        <Card className="bg-[rgba(200,255,0,0.04)] border-[rgba(200,255,0,0.15)]">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-primary">
+            <CardTitle className="text-sm font-medium text-[#c8ff00]">
               No Ritmo
             </CardTitle>
           </CardHeader>

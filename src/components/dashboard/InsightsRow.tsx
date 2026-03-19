@@ -121,7 +121,7 @@ export function InsightsRow({
                 <div
                   className={cn(
                     "flex h-8 w-8 shrink-0 items-center justify-center rounded-md",
-                    "bg-primary/15 text-primary",
+                    "bg-[rgba(200,255,0,0.10)] text-[#c8ff00]",
                   )}
                 >
                   <Icon className={INSIGHT_ICON_CLASS} />
