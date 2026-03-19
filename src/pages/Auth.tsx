@@ -16,7 +16,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Loader2,
-  CircleDollarSign,
   TrendingUp,
   Shield,
   Zap,
@@ -115,273 +114,430 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex">
-      {/* Left Panel - Branding */}
-      <div className="hidden lg:flex lg:flex-1 bg-gradient-primary text-primary-foreground pl-32 pr-16 py-12 flex-col justify-center relative overflow-hidden">
-        {/* Background Image - Porquinho com moedas */}
+    <div className="flex min-h-screen w-full bg-[#0a0a0a]">
+      {/* Painel esquerdo — apenas desktop */}
+      <div className="hidden md:flex md:flex-1 flex-col justify-between bg-[#0d0d0d] border-r border-white/[0.05] p-12 relative overflow-hidden">
+        {/* Glow decorativo superior esquerdo */}
         <div
-          className="absolute inset-0 bg-center bg-cover bg-no-repeat"
-          style={{
-            // Otimizado: WebP primeiro (menor tamanho), fallback para PNG
-            backgroundImage: "url('/piggy-bank-background.webp'), url('/piggy-bank-background.jpg.png')",
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            opacity: 0.9,
-          }}
-        />
-        {/* Gradient Overlay - Leve para destacar a imagem */}
-        <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 via-green-600/10 to-emerald-600/20" />
-        <div
-          className="absolute top-0 left-0 w-full h-full pointer-events-none"
+          className="absolute top-0 left-0 w-80 h-80 rounded-full pointer-events-none"
           style={{
             background:
-              "radial-gradient(circle at 30% 50%, rgba(200,255,0,0.04) 0%, transparent 60%)",
+              "radial-gradient(circle, rgba(200,255,0,0.04) 0%, transparent 70%)",
           }}
         />
 
-        <div className="max-w-lg space-y-8 relative z-10">
-          <div className="space-y-6">
-            <h2 className="text-2xl sm:text-4xl font-black leading-tight text-white drop-shadow-lg tracking-tight">
-              Domine suas finanças com inteligência
-            </h2>
-            <p className="text-xl sm:text-2xl text-white/95 drop-shadow-md font-medium leading-relaxed">
-              Sistema completo de gestão financeira pessoal com análises
-              inteligentes e automações.
-            </p>
-          </div>
+        {/* Glow decorativo inferior direito */}
+        <div
+          className="absolute bottom-0 right-0 w-60 h-60 rounded-full pointer-events-none"
+          style={{
+            background:
+              "radial-gradient(circle, rgba(200,255,0,0.02) 0%, transparent 70%)",
+          }}
+        />
 
-          <div className="space-y-6">
-            <div className="flex items-center gap-4">
-              <TrendingUp className="h-6 w-6 text-white drop-shadow-md flex-shrink-0" />
-              <span className="text-base sm:text-xl text-white drop-shadow-md font-medium">
-                Relatórios detalhados para decisões melhores
-              </span>
-            </div>
-            <div className="flex items-center gap-4">
-              <Shield className="h-6 w-6 text-white drop-shadow-md flex-shrink-0" />
-              <span className="text-base sm:text-xl text-white drop-shadow-md font-medium">
-                Dados 100% seguros e criptografados
-              </span>
-            </div>
-            <div className="flex items-center gap-4">
-              <Zap className="h-6 w-6 text-white drop-shadow-md flex-shrink-0" />
-              <span className="text-base sm:text-xl text-white drop-shadow-md font-medium">
-                Automação para ganhar tempo no dia a dia
-              </span>
-            </div>
+        <div className="relative z-10">
+          <Logo size="lg" />
+        </div>
+
+        <div className="relative z-10">
+          <h1
+            className="font-serif italic font-light text-white leading-tight mb-4"
+            style={{ fontSize: "36px", letterSpacing: "-0.5px" }}
+          >
+            Domine suas<br />
+            finanças com<br />
+            <span style={{ color: "#c8ff00" }}>inteligência</span>
+          </h1>
+
+          <p className="text-sm text-white/30 leading-relaxed mb-10 max-w-sm">
+            Sistema completo de gestão financeira pessoal com análises
+            inteligentes, metas e automações.
+          </p>
+
+          <div className="flex flex-col gap-3.5">
+            {[
+              "Relatórios detalhados para decisões melhores",
+              "Dados 100% seguros e criptografados",
+              "Automações para ganhar tempo no dia a dia",
+            ].map((feat) => (
+              <div key={feat} className="flex items-start gap-2.5">
+                <div
+                  className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-1"
+                  style={{ background: "#c8ff00" }}
+                />
+                <span
+                  className="font-mono text-white/40 uppercase"
+                  style={{
+                    fontSize: "11px",
+                    letterSpacing: "0.8px",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {feat}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
+
+        <p
+          className="relative z-10 font-mono text-white/15 uppercase"
+          style={{ fontSize: "9px", letterSpacing: "1px" }}
+        >
+          © 2026 vai de pix — controle financeiro
+        </p>
       </div>
 
-      {/* Right Panel - Auth Forms */}
-      <div className="flex-1 lg:flex-none lg:w-[500px] flex items-center justify-center p-8">
-        <div className="w-full max-w-md space-y-6">
-          {/* Logo */}
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-3 mb-4">
-              <CircleDollarSign className="h-10 w-10 text-primary" />
-              <Logo size="lg" />
-            </div>
-          </div>
-
+      {/* Painel direito — formulário */}
+      <div className="w-full md:w-[420px] flex-shrink-0 flex flex-col justify-center bg-[#0a0a0a] px-8 md:px-11 py-12">
+        <div className="w-full">
           <Tabs defaultValue="login" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Entrar</TabsTrigger>
-              <TabsTrigger value="register">Criar Conta</TabsTrigger>
+            <div className="mb-8">
+              {/* Logo no mobile (painel esquerdo não aparece) */}
+              <div className="mb-6 md:hidden">
+                <Logo size="md" />
+              </div>
+
+              <h2
+                className="font-serif italic font-normal text-white mb-1.5"
+                style={{ fontSize: "24px" }}
+              >
+                Bem-vindo de volta
+              </h2>
+              <p
+                className="font-mono text-white/25 uppercase"
+                style={{ fontSize: "10px", letterSpacing: "1.5px" }}
+              >
+                Entre com suas credenciais
+              </p>
+            </div>
+
+            <TabsList className="flex bg-white/[0.04] rounded-xl p-0.5 mb-7 border border-white/[0.06]">
+              <TabsTrigger
+                value="login"
+                className="flex-1 py-2.5 rounded-[10px] font-mono uppercase text-[#0a0a0a] font-medium data-[state=active]:bg-[#c8ff00] data-[state=active]:text-[#0a0a0a] data-[state=inactive]:text-white/30"
+                style={{ fontSize: "10px", letterSpacing: "1px" }}
+              >
+                Entrar
+              </TabsTrigger>
+              <TabsTrigger
+                value="register"
+                className="flex-1 py-2.5 rounded-[10px] font-mono uppercase text-white/30 data-[state=active]:bg-[#c8ff00] data-[state=active]:text-[#0a0a0a]"
+                style={{ fontSize: "10px", letterSpacing: "1px" }}
+              >
+                Criar conta
+              </TabsTrigger>
             </TabsList>
 
             {/* Login Tab */}
             <TabsContent value="login">
-              <Card>
-                <CardHeader className="space-y-2 text-center">
-                  <CardTitle className="text-2xl sm:text-3xl font-bold">
-                    Bem-vindo de volta
-                  </CardTitle>
-                  <CardDescription className="text-base">
-                    Entre com suas credenciais para acessar sua conta
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={handleLogin} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="login-email">Email</Label>
-                      <Input
-                        id="login-email"
-                        type="email"
-                        autoComplete="email"
-                        placeholder="seu@email.com"
-                        value={loginForm.email}
-                        onChange={(e) =>
-                          setLoginForm((prev) => ({
-                            ...prev,
-                            email: e.target.value,
-                          }))
-                        }
-                        disabled={isLoading}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="login-password">Senha</Label>
-                      <Input
-                        id="login-password"
-                        type="password"
-                        autoComplete="current-password"
-                        placeholder="••••••••"
-                        value={loginForm.password}
-                        onChange={(e) =>
-                          setLoginForm((prev) => ({
-                            ...prev,
-                            password: e.target.value,
-                          }))
-                        }
-                        disabled={isLoading}
-                      />
-                      <div className="flex justify-end pt-0.5">
-                        <Link
-                          to="/auth/forgot-password"
-                          className="text-sm text-primary hover:underline"
-                        >
-                          Esqueci minha senha
-                        </Link>
-                      </div>
-                    </div>
-
-                    {error && (
-                      <Alert variant="destructive">
-                        <AlertDescription>{error}</AlertDescription>
-                      </Alert>
-                    )}
-
-                    <Button
-                      type="submit"
-                      className="w-full"
-                      disabled={isLoading}
+              <form onSubmit={handleLogin}>
+                <div className="space-y-4">
+                  <div>
+                    <Label
+                      htmlFor="login-email"
+                      className="block font-mono uppercase text-white/30 mb-1.5"
+                      style={{ fontSize: "10px", letterSpacing: "1px" }}
                     >
-                      {isLoading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Entrando...
-                        </>
-                      ) : (
-                        "Entrar"
-                      )}
-                    </Button>
-                  </form>
-                </CardContent>
-              </Card>
+                      Email
+                    </Label>
+                    <Input
+                      id="login-email"
+                      type="email"
+                      autoComplete="email"
+                      placeholder="seu@email.com"
+                      value={loginForm.email}
+                      onChange={(e) =>
+                        setLoginForm((prev) => ({
+                          ...prev,
+                          email: e.target.value,
+                        }))
+                      }
+                      disabled={isLoading}
+                      className="w-full rounded-[10px] px-3.5 py-3 font-sans text-sm text-white placeholder-white/20 outline-none transition-colors"
+                      style={{
+                        background: "rgba(255,255,255,0.04)",
+                        border: "0.5px solid rgba(255,255,255,0.10)",
+                        fontSize: "13px",
+                      }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor =
+                          "rgba(200,255,0,0.35)";
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor =
+                          "rgba(255,255,255,0.10)";
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <Label
+                      htmlFor="login-password"
+                      className="block font-mono uppercase text-white/30 mb-1.5"
+                      style={{ fontSize: "10px", letterSpacing: "1px" }}
+                    >
+                      Senha
+                    </Label>
+                    <Input
+                      id="login-password"
+                      type="password"
+                      autoComplete="current-password"
+                      placeholder="••••••••"
+                      value={loginForm.password}
+                      onChange={(e) =>
+                        setLoginForm((prev) => ({
+                          ...prev,
+                          password: e.target.value,
+                        }))
+                      }
+                      disabled={isLoading}
+                      className="w-full rounded-[10px] px-3.5 py-3 font-sans text-sm text-white placeholder-white/20 outline-none transition-colors"
+                      style={{
+                        background: "rgba(255,255,255,0.04)",
+                        border: "0.5px solid rgba(255,255,255,0.10)",
+                        fontSize: "13px",
+                      }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor =
+                          "rgba(200,255,0,0.35)";
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor =
+                          "rgba(255,255,255,0.10)";
+                      }}
+                    />
+                    <div className="text-right mt-1 mb-6">
+                      <Link
+                        to="/auth/forgot-password"
+                        className="font-mono uppercase"
+                        style={{
+                          fontSize: "10px",
+                          letterSpacing: "0.8px",
+                          color: "rgba(200,255,0,0.55)",
+                          textDecoration: "none",
+                        }}
+                      >
+                        Esqueci minha senha
+                      </Link>
+                    </div>
+                  </div>
+
+                  {error && (
+                    <Alert variant="destructive">
+                      <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                  )}
+
+                  <Button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full rounded-xl font-mono uppercase font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-opacity mb-4"
+                    style={{
+                      padding: "14px",
+                      background: "#c8ff00",
+                      border: "none",
+                      color: "#0a0a0a",
+                      fontSize: "11px",
+                      letterSpacing: "1px",
+                    }}
+                  >
+                    {isLoading ? "Carregando..." : "Entrar"}
+                  </Button>
+                </div>
+              </form>
             </TabsContent>
 
             {/* Register Tab */}
             <TabsContent value="register">
-              <Card>
-                <CardHeader className="space-y-2 text-center">
-                  <CardTitle className="text-2xl sm:text-3xl font-bold">
-                    Criar nova conta
-                  </CardTitle>
-                  <CardDescription className="text-base">
-                    Preencha os dados abaixo para criar sua conta
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={handleRegister} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="register-name">Nome completo</Label>
-                      <Input
-                        id="register-name"
-                        type="text"
-                        autoComplete="name"
-                        placeholder="Seu nome"
-                        value={registerForm.name}
-                        onChange={(e) =>
-                          setRegisterForm((prev) => ({
-                            ...prev,
-                            name: e.target.value,
-                          }))
-                        }
-                        disabled={isLoading}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="register-email">Email</Label>
-                      <Input
-                        id="register-email"
-                        type="email"
-                        autoComplete="email"
-                        placeholder="seu@email.com"
-                        value={registerForm.email}
-                        onChange={(e) =>
-                          setRegisterForm((prev) => ({
-                            ...prev,
-                            email: e.target.value,
-                          }))
-                        }
-                        disabled={isLoading}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="register-password">Senha</Label>
-                      <Input
-                        id="register-password"
-                        type="password"
-                        autoComplete="new-password"
-                        placeholder="••••••••"
-                        value={registerForm.password}
-                        onChange={(e) =>
-                          setRegisterForm((prev) => ({
-                            ...prev,
-                            password: e.target.value,
-                          }))
-                        }
-                        disabled={isLoading}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="register-confirm-password">
-                        Confirmar senha
-                      </Label>
-                      <Input
-                        id="register-confirm-password"
-                        type="password"
-                        autoComplete="new-password"
-                        placeholder="••••••••"
-                        value={registerForm.confirmPassword}
-                        onChange={(e) =>
-                          setRegisterForm((prev) => ({
-                            ...prev,
-                            confirmPassword: e.target.value,
-                          }))
-                        }
-                        disabled={isLoading}
-                      />
-                    </div>
-
-                    {error && (
-                      <Alert variant="destructive">
-                        <AlertDescription>{error}</AlertDescription>
-                      </Alert>
-                    )}
-
-                    <Button
-                      type="submit"
-                      className="w-full"
-                      disabled={isLoading}
+              <form onSubmit={handleRegister}>
+                <div className="space-y-4">
+                  <div>
+                    <Label
+                      htmlFor="register-name"
+                      className="block font-mono uppercase text-white/30 mb-1.5"
+                      style={{ fontSize: "10px", letterSpacing: "1px" }}
                     >
-                      {isLoading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Criando conta...
-                        </>
-                      ) : (
-                        "Criar conta"
-                      )}
-                    </Button>
-                  </form>
-                </CardContent>
-              </Card>
+                      Nome completo
+                    </Label>
+                    <Input
+                      id="register-name"
+                      type="text"
+                      autoComplete="name"
+                      placeholder="Seu nome"
+                      value={registerForm.name}
+                      onChange={(e) =>
+                        setRegisterForm((prev) => ({
+                          ...prev,
+                          name: e.target.value,
+                        }))
+                      }
+                      disabled={isLoading}
+                      className="w-full rounded-[10px] px-3.5 py-3 font-sans text-sm text-white placeholder-white/20 outline-none transition-colors"
+                      style={{
+                        background: "rgba(255,255,255,0.04)",
+                        border: "0.5px solid rgba(255,255,255,0.10)",
+                        fontSize: "13px",
+                      }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor =
+                          "rgba(200,255,0,0.35)";
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor =
+                          "rgba(255,255,255,0.10)";
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <Label
+                      htmlFor="register-email"
+                      className="block font-mono uppercase text-white/30 mb-1.5"
+                      style={{ fontSize: "10px", letterSpacing: "1px" }}
+                    >
+                      Email
+                    </Label>
+                    <Input
+                      id="register-email"
+                      type="email"
+                      autoComplete="email"
+                      placeholder="seu@email.com"
+                      value={registerForm.email}
+                      onChange={(e) =>
+                        setRegisterForm((prev) => ({
+                          ...prev,
+                          email: e.target.value,
+                        }))
+                      }
+                      disabled={isLoading}
+                      className="w-full rounded-[10px] px-3.5 py-3 font-sans text-sm text-white placeholder-white/20 outline-none transition-colors"
+                      style={{
+                        background: "rgba(255,255,255,0.04)",
+                        border: "0.5px solid rgba(255,255,255,0.10)",
+                        fontSize: "13px",
+                      }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor =
+                          "rgba(200,255,0,0.35)";
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor =
+                          "rgba(255,255,255,0.10)";
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <Label
+                      htmlFor="register-password"
+                      className="block font-mono uppercase text-white/30 mb-1.5"
+                      style={{ fontSize: "10px", letterSpacing: "1px" }}
+                    >
+                      Senha
+                    </Label>
+                    <Input
+                      id="register-password"
+                      type="password"
+                      autoComplete="new-password"
+                      placeholder="••••••••"
+                      value={registerForm.password}
+                      onChange={(e) =>
+                        setRegisterForm((prev) => ({
+                          ...prev,
+                          password: e.target.value,
+                        }))
+                      }
+                      disabled={isLoading}
+                      className="w-full rounded-[10px] px-3.5 py-3 font-sans text-sm text-white placeholder-white/20 outline-none transition-colors"
+                      style={{
+                        background: "rgba(255,255,255,0.04)",
+                        border: "0.5px solid rgba(255,255,255,0.10)",
+                        fontSize: "13px",
+                      }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor =
+                          "rgba(200,255,0,0.35)";
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor =
+                          "rgba(255,255,255,0.10)";
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <Label
+                      htmlFor="register-confirm-password"
+                      className="block font-mono uppercase text-white/30 mb-1.5"
+                      style={{ fontSize: "10px", letterSpacing: "1px" }}
+                    >
+                      Confirmar senha
+                    </Label>
+                    <Input
+                      id="register-confirm-password"
+                      type="password"
+                      autoComplete="new-password"
+                      placeholder="••••••••"
+                      value={registerForm.confirmPassword}
+                      onChange={(e) =>
+                        setRegisterForm((prev) => ({
+                          ...prev,
+                          confirmPassword: e.target.value,
+                        }))
+                      }
+                      disabled={isLoading}
+                      className="w-full rounded-[10px] px-3.5 py-3 font-sans text-sm text-white placeholder-white/20 outline-none transition-colors"
+                      style={{
+                        background: "rgba(255,255,255,0.04)",
+                        border: "0.5px solid rgba(255,255,255,0.10)",
+                        fontSize: "13px",
+                      }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor =
+                          "rgba(200,255,0,0.35)";
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor =
+                          "rgba(255,255,255,0.10)";
+                      }}
+                    />
+                  </div>
+
+                  {error && (
+                    <Alert variant="destructive">
+                      <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                  )}
+
+                  <Button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full rounded-xl font-mono uppercase font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-opacity mb-4"
+                    style={{
+                      padding: "14px",
+                      background: "#c8ff00",
+                      border: "none",
+                      color: "#0a0a0a",
+                      fontSize: "11px",
+                      letterSpacing: "1px",
+                    }}
+                  >
+                    {isLoading ? "Carregando..." : "Criar conta"}
+                  </Button>
+                </div>
+              </form>
             </TabsContent>
           </Tabs>
 
-          <p className="text-center text-xs text-muted-foreground mt-4">
+          <p
+            className="text-center font-mono uppercase mt-5"
+            style={{
+              fontSize: "9px",
+              letterSpacing: "0.8px",
+              color: "rgba(255,255,255,0.18)",
+            }}
+          >
             VAI DE PIX é um organizador financeiro. Não realizamos transações bancárias.
           </p>
         </div>
