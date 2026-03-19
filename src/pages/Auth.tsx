@@ -131,6 +131,13 @@ export default function Auth() {
         />
         {/* Gradient Overlay - Leve para destacar a imagem */}
         <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 via-green-600/10 to-emerald-600/20" />
+        <div
+          className="absolute top-0 left-0 w-full h-full pointer-events-none"
+          style={{
+            background:
+              "radial-gradient(circle at 30% 50%, rgba(200,255,0,0.04) 0%, transparent 60%)",
+          }}
+        />
 
         <div className="max-w-lg space-y-8 relative z-10">
           <div className="space-y-6">
