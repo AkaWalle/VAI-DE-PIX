@@ -551,8 +551,8 @@ export function SharedExpenseForm({
                     key={participant.userId}
                     className="flex flex-col gap-3 rounded-lg border p-3 md:flex-row md:items-center"
                   >
-                    <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                      <span className="text-sm font-medium text-primary">
+                    <div className="w-8 h-8 bg-[rgba(200,255,0,0.08)] rounded-full flex items-center justify-center flex-shrink-0">
+                      <span className="text-sm font-medium text-[#c8ff00]">
                         {participant.userName.charAt(0).toUpperCase()}
                       </span>
                     </div>

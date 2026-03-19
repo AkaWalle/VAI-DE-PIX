@@ -191,7 +191,7 @@ export function EnvelopeForm({ trigger }: EnvelopeFormProps) {
                 flex items-center gap-2 p-2 rounded-md border transition-all
                 ${
                   formData.color === option.value
-                    ? "border-primary bg-primary/10"
+                    ? "border-[rgba(200,255,0,0.30)] bg-[rgba(200,255,0,0.08)]"
                     : "border-border hover:bg-accent"
                 }
               `}

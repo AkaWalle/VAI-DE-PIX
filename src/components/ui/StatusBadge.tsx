@@ -20,7 +20,7 @@ const statusStyles: Record<StatusBadgeStatus, string> = {
   error: "bg-destructive text-destructive-foreground border-destructive/40",
   pending: "bg-warning/10 text-warning border-warning/50",
   warning: "bg-amber-500/10 text-amber-500 border-amber-500/40",
-  info: "bg-primary/10 text-primary border-primary/40",
+  info: "bg-[rgba(200,255,0,0.08)] text-[#c8ff00] border-[rgba(200,255,0,0.25)]",
 };
 
 const defaultLabels: Record<StatusBadgeStatus, string> = {

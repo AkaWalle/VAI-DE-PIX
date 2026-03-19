@@ -119,7 +119,7 @@ export function NotificationBell() {
             >
               <div className="flex gap-2">
                 {!n.read_at && (
-                  <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
+                  <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[#c8ff00]" />
                 )}
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium leading-tight">{n.title}</p>

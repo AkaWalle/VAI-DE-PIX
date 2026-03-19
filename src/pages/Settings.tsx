@@ -427,7 +427,7 @@ export default function Settings() {
                 type="button"
                 className={`w-8 h-8 rounded-full border-2 ${
                   newCategory.color === color
-                    ? "border-primary"
+                    ? "border-[rgba(200,255,0,0.30)]"
                     : "border-transparent"
                 }`}
                 style={{ backgroundColor: color }}
@@ -474,7 +474,7 @@ export default function Settings() {
       <Card className="bg-gradient-card shadow-card-custom">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5 text-primary" />
+            <User className="h-5 w-5 text-[#c8ff00]" />
             Perfil do Usuário
           </CardTitle>
           <CardDescription>Atualize suas informações pessoais</CardDescription>
@@ -524,7 +524,7 @@ export default function Settings() {
         <Card className="bg-gradient-card shadow-card-custom">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Lightbulb className="h-5 w-5 text-primary" />
+            <Lightbulb className="h-5 w-5 text-[#c8ff00]" />
               Insights no Dashboard
             </CardTitle>
             <CardDescription>
@@ -571,7 +571,7 @@ export default function Settings() {
       <Card className="bg-gradient-card shadow-card-custom">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Palette className="h-5 w-5 text-primary" />
+            <Palette className="h-5 w-5 text-[#c8ff00]" />
             Aparência
           </CardTitle>
           <CardDescription>Personalize a aparência do sistema</CardDescription>
@@ -602,7 +602,7 @@ export default function Settings() {
       <Card className="bg-gradient-card shadow-card-custom">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Database className="h-5 w-5 text-primary" />
+            <Database className="h-5 w-5 text-[#c8ff00]" />
             Gerenciar Contas
           </CardTitle>
           <CardDescription>
@@ -705,7 +705,7 @@ export default function Settings() {
       <Card className="bg-gradient-card shadow-card-custom">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Database className="h-5 w-5 text-primary" />
+            <Database className="h-5 w-5 text-[#c8ff00]" />
             Gerenciar Categorias
           </CardTitle>
           <CardDescription>
@@ -781,7 +781,7 @@ export default function Settings() {
       <Card className="bg-gradient-card shadow-card-custom">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5 text-primary" />
+            <Shield className="h-5 w-5 text-[#c8ff00]" />
             Dados e Segurança
           </CardTitle>
           <CardDescription>

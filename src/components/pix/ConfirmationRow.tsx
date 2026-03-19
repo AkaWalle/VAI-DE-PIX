@@ -29,7 +29,7 @@ export const ConfirmationRow: React.FC<ConfirmationRowProps> = ({
       <span
         className={cn(
           "text-xs sm:text-sm text-right break-words max-w-[65%]",
-          highlight && "text-primary font-semibold text-base sm:text-lg",
+          highlight && "text-[#c8ff00] font-semibold text-base sm:text-lg",
         )}
       >
         {value}

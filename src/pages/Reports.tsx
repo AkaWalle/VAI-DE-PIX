@@ -236,10 +236,10 @@ export default function Reports() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-card shadow-card-custom border-primary/20">
+        <Card className="bg-gradient-card shadow-card-custom border-[rgba(200,255,0,0.15)]">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <DollarSign className="h-4 w-4 text-primary" />
+              <DollarSign className="h-4 w-4 text-[#c8ff00]" />
               Saldo Líquido
             </CardTitle>
           </CardHeader>
@@ -262,7 +262,7 @@ export default function Reports() {
         <Card className="bg-gradient-card shadow-card-custom">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-primary" />
+              <BarChart3 className="h-5 w-5 text-[#c8ff00]" />
               Fluxo de Caixa - {selectedPeriod} meses
             </CardTitle>
             <CardDescription>
@@ -372,7 +372,7 @@ export default function Reports() {
         <Card className="bg-gradient-card shadow-card-custom">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <PieChart className="h-5 w-5 text-primary" />
+              <PieChart className="h-5 w-5 text-[#c8ff00]" />
               Despesas por Categoria
             </CardTitle>
             <CardDescription>

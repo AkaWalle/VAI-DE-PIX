@@ -67,7 +67,7 @@ export default function ResetPassword() {
         <div className="w-full max-w-md space-y-6">
           <div className="text-center">
             <div className="flex items-center justify-center gap-3 mb-4">
-              <CircleDollarSign className="h-10 w-10 text-primary" />
+              <CircleDollarSign className="h-10 w-10 text-[#c8ff00]" />
               <h1 className="text-2xl sm:text-3xl font-extrabold tracking-wide">
                 VAI DE PIX
               </h1>

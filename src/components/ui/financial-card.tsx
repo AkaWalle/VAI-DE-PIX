@@ -38,7 +38,7 @@ export function FinancialCard({
       case "expense":
         return "border-expense/20 bg-expense/5";
       case "balance":
-        return "border-primary/20 bg-gradient-card";
+        return "border-[rgba(200,255,0,0.15)] bg-gradient-card";
       default:
         return "bg-gradient-card";
     }
@@ -51,7 +51,7 @@ export function FinancialCard({
       case "expense":
         return "text-expense";
       case "balance":
-        return "text-primary";
+        return "text-[#c8ff00]";
       default:
         return "text-muted-foreground";
     }

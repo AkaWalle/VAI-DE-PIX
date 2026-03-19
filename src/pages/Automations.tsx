@@ -1330,10 +1330,10 @@ export default function Automations() {
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-4">
                       <div
-                        className={`p-2 rounded-lg ${rule.isActive ? "bg-primary/10" : "bg-muted/50"}`}
+                        className={`p-2 rounded-lg ${rule.isActive ? "bg-[rgba(200,255,0,0.08)]" : "bg-muted/50"}`}
                       >
                         <Icon
-                          className={`h-5 w-5 ${rule.isActive ? "text-primary" : "text-muted-foreground"}`}
+                          className={`h-5 w-5 ${rule.isActive ? "text-[#c8ff00]" : "text-muted-foreground"}`}
                         />
                       </div>
 

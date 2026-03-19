@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>VAI-DE-PIX — UX Review (Mobile 390×844)</title>
+    <script src="https://mcp.figma.com/mcp/html-to-design/capture.js" async></script>
+    <style>
+      :root {
+        --bg: #0b1020;
+        --panel: #0f1730;
+        --text: #e5e7eb;
+        --muted: #94a3b8;
+        --stroke: rgba(148, 163, 184, 0.22);
+        --gap: 40px;
+        --frame-w: 390px;
+        --frame-h: 844px;
+        --note: #0b2a15;
+        --note-stroke: rgba(34, 197, 94, 0.5);
+        --note-text: #bbf7d0;
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        padding: 28px;
+        background: radial-gradient(1200px 900px at 20% 0%, rgba(34, 197, 94, 0.12), transparent 60%),
+          radial-gradient(900px 700px at 80% 20%, rgba(59, 130, 246, 0.10), transparent 55%),
+          var(--bg);
+        color: var(--text);
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      }
+
+      header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 18px;
+      }
+      h1 {
+        font-size: 18px;
+        margin: 0;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .meta {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .grid {
+        display: grid;
+        grid-auto-flow: column;
+        grid-auto-columns: min-content;
+        gap: var(--gap);
+        align-items: start;
+        overflow-x: auto;
+        padding-bottom: 18px;
+      }
+
+      .card {
+        width: var(--frame-w);
+      }
+
+      .title {
+        font-size: 14px;
+        font-weight: 700;
+        margin: 0 0 10px;
+        color: #f8fafc;
+      }
+
+      .ux-note {
+        border: 1px solid var(--note-stroke);
+        background: linear-gradient(180deg, rgba(34, 197, 94, 0.12), rgba(34, 197, 94, 0.05));
+        color: var(--note-text);
+        font-size: 12px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        margin: 0 0 10px;
+      }
+
+      .frame {
+        width: var(--frame-w);
+        height: var(--frame-h);
+        border-radius: 16px;
+        border: 1px solid var(--stroke);
+        background: var(--panel);
+        overflow: hidden;
+        position: relative;
+        box-shadow: 0 18px 60px rgba(0,0,0,0.35);
+      }
+      .frame::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, rgba(255,255,255,0.06), transparent 18%);
+        pointer-events: none;
+      }
+      .frame img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+
+      .notes {
+        margin-top: 12px;
+        border: 1px dashed rgba(148, 163, 184, 0.35);
+        border-radius: 14px;
+        padding: 12px;
+        color: var(--muted);
+        min-height: 92px;
+      }
+      .notes h3 {
+        margin: 0 0 8px;
+        font-size: 12px;
+        color: #cbd5e1;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .notes p {
+        margin: 0;
+        font-size: 12px;
+        line-height: 1.5;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>VAI-DE-PIX — UX Review</h1>
+      <div class="meta">Mobile • 390×844 • Ordem 01→12 • Gap 40px</div>
+    </header>
+
+    <section class="grid">
+      <article class="card">
+        <h2 class="title">01 — Dashboard</h2>
+        <div class="ux-note">[ ] UX Review pendente</div>
+        <div class="frame"><img alt="Dashboard (mobile)" src="/docs/screenshots-prod/01-dashboard-mobile.png" /></div>
+        <div class="notes"><h3>Anotações</h3><p>—</p></div>
+      </article>
+
+      <article class="card">
+        <h2 class="title">02 — Transações</h2>
+        <div class="ux-note">[ ] UX Review pendente</div>
+        <div class="frame"><img alt="Transações (mobile)" src="/docs/screenshots-prod/02-transactions-mobile.png" /></div>
+        <div class="notes"><h3>Anotações</h3><p>—</p></div>
+      </article>
+
+      <article class="card">
+        <h2 class="title">03 — Metas</h2>
+        <div class="ux-note">[ ] UX Review pendente</div>
+        <div class="frame"><img alt="Metas (mobile)" src="/docs/screenshots-prod/03-goals-mobile.png" /></div>
+        <div class="notes"><h3>Anotações</h3><p>—</p></div>
+      </article>
+
+      <article class="card">
+        <h2 class="title">04 — Caixinhas</h2>
+        <div class="ux-note">[ ] UX Review pendente</div>
+        <div class="frame"><img alt="Caixinhas (mobile)" src="/docs/screenshots-prod/04-envelopes-mobile.png" /></div>
+        <div class="notes"><h3>Anotações</h3><p>—</p></div>
+      </article>
+
+      <article class="card">
+        <h2 class="title">05 — Despesas Compartilhadas</h2>
+        <div class="ux-note">[ ] UX Review pendente</div>
+        <div class="frame"><img alt="Despesas compartilhadas (mobile)" src="/docs/screenshots-prod/05-shared-expenses-mobile.png" /></div>
+        <div class="notes"><h3>Anotações</h3><p>—</p></div>
+      </article>
+
+      <article class="card">
+        <h2 class="title">06 — Pendências</h2>
+        <div class="ux-note">[ ] UX Review pendente</div>
+        <div class="frame"><img alt="Pendências (mobile)" src="/docs/screenshots-prod/06-pending-mobile.png" /></div>
+        <div class="notes"><h3>Anotações</h3><p>—</p></div>
+      </article>
+
+      <article class="card">
+        <h2 class="title">07 — Feed de Atividade</h2>
+        <div class="ux-note">[ ] UX Review pendente</div>
+        <div class="frame"><img alt="Feed de atividade (mobile)" src="/docs/screenshots-prod/07-activity-feed-mobile.png" /></div>
+        <div class="notes"><h3>Anotações</h3><p>—</p></div>
+      </article>
+
+      <article class="card">
+        <h2 class="title">08 — Relatórios</h2>
+        <div class="ux-note">[ ] UX Review pendente</div>
+        <div class="frame"><img alt="Relatórios (mobile)" src="/docs/screenshots-prod/08-reports-mobile.png" /></div>
+        <div class="notes"><h3>Anotações</h3><p>—</p></div>
+      </article>
+
+      <article class="card">
+        <h2 class="title">09 — Tendências</h2>
+        <div class="ux-note">[ ] UX Review pendente</div>
+        <div class="frame"><img alt="Tendências (mobile)" src="/docs/screenshots-prod/09-trends-mobile.png" /></div>
+        <div class="notes"><h3>Anotações</h3><p>—</p></div>
+      </article>
+
+      <article class="card">
+        <h2 class="title">10 — Automações</h2>
+        <div class="ux-note">[ ] UX Review pendente</div>
+        <div class="frame"><img alt="Automações (mobile)" src="/docs/screenshots-prod/10-automations-mobile.png" /></div>
+        <div class="notes"><h3>Anotações</h3><p>—</p></div>
+      </article>
+
+      <article class="card">
+        <h2 class="title">11 — Configurações</h2>
+        <div class="ux-note">[ ] UX Review pendente</div>
+        <div class="frame"><img alt="Configurações (mobile)" src="/docs/screenshots-prod/11-settings-mobile.png" /></div>
+        <div class="notes"><h3>Anotações</h3><p>—</p></div>
+      </article>
+    </section>
+  </body>
+</html>
+
