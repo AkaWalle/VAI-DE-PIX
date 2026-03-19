@@ -1,4 +1,5 @@
 import { useMemo, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useFinancialStore } from "@/stores/financial-store";
 import { FinancialCard } from "@/components/ui/financial-card";
 import {
@@ -10,14 +11,13 @@ import {
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { formatCurrency } from "@/utils/format";
+import { GoalCard } from "@/components/GoalCard";
+import { SectionLabel } from "@/components/SectionLabel";
 import {
   TrendingUp,
   TrendingDown,
   Wallet,
-  Target,
   CreditCard,
-  ArrowUpRight,
-  ArrowDownRight,
   PiggyBank,
   Lightbulb,
   AlertTriangle,
@@ -61,6 +61,7 @@ const COLORS = [
 ];
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const {
     getTotalBalance,
     getIncomeThisMonth,
@@ -669,53 +670,26 @@ export default function Dashboard() {
         {/* Goals Progress */}
         <Card className="lg:col-span-2 bg-gradient-card shadow-card-custom">
           <CardHeader className="p-3 sm:p-6">
-            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-              <Target className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-              Progresso das Metas
-            </CardTitle>
-            <CardDescription className="text-xs sm:text-sm">Acompanhe o progresso dos seus objetivos</CardDescription>
+            <SectionLabel
+              number="02"
+              label="Metas em construção"
+              action={{ text: "Ver todas", onClick: () => navigate("/goals") }}
+            />
           </CardHeader>
-          <CardContent className="p-3 sm:p-6 pt-0 space-y-4">
-            {goalProgress.map((goal) => (
-              <div key={goal.id} className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="font-medium">{goal.name}</span>
-                  <span className="text-muted-foreground">
-                    {formatCurrency(goal.currentAmount)} /{" "}
-                    {formatCurrency(goal.targetAmount)}
-                  </span>
+          <CardContent className="p-3 sm:p-6 pt-0">
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide md:grid md:grid-cols-3">
+              {goalProgress.slice(0, 3).map((goal) => (
+                <div key={goal.id} className="min-w-[260px] md:min-w-0">
+                  <GoalCard
+                    name={goal.name}
+                    currentAmount={goal.currentAmount}
+                    targetAmount={goal.targetAmount}
+                    dueDate={goal.dueDate}
+                    status={goal.status}
+                  />
                 </div>
-                <Progress value={goal.progressPercentage} className="h-2" />
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>{(goal.progressPercentage ?? 0).toFixed(1)}% concluído</span>
-                  <span
-                    className={`flex items-center gap-1 ${
-                      goal.status === "on_track"
-                        ? "text-success"
-                        : goal.status === "at_risk"
-                          ? "text-warning"
-                          : goal.status === "achieved"
-                            ? "text-success"
-                            : "text-destructive"
-                    }`}
-                  >
-                    {goal.status === "on_track" && (
-                      <ArrowUpRight className="h-3 w-3" />
-                    )}
-                    {goal.status === "at_risk" && (
-                      <ArrowDownRight className="h-3 w-3" />
-                    )}
-                    {goal.status === "on_track"
-                      ? "No ritmo"
-                      : goal.status === "at_risk"
-                        ? "Em risco"
-                        : goal.status === "achieved"
-                          ? "Atingida"
-                          : "Atrasada"}
-                  </span>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </CardContent>
         </Card>
 
