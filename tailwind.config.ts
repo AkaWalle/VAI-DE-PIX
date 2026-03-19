@@ -78,7 +78,15 @@ export default {
 				expense: {
 					DEFAULT: 'hsl(var(--expense))',
 					foreground: 'hsl(var(--expense-foreground))'
-				}
+				},
+
+				'neon-green': '#c8ff00',
+				'neon-green-subtle': 'rgba(200, 255, 0, 0.08)',
+				'neon-green-border': 'rgba(200, 255, 0, 0.15)',
+			},
+			fontFamily: {
+				serif: ['Playfair Display', 'Georgia', 'serif'],
+				mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
 			},
 			backgroundImage: {
 				'gradient-primary': 'var(--gradient-primary)',

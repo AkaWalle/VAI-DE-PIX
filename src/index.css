@@ -96,6 +96,12 @@
     /* Transitions */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-bounce: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+    /* === VAI DE PIX — Nova identidade === */
+    --neon-green: #c8ff00;
+    --neon-green-subtle: rgba(200, 255, 0, 0.08);
+    --neon-green-border: rgba(200, 255, 0, 0.15);
+    --neon-green-glow: rgba(200, 255, 0, 0.04);
   }
 
   .light {
@@ -154,6 +160,13 @@
       hsl(240 4.8% 95.9%)
     );
     --shadow-card: 0 4px 12px -2px hsl(240 10% 3.9% / 0.1);
+  }
+
+  .dark {
+    --neon-green: #c8ff00;
+    --neon-green-subtle: rgba(200, 255, 0, 0.08);
+    --neon-green-border: rgba(200, 255, 0, 0.15);
+    --neon-green-glow: rgba(200, 255, 0, 0.04);
   }
 }
 
