@@ -125,8 +125,8 @@ export function AppSidebar() {
       "w-full transition-colors",
       collapsed ? "justify-center" : "justify-start",
       isActive(path)
-        ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-        : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground",
+        ? "bg-[rgba(200,255,0,0.08)] border border-[rgba(200,255,0,0.12)] text-[#c8ff00] font-medium"
+        : "text-sidebar-foreground opacity-40 hover:opacity-70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground",
     );
 
   return (
@@ -162,7 +162,11 @@ export function AppSidebar() {
 
       <SidebarContent className={collapsed ? "px-0" : ""}>
         <SidebarGroup>
-          {!collapsed && <SidebarGroupLabel>Principal</SidebarGroupLabel>}
+          {!collapsed && (
+            <SidebarGroupLabel className="font-mono text-[9px] uppercase tracking-[0.15em] text-white/20">
+              Principal
+            </SidebarGroupLabel>
+          )}
           <SidebarGroupContent>
             <SidebarMenu
               className={collapsed ? "flex flex-col items-center" : ""}
@@ -185,7 +189,12 @@ export function AppSidebar() {
                       className={getNavClassName(item.url)}
                       title={item.description}
                     >
-                      <item.icon className="h-4 w-4" />
+                      <item.icon
+                        className={cn(
+                          "h-4 w-4",
+                          isActive(item.url) ? "text-[#c8ff00]" : "",
+                        )}
+                      />
                       {!collapsed && <span>{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
@@ -196,7 +205,11 @@ export function AppSidebar() {
         </SidebarGroup>
 
         <SidebarGroup>
-          {!collapsed && <SidebarGroupLabel>Análises</SidebarGroupLabel>}
+          {!collapsed && (
+            <SidebarGroupLabel className="font-mono text-[9px] uppercase tracking-[0.15em] text-white/20">
+              Análises
+            </SidebarGroupLabel>
+          )}
           <SidebarGroupContent>
             <SidebarMenu
               className={collapsed ? "flex flex-col items-center" : ""}
@@ -218,7 +231,12 @@ export function AppSidebar() {
                       className={getNavClassName(item.url)}
                       title={item.description}
                     >
-                      <item.icon className="h-4 w-4" />
+                      <item.icon
+                        className={cn(
+                          "h-4 w-4",
+                          isActive(item.url) ? "text-[#c8ff00]" : "",
+                        )}
+                      />
                       {!collapsed && <span>{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
@@ -229,7 +247,11 @@ export function AppSidebar() {
         </SidebarGroup>
 
         <SidebarGroup>
-          {!collapsed && <SidebarGroupLabel>Sistema</SidebarGroupLabel>}
+          {!collapsed && (
+            <SidebarGroupLabel className="font-mono text-[9px] uppercase tracking-[0.15em] text-white/20">
+              Sistema
+            </SidebarGroupLabel>
+          )}
           <SidebarGroupContent>
             <SidebarMenu
               className={collapsed ? "flex flex-col items-center" : ""}
@@ -251,7 +273,12 @@ export function AppSidebar() {
                       className={getNavClassName(item.url)}
                       title={item.description}
                     >
-                      <item.icon className="h-4 w-4" />
+                      <item.icon
+                        className={cn(
+                          "h-4 w-4",
+                          isActive(item.url) ? "text-[#c8ff00]" : "",
+                        )}
+                      />
                       {!collapsed && <span>{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
@@ -275,7 +302,7 @@ export function AppSidebar() {
           )}
         >
           <Avatar className="h-8 w-8">
-            <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+            <AvatarFallback className="bg-[#c8ff00] text-[#0a0a0a] text-sm">
               {user?.name
                 .split(" ")
                 .map((n) => n[0])
