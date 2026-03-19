@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Logo } from "@/components/Logo";
 
 const mainNavItems = [
   {
@@ -150,10 +151,8 @@ export function AppSidebar() {
           </div>
           {!collapsed && (
             <div className="flex flex-col">
-              <h1 className="text-lg font-bold text-sidebar-foreground">
-                VAI DE PIX
-              </h1>
-              <p className="text-xs text-sidebar-foreground/60">
+              <Logo size="md" />
+              <p className="font-mono text-xs uppercase tracking-widest text-white/20">
                 Controle Financeiro
               </p>
             </div>
