@@ -22,6 +22,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Logo } from "@/components/Logo";
 
 export default function Auth() {
   const { login, register, isLoading, user } = useAuthStore();
@@ -172,9 +173,7 @@ export default function Auth() {
           <div className="text-center">
             <div className="flex items-center justify-center gap-3 mb-4">
               <CircleDollarSign className="h-10 w-10 text-primary" />
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-wide">
-                VAI DE PIX
-              </h1>
+              <Logo size="lg" />
             </div>
           </div>
 

@@ -11,6 +11,7 @@ import { useLoadData } from "@/hooks/use-load-data";
 import { NotificationBell } from "@/components/NotificationBell";
 import { SyncIndicator } from "@/components/SyncIndicator";
 import { useSyncStore } from "@/stores/sync-store";
+import { Logo } from "@/components/Logo";
 
 function ThemeToggle() {
   const { theme, setTheme } = useTheme();
@@ -61,9 +62,7 @@ export function MainLayout() {
                     <SidebarTrigger className="-ml-1" />
                     <div className="h-4 w-px bg-border flex-shrink-0" />
                   </div>
-                  <h2 className="text-lg font-semibold text-foreground truncate">
-                    VAI DE PIX
-                  </h2>
+                  <Logo size="md" />
                 </div>
 
                 <div className="flex items-center gap-2 flex-shrink-0">
