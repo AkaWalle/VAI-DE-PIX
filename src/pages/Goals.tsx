@@ -7,12 +7,13 @@ import { ActionButton } from "@/components/ui/action-button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { GoalForm } from "@/components/forms/GoalForm";
 import { AddGoalValueForm } from "@/components/forms/AddGoalValueForm";
-import { formatDate } from "@/utils/format";
+import { formatCurrency, formatDate } from "@/utils/format";
 import { useToast } from "@/hooks/use-toast";
 import { GoalCard } from "@/components/GoalCard";
 import { SectionLabel } from "@/components/SectionLabel";
 import {
   Plus,
+  Target,
   TrendingUp,
   AlertTriangle,
   CheckCircle,
