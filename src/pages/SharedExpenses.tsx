@@ -374,7 +374,7 @@ export default function SharedExpenses() {
                     </div>
                     <div className="w-full bg-muted rounded-full h-1.5 sm:h-2">
                       <div
-                        className="bg-primary h-1.5 sm:h-2 rounded-full transition-all duration-300"
+                        className="bg-[#c8ff00] h-1.5 sm:h-2 rounded-full transition-all duration-300"
                         style={{ width: `${totalAmount ? (totalPaid / totalAmount) * 100 : 0}%` }}
                       />
                     </div>
@@ -406,8 +406,8 @@ export default function SharedExpenses() {
                           className="flex items-center gap-2 p-2 sm:p-3 border rounded-lg w-full min-w-0"
                         >
                           <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-                            <div className="w-6 h-6 sm:w-8 sm:h-8 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
-                              <span className="text-xs sm:text-sm font-medium text-primary">
+                            <div className="w-6 h-6 sm:w-8 sm:h-8 bg-[rgba(200,255,0,0.08)] rounded-full flex items-center justify-center shrink-0">
+                              <span className="text-xs sm:text-sm font-medium text-[#c8ff00]">
                                 {participant.userName.charAt(0).toUpperCase()}
                               </span>
                             </div>

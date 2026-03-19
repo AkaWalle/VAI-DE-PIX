@@ -77,7 +77,7 @@ export const PixKeyCard: React.FC<PixKeyCardProps> = ({
       )}
     >
       <CardContent className="flex items-center gap-3 p-4">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[rgba(200,255,0,0.08)] text-[#c8ff00]">
           <Icon className="h-5 w-5" />
         </div>
 
