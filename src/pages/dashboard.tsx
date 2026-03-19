@@ -415,10 +415,10 @@ export default function Dashboard() {
                     type="button"
                     onClick={() => setCashflowPeriod(p)}
                     className={cn(
-                      "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                      "rounded-md px-2.5 py-1 transition-colors font-mono text-[9px] uppercase tracking-[0.05em]",
                       cashflowPeriod === p
-                        ? "border border-primary/20 bg-primary/15 text-primary"
-                        : "border border-white/[0.08] bg-white/5 text-muted-foreground hover:text-foreground",
+                        ? "bg-[rgba(200,255,0,0.10)] text-[#c8ff00] border border-[rgba(200,255,0,0.18)]"
+                        : "bg-white/[0.04] text-white/25 border border-white/[0.07] hover:text-foreground",
                     )}
                   >
                     {p === "all" ? "Tudo" : p === 6 ? "6M" : "1A"}
@@ -531,14 +531,14 @@ export default function Dashboard() {
               </ResponsiveContainer>
               </div>
               <div className="mt-3 flex items-center gap-4 text-xs">
-                <span className="flex items-center gap-1.5 text-primary">
+                <span className="flex items-center gap-1.5 text-primary font-mono text-[9px] uppercase tracking-[0.05em]">
                   <span
                     className="h-2.5 w-2.5 shrink-0 rounded-sm bg-primary"
                     aria-hidden
                   />
                   Receitas ↑
                 </span>
-                <span className="flex items-center gap-1.5 text-expense">
+                <span className="flex items-center gap-1.5 text-expense font-mono text-[9px] uppercase tracking-[0.05em]">
                   <span
                     className="h-2.5 w-2.5 shrink-0 rounded-sm bg-expense"
                     aria-hidden
@@ -724,7 +724,7 @@ export default function Dashboard() {
                   <div
                     className={`text-sm font-medium ${
                       transaction.type === "income"
-                        ? "text-success"
+                        ? "text-neon-green"
                         : "text-expense"
                     }`}
                   >

@@ -59,7 +59,9 @@ export function FinancialCard({
 
   const getTrendClasses = () => {
     if (!trend) return "";
-    return trend.direction === "up" ? "text-income" : "text-expense";
+    return trend.direction === "up"
+      ? "bg-[rgba(200,255,0,0.08)] text-[#c8ff00] border border-[rgba(200,255,0,0.15)]"
+      : "bg-destructive/10 text-destructive border border-destructive/20";
   };
 
   return (
@@ -71,13 +73,13 @@ export function FinancialCard({
       )}
     >
       <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-6 pb-2">
-        <CardTitle className="text-xs sm:text-sm font-medium text-card-foreground/80">
+        <CardTitle className="font-mono text-[10px] uppercase tracking-[0.1em] text-white/35">
           {title}
         </CardTitle>
         {Icon && <Icon className={cn("h-4 w-4 sm:h-5 sm:w-5 shrink-0", getIconClasses())} strokeWidth={2} />}
       </CardHeader>
       <CardContent className="p-3 sm:p-6 pt-0">
-        <div className="text-lg sm:text-2xl font-bold text-card-foreground">
+        <div className="text-lg sm:text-2xl text-card-foreground font-serif italic font-normal">
           {value != null && typeof value === "number"
             ? value.toLocaleString("pt-BR")
             : value ?? "—"}
@@ -85,14 +87,14 @@ export function FinancialCard({
         {(description || trend) && (
           <div className="flex items-center justify-between mt-2">
             {description && (
-              <CardDescription className="text-xs sm:text-sm">
+              <CardDescription className="font-mono text-[9px] uppercase tracking-[0.05em] text-white/25">
                 {description}
               </CardDescription>
             )}
             {trend && (
               <div
                 className={cn(
-                  "flex items-center text-xs font-medium",
+                  "flex items-center text-xs font-medium rounded-md px-2 py-1 font-mono text-[9px] uppercase tracking-[0.05em]",
                   getTrendClasses(),
                 )}
               >
