@@ -58,6 +58,11 @@ export function BottomNav() {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
 
+  const isNavActive = (to: string) => {
+    if (to === "/") return location.pathname === "/";
+    return location.pathname === to || location.pathname.startsWith(to + "/");
+  };
+
   const isMoreActive = moreMenuSections.some((section) =>
     section.items.some((item) => {
       if (item.to === "/") return location.pathname === "/";
@@ -98,19 +103,28 @@ export function BottomNav() {
               key={to}
               to={to}
               end={to === "/"}
-              className={({ isActive }) =>
-                cn(
-                  "flex flex-col items-center justify-center gap-0.5 px-2 py-2 min-h-[56px] touch-manipulation text-muted-foreground transition-colors",
-                  isActive
-                    ? "text-primary bg-primary/5"
-                    : "hover:text-foreground active:bg-muted/50"
-                )
-              }
+              className={cn(
+                "flex flex-col items-center justify-center gap-0.5 px-2 py-2 min-h-[56px] touch-manipulation transition-colors",
+                isNavActive(to)
+                  ? "text-[#c8ff00] bg-[rgba(200,255,0,0.06)]"
+                  : "text-white/25 hover:text-foreground active:bg-muted/50",
+              )}
             >
-              <Icon className="h-5 w-5 shrink-0" strokeWidth={2} aria-hidden />
-              <span className="text-[10px] font-medium leading-tight truncate max-w-[72px]">
+              <Icon
+                className="h-5 w-5 shrink-0"
+                strokeWidth={2}
+                aria-hidden
+                style={isNavActive(to) ? { color: "#c8ff00" } : undefined}
+              />
+              <span className="font-mono text-[9px] uppercase tracking-[0.05em] leading-tight truncate max-w-[72px]">
                 {label}
               </span>
+              {isNavActive(to) && (
+                <span
+                  className="w-1 h-1 rounded-full bg-[#c8ff00] mx-auto mt-0.5"
+                  aria-hidden="true"
+                />
+              )}
             </NavLink>
           ))}
 
@@ -119,15 +133,28 @@ export function BottomNav() {
             type="button"
             onClick={() => setMoreOpen(true)}
             className={cn(
-              "flex flex-col items-center justify-center gap-0.5 px-2 py-2 min-h-[56px] touch-manipulation text-muted-foreground transition-colors",
+              "flex flex-col items-center justify-center gap-0.5 px-2 py-2 min-h-[56px] touch-manipulation transition-colors",
               isMoreActive
-                ? "text-primary bg-primary/5"
-                : "hover:text-foreground active:bg-muted/50"
+                ? "text-[#c8ff00] bg-[rgba(200,255,0,0.06)]"
+                : "text-white/25 hover:text-foreground active:bg-muted/50"
             )}
             aria-label="Abrir menu Mais"
           >
-            <Menu className="h-5 w-5 shrink-0" strokeWidth={2} aria-hidden />
-            <span className="text-[10px] font-medium leading-tight">Mais</span>
+            <Menu
+              className="h-5 w-5 shrink-0"
+              strokeWidth={2}
+              aria-hidden
+              style={isMoreActive ? { color: "#c8ff00" } : undefined}
+            />
+            <span className="font-mono text-[9px] uppercase tracking-[0.05em] leading-tight">
+              Mais
+            </span>
+            {isMoreActive && (
+              <span
+                className="w-1 h-1 rounded-full bg-[#c8ff00] mx-auto mt-0.5"
+                aria-hidden="true"
+              />
+            )}
           </button>
         </div>
       </nav>
@@ -141,8 +168,8 @@ export function BottomNav() {
           {/* Header: avatar + nome + email */}
           <div className="bg-muted/30 rounded-lg p-3 mb-2">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                <span className="text-sm font-semibold text-primary">
+              <div className="h-10 w-10 rounded-full bg-[#c8ff00] flex items-center justify-center shrink-0">
+                <span className="text-sm font-semibold text-[#0a0a0a]">
                   {userInitials}
                 </span>
               </div>
@@ -178,11 +205,16 @@ export function BottomNav() {
                         className={cn(
                           "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium min-h-[44px] touch-manipulation text-left transition-colors",
                           isActive
-                            ? "bg-primary/10 text-primary"
-                            : "hover:bg-accent"
+                            ? "bg-[rgba(200,255,0,0.08)] border border-[rgba(200,255,0,0.12)] text-[#c8ff00]"
+                            : "hover:bg-accent text-white/70"
                         )}
                       >
-                        <Icon className="h-5 w-5 shrink-0" strokeWidth={2} aria-hidden />
+                        <Icon
+                          className="h-5 w-5 shrink-0"
+                          strokeWidth={2}
+                          aria-hidden
+                          style={isActive ? { color: "#c8ff00" } : undefined}
+                        />
                         <span>{label}</span>
                       </button>
                     );
