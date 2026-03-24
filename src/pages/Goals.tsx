@@ -1,13 +1,7 @@
 import { useFinancialStore } from "@/stores/financial-store";
 import { useSyncStore } from "@/stores/sync-store";
 import { goalsService } from "@/services/goals.service";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ActionButton } from "@/components/ui/action-button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -15,6 +9,8 @@ import { GoalForm } from "@/components/forms/GoalForm";
 import { AddGoalValueForm } from "@/components/forms/AddGoalValueForm";
 import { formatCurrency, formatDate } from "@/utils/format";
 import { useToast } from "@/hooks/use-toast";
+import { GoalCard } from "@/components/GoalCard";
+import { SectionLabel } from "@/components/SectionLabel";
 import {
   Plus,
   Target,
@@ -30,6 +26,12 @@ import {
 export default function Goals() {
   const { goals, deleteGoal } = useFinancialStore();
   const { toast } = useToast();
+
+  const openGoalForm = () => {
+    if (typeof document === "undefined") return;
+    const el = document.getElementById("goalform-trigger");
+    if (el instanceof HTMLElement) el.click();
+  };
 
   const handleDeleteGoal = async (goalId: string, goalName: string) => {
     try {
@@ -64,9 +66,9 @@ export default function Goals() {
       case "on_track":
         return {
           icon: TrendingUp,
-          color: "text-primary",
-          bgColor: "bg-primary/10",
-          borderColor: "border-primary/20",
+          color: "text-[#c8ff00]",
+          bgColor: "bg-[rgba(200,255,0,0.08)]",
+          borderColor: "border-[rgba(200,255,0,0.15)]",
           label: "No ritmo",
           variant: "default" as const,
         };
@@ -125,7 +127,15 @@ export default function Goals() {
             Acompanhe e gerencie seus objetivos financeiros
           </p>
         </div>
-        <GoalForm />
+        <GoalForm
+          trigger={
+            <span id="goalform-trigger">
+              <ActionButton icon={CheckCircle} variant="default">
+                Nova Meta
+              </ActionButton>
+            </span>
+          }
+        />
       </div>
 
       {/* Summary Cards */}
@@ -158,9 +168,9 @@ export default function Goals() {
           </CardContent>
         </Card>
 
-        <Card className="bg-primary/5 border-primary/20">
+        <Card className="bg-[rgba(200,255,0,0.04)] border-[rgba(200,255,0,0.15)]">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-primary">
+            <CardTitle className="text-sm font-medium text-[#c8ff00]">
               No Ritmo
             </CardTitle>
           </CardHeader>
@@ -209,10 +219,16 @@ export default function Goals() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="space-y-3">
+          <SectionLabel
+            number="01"
+            label="Suas metas em construção"
+            action={{ text: "Nova meta", onClick: openGoalForm }}
+          />
+
+          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide md:grid md:grid-cols-2 lg:grid-cols-3">
           {goals.map((goal) => {
             const statusConfig = getStatusConfig(goal.status);
-            const StatusIcon = statusConfig.icon;
             const target = goal.targetAmount ?? 0;
             const current = goal.currentAmount ?? 0;
             const progressPercentage =
@@ -223,99 +239,62 @@ export default function Goals() {
             );
 
             return (
-              <Card
-                key={goal.id}
-                className={`${statusConfig.bgColor} ${statusConfig.borderColor} shadow-card-custom transition-all hover:shadow-financial`}
-              >
-                <CardHeader className="pb-4">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg font-semibold">
-                      {goal.name}
-                    </CardTitle>
-                    <StatusIcon className={`h-5 w-5 ${statusConfig.color}`} />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={statusConfig.variant} className="text-xs">
-                      {statusConfig.label}
-                    </Badge>
-                    <Badge variant="outline" className="text-xs">
-                      {getPeriodLabel(goal.period)}
-                    </Badge>
-                  </div>
-                </CardHeader>
+              <div key={goal.id} className="min-w-[260px] md:min-w-0">
+                <GoalCard
+                  name={goal.name}
+                  currentAmount={goal.currentAmount}
+                  targetAmount={goal.targetAmount}
+                  dueDate={goal.dueDate}
+                  status={goal.status}
+                />
 
-                <CardContent className="space-y-4">
-                  {/* Progress Bar */}
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Progresso</span>
-                      <span className="font-medium">
-                        {(progressPercentage ?? 0).toFixed(1)}%
-                      </span>
-                    </div>
-                    <Progress value={progressPercentage} className="h-2" />
-                  </div>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <Badge variant={statusConfig.variant} className="text-[10px]">
+                    {statusConfig.label}
+                  </Badge>
+                  <Badge variant="outline" className="text-[10px]">
+                    {getPeriodLabel(goal.period)}
+                  </Badge>
 
-                  {/* Values */}
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Atual:</span>
-                      <span className="font-medium">
-                        {formatCurrency(goal.currentAmount)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Meta:</span>
-                      <span className="font-medium">
-                        {formatCurrency(goal.targetAmount)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between border-t pt-2">
-                      <span className="text-muted-foreground">Restante:</span>
-                      <span className="font-semibold">
-                        {formatCurrency(remaining)}
-                      </span>
-                    </div>
-                  </div>
+                  <span className="ml-auto text-[10px] text-white/25 font-mono uppercase tracking-[0.05em]">
+                    {progressPercentage.toFixed(0)}% • restante{" "}
+                    {formatCurrency(remaining)}
+                  </span>
+                </div>
 
-                  {/* Due Date */}
-                  {goal.dueDate && (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2 border-t">
-                      <Calendar className="h-3 w-3" />
-                      <span>Prazo: {formatDate(goal.dueDate)}</span>
-                    </div>
-                  )}
-
-                  {/* Actions */}
-                  <div className="flex flex-wrap items-center gap-2 pt-2">
-                    <ActionButton
-                      variant="outline"
-                      size="sm"
-                      icon={Edit}
-                className="flex-1 sm:flex-initial"
-                    >
-                      Editar
-                    </ActionButton>
-                    <AddGoalValueForm goalId={goal.id} goalName={goal.name} />
-                    <ConfirmDialog
-                      trigger={
-                        <ActionButton
-                          variant="outline"
-                          size="sm"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </ActionButton>
-                      }
-                      title="Remover Meta"
-                      description={`Tem certeza que deseja remover a meta "${goal.name}"? Esta ação não pode ser desfeita.`}
-                      confirmText="Remover"
-                      onConfirm={() => handleDeleteGoal(goal.id, goal.name)}
-                    />
+                {goal.dueDate && (
+                  <div className="mt-1 flex items-center gap-2 text-[10px] text-white/20 font-mono uppercase tracking-[0.05em]">
+                    <Calendar className="h-3 w-3" />
+                    <span>Prazo: {formatDate(goal.dueDate)}</span>
                   </div>
-                </CardContent>
-              </Card>
+                )}
+
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <ActionButton
+                    variant="outline"
+                    size="sm"
+                    icon={Edit}
+                    className="flex-1 sm:flex-initial"
+                  >
+                    Editar
+                  </ActionButton>
+                  <AddGoalValueForm goalId={goal.id} goalName={goal.name} />
+                  <ConfirmDialog
+                    trigger={
+                      <ActionButton variant="outline" size="sm">
+                        <Trash2 className="h-4 w-4" />
+                      </ActionButton>
+                    }
+                    title="Remover Meta"
+                    description={`Tem certeza que deseja remover a meta "${goal.name}"? Esta ação não pode ser desfeita.`}
+                    confirmText="Remover"
+                    onConfirm={() => handleDeleteGoal(goal.id, goal.name)}
+                  />
+                </div>
+              </div>
             );
           })}
+          </div>
         </div>
       )}
     </div>

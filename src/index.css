@@ -18,8 +18,8 @@
     --popover-foreground: 0 0% 98%;
 
     /* Primary: Financial Green (Brazilian Real) */
-    --primary: 142 76% 36%;
-    --primary-foreground: 355.7 100% 97.3%;
+    --primary: 75 100% 50%;
+    --primary-foreground: 0 0% 4%;
 
     /* Secondary: Neutral Financial */
     --secondary: 240 3.7% 15.9%;
@@ -59,8 +59,8 @@
     /* Sidebar Colors */
     --sidebar-background: 240 10% 3.9%;
     --sidebar-foreground: 240 5% 75%;
-    --sidebar-primary: 142 76% 36%;
-    --sidebar-primary-foreground: 355.7 100% 97.3%;
+    --sidebar-primary: 75 100% 50%;
+    --sidebar-primary-foreground: 0 0% 4%;
     --sidebar-accent: 240 3.7% 15.9%;
     --sidebar-accent-foreground: 0 0% 98%;
     --sidebar-border: 240 3.7% 15.9%;
@@ -96,6 +96,12 @@
     /* Transitions */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-bounce: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+    /* === VAI DE PIX — Nova identidade === */
+    --neon-green: #c8ff00;
+    --neon-green-subtle: rgba(200, 255, 0, 0.08);
+    --neon-green-border: rgba(200, 255, 0, 0.15);
+    --neon-green-glow: rgba(200, 255, 0, 0.04);
   }
 
   .light {
@@ -108,8 +114,8 @@
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
 
-    --primary: 142 76% 36%;
-    --primary-foreground: 355.7 100% 97.3%;
+    --primary: 75 100% 50%;
+    --primary-foreground: 0 0% 4%;
 
     --secondary: 240 4.8% 95.9%;
     --secondary-foreground: 240 5.9% 10%;
@@ -141,8 +147,8 @@
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 142 76% 36%;
-    --sidebar-primary-foreground: 355.7 100% 97.3%;
+    --sidebar-primary: 75 100% 50%;
+    --sidebar-primary-foreground: 0 0% 4%;
     --sidebar-accent: 240 4.8% 95.9%;
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 240 5.9% 90%;
@@ -154,6 +160,13 @@
       hsl(240 4.8% 95.9%)
     );
     --shadow-card: 0 4px 12px -2px hsl(240 10% 3.9% / 0.1);
+  }
+
+  .dark {
+    --neon-green: #c8ff00;
+    --neon-green-subtle: rgba(200, 255, 0, 0.08);
+    --neon-green-border: rgba(200, 255, 0, 0.15);
+    --neon-green-glow: rgba(200, 255, 0, 0.04);
   }
 }
 

@@ -148,9 +148,9 @@ export default function Envelopes() {
           </CardContent>
         </Card>
 
-        <Card className="bg-primary/5 border-primary/20 shadow-card-custom p-3 sm:p-6 transition-all hover:shadow-financial">
+        <Card className="bg-[rgba(200,255,0,0.04)] border-[rgba(200,255,0,0.15)] shadow-card-custom p-3 sm:p-6 transition-all hover:shadow-financial">
           <CardHeader className="pb-2 p-0">
-            <CardTitle className="text-xs sm:text-sm font-medium text-primary">
+            <CardTitle className="text-xs sm:text-sm font-medium text-[#c8ff00]">
               Meta Total
             </CardTitle>
           </CardHeader>
@@ -349,7 +349,7 @@ export default function Envelopes() {
         <Card className="bg-gradient-card shadow-card-custom">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <ArrowLeftRight className="h-5 w-5 text-primary" />
+              <ArrowLeftRight className="h-5 w-5 text-[#c8ff00]" />
               Transferir entre caixinhas
             </CardTitle>
             <CardDescription>

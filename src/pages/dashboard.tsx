@@ -1,4 +1,5 @@
 import { useMemo, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useFinancialStore } from "@/stores/financial-store";
 import { FinancialCard } from "@/components/ui/financial-card";
 import {
@@ -10,14 +11,13 @@ import {
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { formatCurrency } from "@/utils/format";
+import { GoalCard } from "@/components/GoalCard";
+import { SectionLabel } from "@/components/SectionLabel";
 import {
   TrendingUp,
   TrendingDown,
   Wallet,
-  Target,
   CreditCard,
-  ArrowUpRight,
-  ArrowDownRight,
   PiggyBank,
   Lightbulb,
   AlertTriangle,
@@ -61,6 +61,7 @@ const COLORS = [
 ];
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const {
     getTotalBalance,
     getIncomeThisMonth,
@@ -231,7 +232,7 @@ export default function Dashboard() {
 
       {/* Banner: notificações de insights não lidas */}
       {unreadInsightCount > 0 && (
-        <Alert className="border-primary/50 bg-primary/5">
+        <Alert className="border-[rgba(200,255,0,0.30)] bg-[rgba(200,255,0,0.04)]">
           <Lightbulb className="h-4 w-4" />
           <AlertTitle>Novos insights para você</AlertTitle>
           <AlertDescription>
@@ -287,7 +288,7 @@ export default function Dashboard() {
             <Card className="bg-gradient-card shadow-card-custom">
               <CardHeader className="p-3 sm:p-6">
                 <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                  <Lightbulb className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                  <Lightbulb className="h-4 w-4 sm:h-5 sm:w-5 text-[#c8ff00]" />
                   Variação por categoria
                 </CardTitle>
                 <CardDescription className="text-xs sm:text-sm">Este mês vs mês anterior (despesas). Explicável e sem IA opaca.</CardDescription>
@@ -339,7 +340,7 @@ export default function Dashboard() {
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-medium">{item.goal_name}</span>
                       {index === 0 && (
-                        <span className="rounded bg-primary/15 px-1.5 py-0.5 text-xs font-medium text-primary">
+                        <span className="rounded bg-[rgba(200,255,0,0.10)] px-1.5 py-0.5 text-xs font-medium text-[#c8ff00]">
                           Maior impacto
                         </span>
                       )}
@@ -400,7 +401,7 @@ export default function Dashboard() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                  <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                  <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-[#c8ff00]" />
                   Fluxo de Caixa
                 </CardTitle>
                 <CardDescription className="text-xs sm:text-sm">
@@ -414,10 +415,10 @@ export default function Dashboard() {
                     type="button"
                     onClick={() => setCashflowPeriod(p)}
                     className={cn(
-                      "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                      "rounded-md px-2.5 py-1 transition-colors font-mono text-[9px] uppercase tracking-[0.05em]",
                       cashflowPeriod === p
-                        ? "border border-primary/20 bg-primary/15 text-primary"
-                        : "border border-white/[0.08] bg-white/5 text-muted-foreground hover:text-foreground",
+                        ? "bg-[rgba(200,255,0,0.10)] text-[#c8ff00] border border-[rgba(200,255,0,0.18)]"
+                        : "bg-white/[0.04] text-white/25 border border-white/[0.07] hover:text-foreground",
                     )}
                   >
                     {p === "all" ? "Tudo" : p === 6 ? "6M" : "1A"}
@@ -530,14 +531,14 @@ export default function Dashboard() {
               </ResponsiveContainer>
               </div>
               <div className="mt-3 flex items-center gap-4 text-xs">
-                <span className="flex items-center gap-1.5 text-primary">
+                <span className="flex items-center gap-1.5 text-[#c8ff00] font-mono text-[9px] uppercase tracking-[0.05em]">
                   <span
-                    className="h-2.5 w-2.5 shrink-0 rounded-sm bg-primary"
+                    className="h-2.5 w-2.5 shrink-0 rounded-sm bg-[#c8ff00]"
                     aria-hidden
                   />
                   Receitas ↑
                 </span>
-                <span className="flex items-center gap-1.5 text-expense">
+                <span className="flex items-center gap-1.5 text-expense font-mono text-[9px] uppercase tracking-[0.05em]">
                   <span
                     className="h-2.5 w-2.5 shrink-0 rounded-sm bg-expense"
                     aria-hidden
@@ -554,7 +555,7 @@ export default function Dashboard() {
         <Card className="bg-gradient-card shadow-card-custom">
           <CardHeader className="p-3 sm:p-6">
             <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-              <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+              <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-[#c8ff00]" />
               Gastos por Categoria
             </CardTitle>
             <CardDescription className="text-xs sm:text-sm">Distribuição dos gastos deste mês</CardDescription>
@@ -669,53 +670,26 @@ export default function Dashboard() {
         {/* Goals Progress */}
         <Card className="lg:col-span-2 bg-gradient-card shadow-card-custom">
           <CardHeader className="p-3 sm:p-6">
-            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-              <Target className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-              Progresso das Metas
-            </CardTitle>
-            <CardDescription className="text-xs sm:text-sm">Acompanhe o progresso dos seus objetivos</CardDescription>
+            <SectionLabel
+              number="02"
+              label="Metas em construção"
+              action={{ text: "Ver todas", onClick: () => navigate("/goals") }}
+            />
           </CardHeader>
-          <CardContent className="p-3 sm:p-6 pt-0 space-y-4">
-            {goalProgress.map((goal) => (
-              <div key={goal.id} className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="font-medium">{goal.name}</span>
-                  <span className="text-muted-foreground">
-                    {formatCurrency(goal.currentAmount)} /{" "}
-                    {formatCurrency(goal.targetAmount)}
-                  </span>
+          <CardContent className="p-3 sm:p-6 pt-0">
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide md:grid md:grid-cols-3">
+              {goalProgress.slice(0, 3).map((goal) => (
+                <div key={goal.id} className="min-w-[260px] md:min-w-0">
+                  <GoalCard
+                    name={goal.name}
+                    currentAmount={goal.currentAmount}
+                    targetAmount={goal.targetAmount}
+                    dueDate={goal.dueDate}
+                    status={goal.status}
+                  />
                 </div>
-                <Progress value={goal.progressPercentage} className="h-2" />
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>{(goal.progressPercentage ?? 0).toFixed(1)}% concluído</span>
-                  <span
-                    className={`flex items-center gap-1 ${
-                      goal.status === "on_track"
-                        ? "text-success"
-                        : goal.status === "at_risk"
-                          ? "text-warning"
-                          : goal.status === "achieved"
-                            ? "text-success"
-                            : "text-destructive"
-                    }`}
-                  >
-                    {goal.status === "on_track" && (
-                      <ArrowUpRight className="h-3 w-3" />
-                    )}
-                    {goal.status === "at_risk" && (
-                      <ArrowDownRight className="h-3 w-3" />
-                    )}
-                    {goal.status === "on_track"
-                      ? "No ritmo"
-                      : goal.status === "at_risk"
-                        ? "Em risco"
-                        : goal.status === "achieved"
-                          ? "Atingida"
-                          : "Atrasada"}
-                  </span>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </CardContent>
         </Card>
 
@@ -750,7 +724,7 @@ export default function Dashboard() {
                   <div
                     className={`text-sm font-medium ${
                       transaction.type === "income"
-                        ? "text-success"
+                        ? "text-neon-green"
                         : "text-expense"
                     }`}
                   >
