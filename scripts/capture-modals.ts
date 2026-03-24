@@ -33,7 +33,7 @@ async function main() {
     window.localStorage.setItem("vai-de-pix-token", t);
   }, token);
 
-  let page = await context.newPage();
+  const page = await context.newPage();
 
   // Mock API no context para persistir em todas as navegações
   await context.route(/auth\/me/, (route) =>

@@ -114,7 +114,8 @@ async function main() {
           try {
             if (t) localStorage.setItem("vai-de-pix-token", t);
             if (state) localStorage.setItem("vai-de-pix-auth", state);
-          } catch {}
+          } catch { // intentionally empty
+          }
         },
         [token, authState],
       );

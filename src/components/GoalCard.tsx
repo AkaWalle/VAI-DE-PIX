@@ -142,8 +142,7 @@ export function GoalCard({
 
       {/* Valor atual */}
       <p
-        className="font-serif italic text-[17px] font-normal mb-0.5"
-        style={{ color: "#c8ff00" }}
+        className="font-serif italic text-[17px] font-normal mb-0.5 text-[#c8ff00]"
       >
         {formatCurrency(currentAmount)}
       </p>
