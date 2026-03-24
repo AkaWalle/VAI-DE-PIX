@@ -22,7 +22,7 @@ export function Logo({ className, size = "md" }: LogoProps) {
     >
       <span className="text-white/90">vai</span>
       <span className="text-white/90 mx-1">de</span>
-      <span style={{ color: "#c8ff00" }}>pix</span>
+      <span className="text-[#c8ff00]">pix</span>
     </span>
   );
 }

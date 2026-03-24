@@ -23,14 +23,13 @@ export function SectionLabel({
         className,
       )}
     >
-      <span style={{ color: "#c8ff00" }}>{number}</span>
+      <span className="text-[#c8ff00]">{number}</span>
       <span>— {label}</span>
       <div className="flex-1 h-px bg-white/5" />
       {action && (
         <button
           onClick={action.onClick}
-          className="text-[10px] font-mono uppercase tracking-[0.5px] hover:opacity-80 transition-opacity"
-          style={{ color: "#c8ff00" }}
+          className="text-[10px] font-mono uppercase tracking-[0.5px] text-[#c8ff00] hover:opacity-80 transition-opacity"
         >
           {action.text} →
         </button>
