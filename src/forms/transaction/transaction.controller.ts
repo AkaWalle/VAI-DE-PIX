@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { useFinancialStore } from "@/stores/financial-store";
 import { useAuthStore } from "@/stores/auth-store-index";
 import { useToast } from "@/hooks/use-toast";
+import { toast as sonnerToast } from "sonner";
 import { useSyncStore } from "@/stores/sync-store";
 import {
   transactionsService,
@@ -198,11 +199,10 @@ export function useTransactionController() {
         tags: savedTransaction.tags || [],
       });
 
-      toast({
-        title: "Transação criada!",
+      sonnerToast.success("Transação salva", {
         description: form.sharedExpense.enabled
-          ? `Despesa compartilhada de ${formatCurrencyFromCents(amountCents)} adicionada. Aparece em Transações e em Despesas Compartilhadas.`
-          : `${form.type === "income" ? "Receita" : "Despesa"} de ${formatCurrencyFromCents(amountCents)} adicionada com sucesso.`,
+          ? `Despesa compartilhada de ${formatCurrencyFromCents(amountCents)}. Veja em Transações e Despesas compartilhadas.`
+          : `${form.type === "income" ? "Receita" : "Despesa"} de ${formatCurrencyFromCents(amountCents)} registrada.`,
       });
 
       if (form.type === "expense" && form.category) {

@@ -2,7 +2,8 @@
 # Todos os valores recebidos pela API devem estar em centavos (int).
 # Nenhum float é aceito na camada de entrada.
 from decimal import Decimal
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+import logging
+from fastapi import APIRouter, Depends, HTTPException, status, Query, File, UploadFile
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from typing import List, Optional
@@ -29,6 +30,10 @@ from services.round_up_service import apply_round_up_after_expense
 from core.amount_parser import serialize_money
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
+
+_MAX_BANK_IMPORT_BYTES = 5 * 1024 * 1024
+_ALLOWED_IMPORT_SUFFIXES = (".csv", ".txt")
 
 
 class TransactionDeleteBatch(BaseModel):
@@ -277,6 +282,54 @@ async def get_monthly_summary(
         "total_expenses": data["total_expenses"],
         "net_balance": data["net_balance"],
         "category_breakdown": data["category_breakdown"],
+    }
+
+
+@router.post("/import/validate")
+async def validate_bank_import_file(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Valida extrato para importação: extensão e tamanho máximo.
+    Não armazena o arquivo nem registra conteúdo linha a linha (privacidade).
+    """
+    raw_name = file.filename or ""
+    lower = raw_name.lower()
+    if not lower.endswith(_ALLOWED_IMPORT_SUFFIXES):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Tipo de arquivo não permitido. Use .csv ou .txt.",
+        )
+
+    total = 0
+    while True:
+        chunk = await file.read(65536)
+        if not chunk:
+            break
+        total += len(chunk)
+        if total > _MAX_BANK_IMPORT_BYTES:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail="Arquivo excede o limite de 5 MB.",
+            )
+
+    suffix = ""
+    if "." in raw_name:
+        suffix = "." + raw_name.rsplit(".", 1)[-1].lower()
+
+    logger.info(
+        "bank_import_validate_ok user_id=%s size_bytes=%s content_type=%s suffix=%s",
+        current_user.id,
+        total,
+        file.content_type or "",
+        suffix,
+    )
+
+    return {
+        "ok": True,
+        "size_bytes": total,
+        "max_bytes": _MAX_BANK_IMPORT_BYTES,
     }
 
 

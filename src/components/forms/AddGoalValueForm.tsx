@@ -44,12 +44,12 @@ export function AddGoalValueForm({
 
   const defaultTrigger = (
     <ActionButton
-      variant="outline"
+      variant="default"
       size="sm"
       icon={PlusCircle}
-      className="flex-1"
+      className="flex-1 shadow-sm"
     >
-      Adicionar Valor
+      Contribuir rápido
     </ActionButton>
   );
 

@@ -27,6 +27,7 @@ import {
   AreaChart,
   Area,
 } from "recharts";
+import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 
 function calculateTrend(data: { income: number; expense: number }[]) {
   if (data.length < 3) return { trend: 0, direction: "neutral" as const };
@@ -61,6 +62,7 @@ function calculateTrend(data: { income: number; expense: number }[]) {
 
 export default function Trends() {
   const { transactions, categories, getCashflow } = useFinancialStore();
+  const reduceMotion = usePrefersReducedMotion();
 
   // Dados de cashflow memoizados; transactions na deps garante recálculo quando a lista mudar
   /* eslint-disable react-hooks/exhaustive-deps -- getCashflow é estável; transactions força atualização ao mudar lista */
@@ -322,6 +324,7 @@ export default function Trends() {
                   stroke="hsl(var(--income))"
                   strokeWidth={2}
                   name="income"
+                  isAnimationActive={!reduceMotion}
                 />
                 <Line
                   type="monotone"
@@ -329,6 +332,7 @@ export default function Trends() {
                   stroke="hsl(var(--expense))"
                   strokeWidth={2}
                   name="expense"
+                  isAnimationActive={!reduceMotion}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -372,6 +376,7 @@ export default function Trends() {
                   fill="hsl(var(--primary))"
                   fillOpacity={0.3}
                   name="balance"
+                  isAnimationActive={!reduceMotion}
                 />
               </AreaChart>
             </ResponsiveContainer>

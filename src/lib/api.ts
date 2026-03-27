@@ -89,6 +89,8 @@ export const API_ENDPOINTS = {
     delete: (id: string) => `/transactions/${id}`,
     deleteBatch: "/transactions",
     summary: "/transactions/summary/monthly",
+    /** Validação de extrato (tipo/tamanho) sem armazenar conteúdo */
+    importValidate: "/transactions/import/validate",
   },
 
   // Goals

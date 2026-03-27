@@ -116,11 +116,24 @@ export default {
 					to: {
 						height: '0'
 					}
-				}
+				},
+				/* Preview decorativo na coluna esquerda do /auth */
+				'auth-preview-drift': {
+					'0%, 100%': {
+						transform:
+							'perspective(1400px) rotateY(-10deg) rotateX(4deg) translateY(0)',
+					},
+					'50%': {
+						transform:
+							'perspective(1400px) rotateY(-8deg) rotateX(3deg) translateY(-6px)',
+					},
+				},
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'auth-preview-drift':
+					'auth-preview-drift 7s ease-in-out infinite',
 			}
 		}
 	},

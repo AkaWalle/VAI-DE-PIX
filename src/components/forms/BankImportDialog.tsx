@@ -40,6 +40,29 @@ import {
 } from "lucide-react";
 import { formatCurrencyFromCents } from "@/utils/currency";
 import { ResponsiveOverlay } from "@/components/ui/responsive-overlay";
+import { cn } from "@/lib/utils";
+import { validateBankImportFile } from "@/services/bank-import.service";
+import axios from "axios";
+
+/** Limite no cliente (backend pode aplicar o seu). Evita travar o parse no browser. */
+const MAX_IMPORT_FILE_BYTES = 5 * 1024 * 1024;
+
+function apiErrorDetail(data: unknown): string {
+  if (data && typeof data === "object" && "detail" in data) {
+    const d = (data as { detail: unknown }).detail;
+    if (typeof d === "string") return d;
+    if (Array.isArray(d)) {
+      return d
+        .map((x) =>
+          typeof x === "object" && x != null && "msg" in x
+            ? String((x as { msg: unknown }).msg)
+            : JSON.stringify(x),
+        )
+        .join("; ");
+    }
+  }
+  return "Não foi possível validar o arquivo.";
+}
 
 interface ImportedTransaction {
   date: string;
@@ -144,6 +167,7 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
     { amount: number; description: string; expense: SharedExpense; participant: SharedExpenseParticipant }[]
   >([]);
   const [showPixModal, setShowPixModal] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Templates de mapeamento para diferentes tipos de relatório
   const fieldMappings = {
@@ -506,11 +530,48 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
     };
   };
 
-  const handleFileSelect = async (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  const ingestFile = async (file: File) => {
+    const lower = file.name.toLowerCase();
+    if (!lower.endsWith(".csv") && !lower.endsWith(".txt")) {
+      toast({
+        title: "Tipo de arquivo inválido",
+        description: "Envie um arquivo .csv ou .txt (extrato exportado do banco).",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (file.size > MAX_IMPORT_FILE_BYTES) {
+      toast({
+        title: "Arquivo grande demais",
+        description: `Limite de ${MAX_IMPORT_FILE_BYTES / 1024 / 1024} MB. Reduza o período ou divida o CSV.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const online =
+      typeof navigator === "undefined" ? true : navigator.onLine;
+    if (online) {
+      try {
+        await validateBankImportFile(file);
+      } catch (err) {
+        if (axios.isAxiosError(err) && err.response) {
+          toast({
+            title: "Arquivo rejeitado pelo servidor",
+            description: apiErrorDetail(err.response.data),
+            variant: "destructive",
+          });
+          return;
+        }
+        toast({
+          title: "Validação no servidor indisponível",
+          description:
+            "Verifique a conexão. Você pode tentar novamente ou aguardar a rede.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
 
     setSelectedFile(file);
     setIsImporting(true);
@@ -527,14 +588,12 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
         throw new Error("Nenhuma transação encontrada no arquivo");
       }
 
-      // Detectar tipo do relatório
       const headers = Object.keys(rows[0]);
       const detected = detectReportType(headers);
       setDetectedType(detected);
 
       setImportProgress(75);
 
-      // Usar tipo detectado ou selecionado
       const finalType = reportType === "auto" ? detected : reportType;
       if (!finalType) {
         throw new Error(
@@ -542,12 +601,10 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
         );
       }
 
-      // Mapear transações
       const mapped = rows
         .map((row) => mapTransaction(row, finalType))
         .filter((t): t is ImportedTransaction => t !== null);
 
-      // Sugestão de categoria por descrição similar (editável depois)
       const withSuggestions = mapped.map((t) => ({
         ...t,
         category:
@@ -569,8 +626,8 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
       setShowPreview(true);
 
       toast({
-        title: "Arquivo processado com sucesso!",
-        description: `${transactions.length} transações encontradas.`,
+        title: "Arquivo processado",
+        description: `${withSuggestions.length} linha(s) reconhecida(s). Revise e confirme a importação.`,
       });
     } catch (error) {
       toast({
@@ -582,6 +639,35 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
     } finally {
       setIsImporting(false);
     }
+  };
+
+  const handleFileSelect = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    await ingestFile(file);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    await ingestFile(file);
   };
 
   const handleImport = async () => {
@@ -703,7 +789,6 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
         bodyClassName="space-y-6"
         footer={
           <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-            {/* Seleção de Arquivo */}
             <Button variant="outline" onClick={() => setIsOpen(false)} fullWidthMobile>
               Cancelar
             </Button>
@@ -715,30 +800,82 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
               >
                 {isImporting
                   ? "Importando..."
-                  : `Importar ${parsedTransactions.length} Transações`}
+                  : `Confirmar ${parsedTransactions.length} transação(ões)`}
               </Button>
             )}
           </div>
         }
       >
+        <ol className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <li
+            className={cn(
+              "rounded-full px-2 py-0.5",
+              selectedFile || showPreview ? "bg-primary/15 font-medium text-foreground" : "bg-muted",
+            )}
+          >
+            1. Arquivo
+          </li>
+          <li aria-hidden>→</li>
+          <li
+            className={cn(
+              "rounded-full px-2 py-0.5",
+              showPreview ? "bg-primary/15 font-medium text-foreground" : "bg-muted",
+            )}
+          >
+            2. Pré-visualização
+          </li>
+          <li aria-hidden>→</li>
+          <li className="rounded-full bg-muted px-2 py-0.5">3. Confirmar</li>
+        </ol>
+
         <Card>
               <CardHeader>
-                <CardTitle className="text-lg">1. Selecionar Arquivo</CardTitle>
+                <CardTitle className="text-lg">1. Selecionar arquivo</CardTitle>
                 <CardDescription>
-                  Escolha um arquivo CSV com suas transações bancárias
+                  Arraste um CSV aqui ou use o seletor. Máximo{" "}
+                  {MAX_IMPORT_FILE_BYTES / 1024 / 1024} MB.
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        fileInputRef.current?.click();
+                      }
+                    }}
+                    className={cn(
+                      "flex min-h-[120px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-8 transition-colors",
+                      isDragging
+                        ? "border-primary bg-primary/10"
+                        : "border-border bg-muted/30 hover:border-primary/40 hover:bg-muted/50",
+                    )}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Upload className="mb-2 h-8 w-8 text-muted-foreground" aria-hidden />
+                    <p className="text-center text-sm font-medium text-foreground">
+                      Solte o extrato aqui ou clique para escolher
+                    </p>
+                    <p className="mt-1 text-center text-xs text-muted-foreground">
+                      .csv ou .txt
+                    </p>
                     <Input
                       ref={fileInputRef}
                       type="file"
                       accept=".csv,.txt"
                       onChange={handleFileSelect}
                       disabled={isImporting}
-                      className="w-full sm:flex-1"
+                      className="sr-only"
                     />
+                  </div>
+
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                     {selectedFile && (
                       <Button
                         variant="outline"
@@ -814,10 +951,11 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
           <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">
-                    2. Preview das Transações
+                    2. Pré-visualização
                   </CardTitle>
                   <CardDescription>
-                    {parsedTransactions.length} transações encontradas
+                    {parsedTransactions.length} linha(s) reconhecida(s) —
+                    confira antes de importar
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
