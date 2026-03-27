@@ -13,6 +13,7 @@ import { ActionButton } from "@/components/ui/action-button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { GoalForm } from "@/components/forms/GoalForm";
 import { AddGoalValueForm } from "@/components/forms/AddGoalValueForm";
+import { GoalProgressRing } from "@/components/goals/GoalProgressRing";
 import { formatCurrency, formatDate } from "@/utils/format";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -245,58 +246,58 @@ export default function Goals() {
                 </CardHeader>
 
                 <CardContent className="space-y-4">
-                  {/* Progress Bar */}
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Progresso</span>
-                      <span className="font-medium">
-                        {(progressPercentage ?? 0).toFixed(1)}%
-                      </span>
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+                    <div className="relative mx-auto shrink-0 sm:mx-0">
+                      <GoalProgressRing pct={progressPercentage} />
+                      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                        <span className="text-lg font-bold tabular-nums leading-none text-foreground">
+                          {(progressPercentage ?? 0).toFixed(0)}
+                          <span className="text-xs font-semibold text-muted-foreground">%</span>
+                        </span>
+                      </div>
                     </div>
-                    <Progress value={progressPercentage} className="h-2" />
+
+                    <div className="min-w-0 flex-1 space-y-3 text-sm">
+                      <div>
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          Acumulado / meta
+                        </p>
+                        <p className="mt-1 text-base font-semibold tabular-nums text-foreground">
+                          {formatCurrency(goal.currentAmount)}
+                          <span className="font-normal text-muted-foreground">
+                            {" "}
+                            / {formatCurrency(goal.targetAmount)}
+                          </span>
+                        </p>
+                      </div>
+                      <Progress value={progressPercentage} className="h-1.5" />
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>Falta</span>
+                        <span className="font-medium text-foreground">
+                          {formatCurrency(remaining)}
+                        </span>
+                      </div>
+                      {goal.dueDate && (
+                        <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 px-2 py-1.5 text-xs">
+                          <Calendar className="h-3.5 w-3.5 shrink-0 text-primary" />
+                          <span>
+                            Prazo: <strong className="text-foreground">{formatDate(goal.dueDate)}</strong>
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
-                  {/* Values */}
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Atual:</span>
-                      <span className="font-medium">
-                        {formatCurrency(goal.currentAmount)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Meta:</span>
-                      <span className="font-medium">
-                        {formatCurrency(goal.targetAmount)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between border-t pt-2">
-                      <span className="text-muted-foreground">Restante:</span>
-                      <span className="font-semibold">
-                        {formatCurrency(remaining)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Due Date */}
-                  {goal.dueDate && (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2 border-t">
-                      <Calendar className="h-3 w-3" />
-                      <span>Prazo: {formatDate(goal.dueDate)}</span>
-                    </div>
-                  )}
-
-                  {/* Actions */}
-                  <div className="flex flex-wrap items-center gap-2 pt-2">
+                  <div className="flex flex-wrap items-center gap-2 border-t border-border/50 pt-4">
+                    <AddGoalValueForm goalId={goal.id} goalName={goal.name} />
                     <ActionButton
                       variant="outline"
                       size="sm"
                       icon={Edit}
-                className="flex-1 sm:flex-initial"
+                      className="flex-1 sm:flex-initial"
                     >
                       Editar
                     </ActionButton>
-                    <AddGoalValueForm goalId={goal.id} goalName={goal.name} />
                     <ConfirmDialog
                       trigger={
                         <ActionButton

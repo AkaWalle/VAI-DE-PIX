@@ -49,9 +49,10 @@
     --expense: 0 84.2% 60.2%;
     --expense-foreground: 0 0% 98%;
 
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 142 76% 36%;
+    /* Bordas um pouco mais claras no dark para inputs e painéis legíveis */
+    --border: 240 5% 28%;
+    --input: 240 5% 24%;
+    --ring: 142 86% 48%;
 
     --radius: 0.5rem;
 

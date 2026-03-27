@@ -258,7 +258,7 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
       submitLabel="Criar Transação"
       mobileVariant="fullscreen"
       mobileContentClassName="flex h-[100dvh] w-screen max-w-none flex-col rounded-none border-0 p-0"
-      contentClassName="max-h-[90vh] sm:max-w-lg md:max-w-2xl"
+      contentClassName="max-h-[92vh] w-full sm:max-w-2xl md:max-w-3xl lg:max-w-4xl"
     >
       <div className="space-y-4">
         <TransactionFields

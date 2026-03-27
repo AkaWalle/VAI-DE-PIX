@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { BottomNav } from "@/components/layout/BottomNav";
@@ -11,6 +11,19 @@ import { useLoadData } from "@/hooks/use-load-data";
 import { NotificationBell } from "@/components/NotificationBell";
 import { SyncIndicator } from "@/components/SyncIndicator";
 import { useSyncStore } from "@/stores/sync-store";
+import {
+  AppHeaderCenter,
+  AppHeaderUserMenu,
+} from "@/components/layout/AppHeaderBar";
+
+/** Lê preferência da sidebar (cookie definido por `SidebarProvider` ao colapsar). */
+function readInitialSidebarOpen(): boolean {
+  if (typeof document === "undefined") return true;
+  const m = document.cookie.match(/(?:^|; )sidebar:state=([^;]*)/);
+  const v = m?.[1];
+  if (v === "false") return false;
+  return true;
+}
 
 function ThemeToggle() {
   const { theme, setTheme } = useTheme();
@@ -29,6 +42,7 @@ function ThemeToggle() {
 }
 
 export function MainLayout() {
+  const location = useLocation();
   useLoadData();
 
   // Atualiza indicador de sync quando conexão muda (Story 3.3)
@@ -48,15 +62,15 @@ export function MainLayout() {
 
   return (
     <ThemeProvider>
-      <SidebarProvider defaultOpen={true}>
+      <SidebarProvider defaultOpen={readInitialSidebarOpen()}>
         <div className="min-h-screen flex w-full bg-background overflow-hidden">
           <AppSidebar />
 
           <div className="flex-1 flex flex-col min-w-0 w-full md:w-auto">
-            {/* Header: no mobile só logo + notificação/tema; no desktop inclui trigger da sidebar */}
+            {/* Header: mobile — logo + ações; md+ — trigger + marca; lg — saudação/período no centro */}
             <header className="sticky top-0 z-40 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-              <div className="flex h-14 items-center justify-between px-4">
-                <div className="flex items-center gap-2 min-w-0">
+              <div className="flex h-14 items-center gap-2 justify-between px-4">
+                <div className="flex items-center gap-2 min-w-0 flex-shrink-0">
                   <div className="hidden md:flex items-center gap-2 min-w-0 flex-shrink-0">
                     <SidebarTrigger className="-ml-1" />
                     <div className="h-4 w-px bg-border flex-shrink-0" />
@@ -66,10 +80,13 @@ export function MainLayout() {
                   </h2>
                 </div>
 
+                <AppHeaderCenter />
+
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <SyncIndicator />
                   <NotificationBell />
                   <ThemeToggle />
+                  <AppHeaderUserMenu />
                 </div>
               </div>
             </header>
@@ -77,7 +94,12 @@ export function MainLayout() {
             {/* Main Content */}
             <main className="flex-1 w-full md:w-auto px-3 sm:px-6 pt-4 sm:pt-6 pb-20 md:pb-6 overflow-x-hidden overflow-y-auto">
               <div className="w-full max-w-full">
-                <Outlet />
+                <div
+                  key={location.pathname}
+                  className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200"
+                >
+                  <Outlet />
+                </div>
               </div>
             </main>
           </div>

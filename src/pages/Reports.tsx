@@ -8,6 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ActionButton } from "@/components/ui/action-button";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -15,8 +16,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { formatCurrency } from "@/utils/format";
 import { useToast } from "@/hooks/use-toast";
+import { downloadReportsCsv } from "@/services/reports-export.service";
+import { cn } from "@/lib/utils";
+import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import {
   FileText,
   Download,
@@ -25,6 +34,8 @@ import {
   PieChart,
   BarChart3,
   DollarSign,
+  ChevronDown,
+  Filter,
 } from "lucide-react";
 import {
   BarChart,
@@ -39,25 +50,97 @@ import {
   Cell,
 } from "recharts";
 
+function buildCashflowFromTransactions(
+  transactions: { date: string; type: string; amount: number }[],
+  months: number,
+) {
+  const parseLocalDate = (dateStr: string) => {
+    const [y, m, d] = dateStr.split("-").map(Number);
+    return new Date(y, (m || 1) - 1, d || 1, 12);
+  };
+  const result: {
+    month: string;
+    income: number;
+    expense: number;
+    balance: number;
+  }[] = [];
+
+  for (let i = months - 1; i >= 0; i--) {
+    const date = new Date();
+    date.setMonth(date.getMonth() - i);
+    const monthStart = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      1,
+      0,
+      0,
+      0,
+      0,
+    );
+    const monthEnd = new Date(
+      date.getFullYear(),
+      date.getMonth() + 1,
+      0,
+      23,
+      59,
+      59,
+      999,
+    );
+
+    const monthTransactions = transactions.filter((t) => {
+      const tDate = parseLocalDate(t.date);
+      return tDate >= monthStart && tDate <= monthEnd;
+    });
+
+    const income = monthTransactions
+      .filter((t) => t.type === "income")
+      .reduce((s, t) => s + t.amount, 0);
+
+    const expense = monthTransactions
+      .filter((t) => t.type === "expense")
+      .reduce((s, t) => s + Math.abs(t.amount), 0);
+
+    result.push({
+      month: date.toLocaleDateString("pt-BR", {
+        month: "short",
+        year: "2-digit",
+      }),
+      income,
+      expense,
+      balance: income - expense,
+    });
+  }
+
+  return result;
+}
+
 export default function Reports() {
-  const { transactions, categories, accounts, getCashflow } =
-    useFinancialStore();
+  const { transactions, categories } = useFinancialStore();
+  const reduceMotion = usePrefersReducedMotion();
   const { toast } = useToast();
   const [selectedPeriod, setSelectedPeriod] = useState("6");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [isExporting, setIsExporting] = useState(false);
+  const [cashflowOpen, setCashflowOpen] = useState(true);
+  const [pieOpen, setPieOpen] = useState(true);
 
-  // Análises de dados (memoizado para evitar recálculo a cada render)
+  const filteredTransactions = useMemo(() => {
+    if (categoryFilter === "all") return transactions;
+    return transactions.filter((t) => t.category === categoryFilter);
+  }, [transactions, categoryFilter]);
+
   const reportSummary = useMemo(() => {
-    const totalIncome = transactions
+    const txs = filteredTransactions;
+    const totalIncome = txs
       .filter((t) => t.type === "income")
       .reduce((sum, t) => sum + t.amount, 0);
-    const totalExpenses = transactions
+    const totalExpenses = txs
       .filter((t) => t.type === "expense")
       .reduce((sum, t) => sum + Math.abs(t.amount), 0);
     const categoryExpenses = categories
       .filter((c) => c.type === "expense")
       .map((category) => {
-        const categoryTransactions = transactions.filter(
+        const categoryTransactions = txs.filter(
           (t) => t.category === category.id && t.type === "expense",
         );
         const total = categoryTransactions.reduce(
@@ -74,70 +157,47 @@ export default function Reports() {
       .sort((a, b) => b.value - a.value);
 
     return {
-      totalTransactions: transactions.length,
+      totalTransactions: txs.length,
       totalIncome,
       totalExpenses,
       netBalance: totalIncome - totalExpenses,
       categoryExpenses,
     };
-  }, [transactions, categories]);
+  }, [filteredTransactions, categories]);
 
-  const { totalTransactions, totalIncome, totalExpenses, netBalance, categoryExpenses } =
-    reportSummary;
+  const {
+    totalTransactions,
+    totalIncome,
+    totalExpenses,
+    netBalance,
+    categoryExpenses,
+  } = reportSummary;
 
-  // Dados para gráficos
-  const cashflowData = getCashflow(parseInt(selectedPeriod));
+  const cashflowData = useMemo(
+    () =>
+      buildCashflowFromTransactions(
+        filteredTransactions,
+        parseInt(selectedPeriod, 10),
+      ),
+    [filteredTransactions, selectedPeriod],
+  );
 
-  const handleExportReport = async () => {
+  const handleExportCsv = async () => {
     setIsExporting(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      // Criar relatório detalhado
-      const reportData = {
-        periodo: `Últimos ${selectedPeriod} meses`,
-        resumo: {
-          totalTransacoes: totalTransactions,
-          totalReceitas: formatCurrency(totalIncome),
-          totalDespesas: formatCurrency(totalExpenses),
-          saldoLiquido: formatCurrency(netBalance),
-        },
-        fluxoCaixa: cashflowData,
-        categorias: categoryExpenses,
-        transacoes: transactions.map((t) => ({
-          data: new Date(t.date).toLocaleDateString("pt-BR"),
-          tipo: t.type === "income" ? "Receita" : "Despesa",
-          descricao: t.description,
-          categoria: categories.find((c) => c.id === t.category)?.name || "N/A",
-          conta: accounts.find((a) => a.id === t.account)?.name || "N/A",
-          valor: formatCurrency(Math.abs(t.amount)),
-        })),
-      };
-
-      // Simular download do relatório
-      const blob = new Blob([JSON.stringify(reportData, null, 2)], {
-        type: "application/json",
-      });
-      const link = document.createElement("a");
-      const url = URL.createObjectURL(blob);
-      link.setAttribute("href", url);
-      link.setAttribute(
-        "download",
-        `relatorio-financeiro-${new Date().toISOString().split("T")[0]}.json`,
-      );
-      link.style.visibility = "hidden";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
+      await downloadReportsCsv(parseInt(selectedPeriod, 10));
       toast({
-        title: "Relatório exportado!",
-        description: "Seu relatório financeiro foi gerado com sucesso.",
+        title: "CSV exportado",
+        description:
+          "Arquivo gerado no servidor (transações do período configurado na API).",
       });
-    } catch {
+    } catch (err) {
       toast({
-        title: "Erro na exportação",
-        description: "Ocorreu um erro ao gerar o relatório.",
+        title: "Falha na exportação",
+        description:
+          err instanceof Error
+            ? err.message
+            : "Verifique sua sessão e tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -145,93 +205,114 @@ export default function Reports() {
     }
   };
 
+  const expenseCategoryOptions = categories.filter((c) => c.type === "expense");
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Relatórios</h1>
+          <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
+            Relatórios
+          </h1>
           <p className="text-muted-foreground">
-            Análises detalhadas e exportações dos seus dados financeiros
+            Filtros, gráficos expansíveis e exportação CSV (API).
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-            <SelectTrigger className="h-9 w-40">
-              <SelectValue placeholder="Período" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="3">3 meses</SelectItem>
-              <SelectItem value="6">6 meses</SelectItem>
-              <SelectItem value="12">12 meses</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+              <SelectTrigger className="h-9 w-36">
+                <SelectValue placeholder="Período" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="3">3 meses</SelectItem>
+                <SelectItem value="6">6 meses</SelectItem>
+                <SelectItem value="12">12 meses</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="h-9 w-44 min-w-0">
+                <SelectValue placeholder="Categoria" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as categorias</SelectItem>
+                {expenseCategoryOptions.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.icon} {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <ActionButton
             icon={Download}
             loading={isExporting}
-            loadingText="Exportando..."
-            onClick={handleExportReport}
+            loadingText="Gerando CSV..."
+            onClick={handleExportCsv}
             size="sm"
+            className="w-full sm:w-auto"
           >
-            Exportar Relatório
+            Exportar CSV (servidor)
           </ActionButton>
         </div>
       </div>
 
-      {/* Summary Cards */}
+      <p className="text-xs text-muted-foreground">
+        O filtro por categoria restringe apenas transações e gráficos nesta página.
+        A exportação CSV do servidor usa somente o período (meses), até a API
+        passar a aceitar categoria no contrato de export.
+      </p>
+
       <div className="grid gap-4 md:grid-cols-4">
         <Card className="bg-gradient-card shadow-card-custom">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
               <FileText className="h-4 w-4" />
-              Total de Transações
+              Transações (filtradas)
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalTransactions}</div>
             <p className="text-xs text-muted-foreground">
-              Registros no período
+              Linhas após filtro de categoria
             </p>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-card shadow-card-custom border-income/20">
+        <Card className="border-income/20 bg-gradient-card shadow-card-custom">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
               <TrendingUp className="h-4 w-4 text-income" />
-              Total de Receitas
+              Receitas
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-income">
               {formatCurrency(totalIncome)}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Entradas confirmadas
-            </p>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-card shadow-card-custom border-expense/20">
+        <Card className="border-expense/20 bg-gradient-card shadow-card-custom">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
               <TrendingDown className="h-4 w-4 text-expense" />
-              Total de Despesas
+              Despesas
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-expense">
               {formatCurrency(totalExpenses)}
             </div>
-            <p className="text-xs text-muted-foreground">Saídas registradas</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-card shadow-card-custom border-primary/20">
+        <Card className="border-primary/20 bg-gradient-card shadow-card-custom">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
               <DollarSign className="h-4 w-4 text-primary" />
-              Saldo Líquido
+              Saldo líquido
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -240,168 +321,189 @@ export default function Reports() {
             >
               {formatCurrency(netBalance)}
             </div>
-            <p className="text-xs text-muted-foreground">
-              {netBalance >= 0 ? "Resultado positivo" : "Resultado negativo"}
-            </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Charts */}
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Fluxo de Caixa */}
-        <Card className="bg-gradient-card shadow-card-custom">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-primary" />
-              Fluxo de Caixa - {selectedPeriod} meses
-            </CardTitle>
-            <CardDescription>
-              Evolução mensal de receitas e despesas
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={cashflowData}>
-                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                <YAxis
-                  tick={{ fontSize: 12 }}
-                  tickFormatter={(value) =>
-                    formatCurrency(value, { abbreviated: true })
-                  }
-                />
-                <Tooltip
-                  formatter={(value, name) => [
-                    formatCurrency(Number(value)),
-                    name === "income" ? "Receitas" : "Despesas",
-                  ]}
-                  position={{ x: 0, y: 0 }}
-                  allowEscapeViewBox={{ x: true, y: true }}
-                  contentStyle={{
-                    background: "hsl(var(--card))",
-                    color: "hsl(var(--card-foreground))",
-                    border: "1px solid hsl(var(--border))",
-                    padding: "8px 12px",
-                    borderRadius: 8,
-                    boxShadow:
-                      "0 10px 15px -3px rgba(0,0,0,0.3), 0 4px 6px -2px rgba(0,0,0,0.1)",
-                    opacity: 1,
-                    backdropFilter: "none",
-                    zIndex: 1000,
-                  }}
-                  labelStyle={{
-                    color: "hsl(var(--card-foreground))",
-                    marginBottom: 4,
-                    fontWeight: 500,
-                  }}
-                  itemStyle={{
-                    color: "hsl(var(--card-foreground))",
-                    padding: 0,
-                    lineHeight: 1.2,
-                    fontWeight: 600,
-                  }}
-                  wrapperStyle={{
-                    outline: "none",
-                    zIndex: 1000,
-                  }}
-                  offset={20}
-                />
-                <Bar dataKey="income" fill="hsl(var(--income))" name="income" />
-                <Bar
-                  dataKey="expense"
-                  fill="hsl(var(--expense))"
-                  name="expense"
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Despesas por Categoria */}
-        <Card className="bg-gradient-card shadow-card-custom">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <PieChart className="h-5 w-5 text-primary" />
-              Despesas por Categoria
-            </CardTitle>
-            <CardDescription>
-              Distribuição percentual dos gastos
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col lg:flex-row gap-6">
-              {/* Gráfico */}
-              <div className="flex-1 min-w-0">
-                <ResponsiveContainer width="100%" height={300}>
-                  <RechartsPieChart>
-                    <Pie
-                      data={categoryExpenses.slice(0, 6)}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={false}
-                      outerRadius={100}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {categoryExpenses.slice(0, 6).map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                  </RechartsPieChart>
-                </ResponsiveContainer>
+        <Collapsible open={cashflowOpen} onOpenChange={setCashflowOpen}>
+          <Card className="bg-gradient-card shadow-card-custom">
+            <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0 pb-2">
+              <div className="min-w-0">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <BarChart3 className="h-5 w-5 shrink-0 text-primary" />
+                  Fluxo de caixa — {selectedPeriod} meses
+                </CardTitle>
+                <CardDescription className="mt-1">
+                  Receitas e despesas por mês (dados filtrados)
+                </CardDescription>
               </div>
-
-              {/* Legenda */}
-              <div className="flex flex-col justify-center gap-3 w-full lg:w-auto lg:min-w-[200px]">
-                <h4 className="text-sm font-semibold text-muted-foreground mb-2">
-                  Legenda
-                </h4>
-                {categoryExpenses.slice(0, 6).map((entry, index) => {
-                  const total = categoryExpenses.reduce(
-                    (sum, item) => sum + (item.value ?? 0),
-                    0,
-                  );
-                  const percentage = (
-                    ((entry.value ?? 0) / (total || 1)) * 100
-                  ).toFixed(1);
-                  return (
-                    <div key={index} className="flex items-center gap-3">
-                      <div
-                        className="w-4 h-4 rounded-full flex-shrink-0"
-                        style={{ backgroundColor: entry.color }}
+              <CollapsibleTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0"
+                  aria-expanded={cashflowOpen}
+                  aria-label={cashflowOpen ? "Recolher gráfico" : "Expandir gráfico"}
+                >
+                  <ChevronDown
+                    className={cn(
+                      "h-4 w-4 transition-transform duration-200",
+                      cashflowOpen && "rotate-180",
+                    )}
+                  />
+                </Button>
+              </CollapsibleTrigger>
+            </CardHeader>
+            <CollapsibleContent className="data-[state=closed]:motion-safe:animate-out">
+              <CardContent className="pt-0">
+                <div className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-300 motion-reduce:animate-none">
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={cashflowData}>
+                      <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                      <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                      <YAxis
+                        tick={{ fontSize: 12 }}
+                        tickFormatter={(value) =>
+                          formatCurrency(value, { abbreviated: true })
+                        }
                       />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium truncate">
-                          {entry.name}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {formatCurrency(entry.value)} ({percentage}%)
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+                      <Tooltip
+                        formatter={(value, name) => [
+                          formatCurrency(Number(value)),
+                          name === "income" ? "Receitas" : "Despesas",
+                        ]}
+                        contentStyle={{
+                          background: "hsl(var(--card))",
+                          border: "1px solid hsl(var(--border))",
+                          borderRadius: 8,
+                        }}
+                      />
+                      <Bar
+                        dataKey="income"
+                        fill="hsl(var(--income))"
+                        name="income"
+                        isAnimationActive={!reduceMotion}
+                        className="motion-safe:duration-500 motion-safe:animate-in motion-safe:fade-in-0 motion-reduce:animate-none"
+                      />
+                      <Bar
+                        dataKey="expense"
+                        fill="hsl(var(--expense))"
+                        name="expense"
+                        isAnimationActive={!reduceMotion}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+
+        <Collapsible open={pieOpen} onOpenChange={setPieOpen}>
+          <Card className="bg-gradient-card shadow-card-custom">
+            <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0 pb-2">
+              <div className="min-w-0">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <PieChart className="h-5 w-5 shrink-0 text-primary" />
+                  Despesas por categoria
+                </CardTitle>
+                <CardDescription className="mt-1">
+                  Distribuição (filtro aplicado)
+                </CardDescription>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+              <CollapsibleTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0"
+                  aria-expanded={pieOpen}
+                  aria-label={pieOpen ? "Recolher gráfico" : "Expandir gráfico"}
+                >
+                  <ChevronDown
+                    className={cn(
+                      "h-4 w-4 transition-transform duration-200",
+                      pieOpen && "rotate-180",
+                    )}
+                  />
+                </Button>
+              </CollapsibleTrigger>
+            </CardHeader>
+            <CollapsibleContent>
+              <CardContent className="pt-0">
+                <div className="flex flex-col gap-6 lg:flex-row">
+                  <div className="min-w-0 flex-1 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-300 motion-reduce:animate-none">
+                    <ResponsiveContainer width="100%" height={300}>
+                      <RechartsPieChart>
+                        <Pie
+                          data={categoryExpenses.slice(0, 6)}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={false}
+                          outerRadius={100}
+                          fill="#8884d8"
+                          dataKey="value"
+                          isAnimationActive={!reduceMotion}
+                          animationDuration={reduceMotion ? 0 : 400}
+                        >
+                          {categoryExpenses.slice(0, 6).map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                      </RechartsPieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="flex w-full flex-col justify-center gap-3 lg:w-auto lg:min-w-[200px]">
+                    <h4 className="mb-2 text-sm font-semibold text-muted-foreground">
+                      Legenda
+                    </h4>
+                    {categoryExpenses.slice(0, 6).map((entry, index) => {
+                      const total = categoryExpenses.reduce(
+                        (sum, item) => sum + (item.value ?? 0),
+                        0,
+                      );
+                      const percentage = (
+                        ((entry.value ?? 0) / (total || 1)) *
+                        100
+                      ).toFixed(1);
+                      return (
+                        <div key={index} className="flex items-center gap-3">
+                          <div
+                            className="h-4 w-4 shrink-0 rounded-full"
+                            style={{ backgroundColor: entry.color }}
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate text-sm font-medium">
+                              {entry.name}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {formatCurrency(entry.value)} ({percentage}%)
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
       </div>
 
-      {/* Top Categories */}
       <Card className="bg-gradient-card shadow-card-custom">
         <CardHeader>
-          <CardTitle>Top 5 Categorias de Despesa</CardTitle>
-          <CardDescription>
-            Categorias com maior volume de gastos
-          </CardDescription>
+          <CardTitle>Top 5 categorias de despesa</CardTitle>
+          <CardDescription>Maior volume após filtros ativos</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {categoryExpenses.slice(0, 5).map((category, index) => (
+            {categoryExpenses.slice(0, 5).map((cat, index) => (
               <div
-                key={category.name}
+                key={cat.name}
                 className="flex items-center justify-between"
               >
                 <div className="flex items-center gap-3">
@@ -410,19 +512,21 @@ export default function Reports() {
                   </div>
                   <div className="flex items-center gap-2">
                     <div
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: category.color }}
+                      className="h-3 w-3 rounded-full"
+                      style={{ backgroundColor: cat.color }}
                     />
-                    <span className="font-medium">{category.name}</span>
+                    <span className="font-medium">{cat.name}</span>
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="font-semibold">
-                    {formatCurrency(category.value)}
+                    {formatCurrency(cat.value)}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {(((category.value ?? 0) / (totalExpenses || 1)) * 100).toFixed(1)}% do
-                    total
+                    {(((cat.value ?? 0) / (totalExpenses || 1)) * 100).toFixed(
+                      1,
+                    )}
+                    % do total
                   </div>
                 </div>
               </div>

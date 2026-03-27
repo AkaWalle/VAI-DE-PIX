@@ -9,7 +9,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/utils/format";
+import { formatDistanceToNow, format, isValid, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import {
   TrendingUp,
   TrendingDown,
@@ -43,8 +46,28 @@ import {
   PieChart,
   Pie,
   Cell,
+  Legend,
 } from "recharts";
+import { CategorySpendingEmpty } from "@/components/dashboard/category-spending-empty";
+import { Skeleton } from "@/components/ui/skeleton";
+import { GoalProgressRing } from "@/components/goals/GoalProgressRing";
+import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
+import { cn } from "@/lib/utils";
 // Removed ChartTooltip imports to avoid context requirement outside ChartContainer
+
+function goalDueCaption(due?: string): string {
+  if (!due?.trim()) return "Sem prazo";
+  const d = parseISO(due);
+  if (!isValid(d)) return "Sem prazo";
+  return formatDistanceToNow(d, { locale: ptBR, addSuffix: true });
+}
+
+function goalDueAbsolute(due?: string): string | undefined {
+  if (!due?.trim()) return undefined;
+  const d = parseISO(due);
+  if (!isValid(d)) return undefined;
+  return format(d, "dd/MM/yyyy", { locale: ptBR });
+}
 
 const COLORS = [
   "#22c55e",
@@ -55,52 +78,198 @@ const COLORS = [
   "#06b6d4",
 ];
 
-export default function Dashboard() {
+/** Placeholder alinhado ao grid do dashboard até o Zustand `persist` reidratar (evita flash de zeros). */
+function DashboardPageSkeleton() {
+  return (
+    <div className="space-y-3 sm:space-y-6">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Card key={i} className="overflow-hidden border-border/60">
+            <CardContent className="p-4 sm:p-5 space-y-3">
+              <div className="flex items-start justify-between gap-2">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-9 w-9 shrink-0 rounded-lg" />
+              </div>
+              <Skeleton className="h-8 w-2/3 max-w-[180px]" />
+              <Skeleton className="h-3 w-40" />
+              <Skeleton className="h-10 w-full rounded-md opacity-80" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      <div className="grid gap-3 sm:gap-6 md:grid-cols-2">
+        {Array.from({ length: 2 }).map((_, i) => (
+          <Card key={i} className="overflow-hidden border-border/60">
+            <CardHeader className="p-3 sm:p-6 space-y-2">
+              <Skeleton className="h-5 w-48" />
+              <Skeleton className="h-3 w-full max-w-md" />
+            </CardHeader>
+            <CardContent className="p-3 sm:p-6 pt-0">
+              <Skeleton className="w-full rounded-lg" style={{ height: 280 }} />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      <div className="grid gap-3 sm:gap-6 lg:grid-cols-3">
+        <Card className="lg:col-span-2 overflow-hidden border-border/60">
+          <CardHeader className="p-3 sm:p-6 space-y-2">
+            <Skeleton className="h-5 w-56" />
+            <Skeleton className="h-3 w-64" />
+          </CardHeader>
+          <CardContent className="p-3 sm:p-6 pt-0 space-y-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="space-y-2">
+                <Skeleton className="h-4 w-full max-w-xs" />
+                <Skeleton className="h-2 w-full" />
+                <Skeleton className="h-3 w-24" />
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+        <Card className="overflow-hidden border-border/60">
+          <CardHeader className="p-3 sm:p-6 space-y-2">
+            <Skeleton className="h-5 w-40" />
+            <Skeleton className="h-3 w-52" />
+          </CardHeader>
+          <CardContent className="p-3 sm:p-6 pt-0 space-y-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <Skeleton className="h-9 w-9 shrink-0 rounded-full" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-3 w-full max-w-[140px]" />
+                  <Skeleton className="h-3 w-24" />
+                </div>
+                <Skeleton className="h-4 w-16" />
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function DashboardContent() {
   const {
     getTotalBalance,
     getIncomeThisMonth,
     getExpensesThisMonth,
     getCashflow,
-    updateDateRangeToCurrentMonth,
+    dateRange,
     goals,
     transactions,
     categories,
   } = useFinancialStore();
 
-  // Atualizar dateRange para o mês atual quando o componente for montado
-  // Executar apenas uma vez na montagem para evitar re-renders desnecessários
-  useEffect(() => {
-    updateDateRangeToCurrentMonth();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Executar apenas na montagem inicial
+  const reduceMotion = usePrefersReducedMotion();
 
   const totalBalance = getTotalBalance();
   const monthlyIncome = getIncomeThisMonth();
   const monthlyExpenses = getExpensesThisMonth();
   const cashflowData = getCashflow(6);
 
-  // Category spending data
+  /**
+   * Últimos 30 dias (dia calendário): séries diárias para sparklines e tendência 7d vs 7d anterior.
+   * Saldo: reconstrução retroativa a partir de getTotalBalance() e fluxo diário (aproximação).
+   */
+  const kpiSeries = useMemo(() => {
+    const parseLocalDate = (dateStr: string) => {
+      const [y, m, d] = dateStr.split("-").map(Number);
+      return new Date(y, (m || 1) - 1, d || 1, 12);
+    };
+
+    const end = new Date();
+    end.setHours(23, 59, 59, 999);
+    const startMidnight = new Date();
+    startMidnight.setHours(0, 0, 0, 0);
+    startMidnight.setDate(startMidnight.getDate() - 29);
+
+    const days: { key: string; income: number; expense: number; net: number }[] =
+      [];
+    for (let i = 0; i < 30; i++) {
+      const d = new Date(startMidnight);
+      d.setDate(startMidnight.getDate() + i);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      days.push({ key, income: 0, expense: 0, net: 0 });
+    }
+
+    const byKey = new Map(days.map((x) => [x.key, x]));
+    for (const t of transactions) {
+      const td = parseLocalDate(t.date);
+      td.setHours(12, 0, 0, 0);
+      if (td < startMidnight || td > end) continue;
+      const key = `${td.getFullYear()}-${String(td.getMonth() + 1).padStart(2, "0")}-${String(td.getDate()).padStart(2, "0")}`;
+      const bucket = byKey.get(key);
+      if (!bucket) continue;
+      if (t.type === "income") bucket.income += t.amount;
+      else bucket.expense += Math.abs(t.amount);
+    }
+    days.forEach((d) => {
+      d.net = d.income - d.expense;
+    });
+
+    const incomeByDay = days.map((d) => d.income);
+    const expenseByDay = days.map((d) => d.expense);
+    const netByDay = days.map((d) => d.net);
+
+    const balanceSeries: number[] = new Array(30);
+    balanceSeries[29] = totalBalance;
+    for (let i = 29; i >= 1; i--) {
+      balanceSeries[i - 1] = balanceSeries[i] - days[i].net;
+    }
+
+    const sumSlice = (arr: number[], from: number, to: number) =>
+      arr.slice(from, to).reduce((a, b) => a + b, 0);
+    const meanSlice = (arr: number[], from: number, to: number) => {
+      const slice = arr.slice(from, to);
+      return slice.length ? slice.reduce((a, b) => a + b, 0) / slice.length : 0;
+    };
+
+    const pct = (cur: number, prev: number) => {
+      if (Math.abs(prev) < 1e-9) {
+        if (cur > 0) return 100;
+        if (cur < 0) return -100;
+        return 0;
+      }
+      return ((cur - prev) / Math.abs(prev)) * 100;
+    };
+
+    const iLast = sumSlice(incomeByDay, 23, 30);
+    const iPrev = sumSlice(incomeByDay, 16, 23);
+    const eLast = sumSlice(expenseByDay, 23, 30);
+    const ePrev = sumSlice(expenseByDay, 16, 23);
+    const nLast = sumSlice(netByDay, 23, 30);
+    const nPrev = sumSlice(netByDay, 16, 23);
+    const bLast = meanSlice(balanceSeries, 23, 30);
+    const bPrev = meanSlice(balanceSeries, 16, 23);
+
+    const wrap = (cur: number, prev: number) => {
+      const raw = pct(cur, prev);
+      const direction = raw >= 0 ? ("up" as const) : ("down" as const);
+      return { value: Math.min(Math.abs(raw), 999), direction };
+    };
+
+    return {
+      balance: balanceSeries,
+      income: incomeByDay,
+      expense: expenseByDay,
+      savings: netByDay,
+      trends: {
+        balance: wrap(bLast, bPrev),
+        income: wrap(iLast, iPrev),
+        expense: wrap(eLast, ePrev),
+        savings: wrap(nLast, nPrev),
+      },
+    };
+  }, [transactions, totalBalance]);
+
+  // Category spending data (alinhado ao período do header / `dateRange`)
   const categoryData = useMemo(() => {
     const expenseCategories = categories.filter((c) => c.type === "expense");
-    const currentMonth = new Date();
-    const monthStart = new Date(
-      currentMonth.getFullYear(),
-      currentMonth.getMonth(),
-      1,
-      0,
-      0,
-      0,
-      0,
-    );
-    const monthEnd = new Date(
-      currentMonth.getFullYear(),
-      currentMonth.getMonth() + 1,
-      0,
-      23,
-      59,
-      59,
-      999,
-    );
+    const monthStart = new Date(dateRange.from);
+    monthStart.setHours(0, 0, 0, 0);
+    const monthEnd = new Date(dateRange.to);
+    monthEnd.setHours(23, 59, 59, 999);
 
     // Função para parsing consistente de datas (igual ao financial-store)
     const parseLocalDate = (dateStr: string) => {
@@ -133,7 +302,7 @@ export default function Dashboard() {
       })
       .filter((item) => item.value > 0)
       .sort((a, b) => b.value - a.value);
-  }, [transactions, categories]);
+  }, [transactions, categories, dateRange.from, dateRange.to]);
 
   // Goal progress
   const goalProgress = useMemo(() => {
@@ -198,8 +367,8 @@ export default function Dashboard() {
   const goalsAtRisk = insights?.goals_at_risk?.filter((g) => g.at_risk) ?? [];
 
   const isMobile = useIsMobile();
-  const chartHeight = isMobile ? 192 : 256;
-  const chartFontSize = isMobile ? 10 : 12;
+  const chartHeight = isMobile ? 260 : 340;
+  const chartFontSize = isMobile ? 11 : 12;
 
   // Banner: notificações de insights não lidas (C2)
   const [unreadInsightCount, setUnreadInsightCount] = useState(0);
@@ -211,12 +380,7 @@ export default function Dashboard() {
   }, []);
 
   return (
-    <PageLayout
-      title="Dashboard"
-      subtitle="Visão geral da sua situação financeira"
-      className="space-y-3 sm:space-y-6"
-    >
-
+    <>
       {/* Banner: notificações de insights não lidas */}
       {unreadInsightCount > 0 && (
         <Alert className="border-primary/50 bg-primary/5">
@@ -229,17 +393,17 @@ export default function Dashboard() {
         </Alert>
       )}
 
-      {/* Financial Cards */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-2 lg:grid-cols-4">
+      {/* KPIs + sparkline (30 dias) */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <FinancialCard
           title="Saldo Total"
           value={formatCurrency(totalBalance)}
           icon={Wallet}
           variant="balance"
+          sparkline={kpiSeries.balance}
           trend={{
-            value: 12.5,
-            direction: totalBalance > 20000 ? "up" : "down",
-            label: "vs mês anterior",
+            ...kpiSeries.trends.balance,
+            label: "média 7d vs anterior",
           }}
         />
 
@@ -249,6 +413,11 @@ export default function Dashboard() {
           icon={TrendingUp}
           variant="income"
           description="Entradas confirmadas"
+          sparkline={kpiSeries.income}
+          trend={{
+            ...kpiSeries.trends.income,
+            label: "últ. 7d vs ant.",
+          }}
         />
 
         <FinancialCard
@@ -257,14 +426,25 @@ export default function Dashboard() {
           icon={TrendingDown}
           variant="expense"
           description="Gastos registrados"
+          sparkline={kpiSeries.expense}
+          trendPolarity="inverted"
+          trend={{
+            ...kpiSeries.trends.expense,
+            label: "últ. 7d vs ant.",
+          }}
         />
 
         <FinancialCard
           title="Economia do Mês"
           value={formatCurrency(monthlyIncome - monthlyExpenses)}
           icon={PiggyBank}
-          variant={monthlyIncome > monthlyExpenses ? "income" : "expense"}
-          description="Sobrou este mês"
+          variant="savings"
+          description="Receitas − despesas (mês atual)"
+          sparkline={kpiSeries.savings}
+          trend={{
+            ...kpiSeries.trends.savings,
+            label: "últ. 7d vs ant.",
+          }}
         />
       </div>
 
@@ -389,87 +569,96 @@ export default function Dashboard() {
               <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
               Fluxo de Caixa (6 meses)
             </CardTitle>
-            <CardDescription className="text-xs sm:text-sm">Evolução de receitas e despesas</CardDescription>
+            <CardDescription className="text-xs sm:text-sm">
+              Receita e despesa por mês (valores em R$). Passe o mouse para ver o
+              total de cada série.
+            </CardDescription>
           </CardHeader>
           <CardContent className="p-3 sm:p-6 pt-0">
             <div className="overflow-x-auto -mx-1">
+              <p className="mb-2 text-[10px] text-muted-foreground sm:text-xs md:hidden">
+                ● Receita ● Despesa — cores também na legenda do gráfico.
+              </p>
               <div className="min-w-[280px]" style={{ height: chartHeight }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={cashflowData}>
-                    <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                  <AreaChart data={cashflowData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-border/40" />
                     <XAxis
                       dataKey="month"
                       tick={{ fontSize: chartFontSize }}
                       interval={isMobile ? 2 : 0}
+                      tickLine={false}
                     />
                     <YAxis
-                      width={isMobile ? 55 : 70}
+                      width={isMobile ? 58 : 76}
                       tick={{ fontSize: chartFontSize }}
                       tickFormatter={(value) =>
                         formatCurrency(value, { abbreviated: true })
                       }
+                      tickLine={false}
                     />
-                <Tooltip
-                  formatter={(value, name) => [
-                    formatCurrency(Number(value)),
-                    name === "income"
-                      ? "Receita"
-                      : name === "expense"
-                        ? "Despesa"
-                        : "Saldo",
-                  ]}
-                  position={{ x: 0, y: 0 }}
-                  allowEscapeViewBox={{ x: true, y: true }}
-                  contentStyle={{
-                    background: "hsl(var(--card))",
-                    color: "hsl(var(--card-foreground))",
-                    border: "1px solid hsl(var(--border))",
-                    padding: "8px 12px",
-                    borderRadius: 8,
-                    boxShadow:
-                      "0 10px 15px -3px rgba(0,0,0,0.3), 0 4px 6px -2px rgba(0,0,0,0.1)",
-                    opacity: 1,
-                    backdropFilter: "none",
-                    zIndex: 1000,
-                    fontSize: isMobile ? 11 : undefined,
-                  }}
-                  labelStyle={{
-                    color: "hsl(var(--card-foreground))",
-                    marginBottom: 4,
-                    fontWeight: 500,
-                    fontSize: isMobile ? 11 : undefined,
-                  }}
-                  itemStyle={{
-                    color: "hsl(var(--card-foreground))",
-                    padding: 0,
-                    lineHeight: 1.2,
-                    fontWeight: 600,
-                    fontSize: isMobile ? 11 : undefined,
-                  }}
-                  wrapperStyle={{
-                    outline: "none",
-                    zIndex: 1000,
-                  }}
-                  offset={20}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="income"
-                  stackId="1"
-                  stroke="hsl(var(--income))"
-                  fill="hsl(var(--income))"
-                  fillOpacity={0.6}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="expense"
-                  stackId="2"
-                  stroke="hsl(var(--expense))"
-                  fill="hsl(var(--expense))"
-                  fillOpacity={0.6}
-                />
-                </AreaChart>
-              </ResponsiveContainer>
+                    <Tooltip
+                      cursor={{ stroke: "hsl(var(--border))", strokeWidth: 1 }}
+                      content={({ active, payload, label }) => {
+                        if (!active || !payload?.length) return null;
+                        return (
+                          <div className="rounded-lg border border-border bg-card px-3 py-2.5 text-card-foreground shadow-lg">
+                            <p className="mb-2 border-b border-border/60 pb-1.5 text-xs font-medium text-muted-foreground">
+                              Período:{" "}
+                              <span className="text-foreground">{label}</span>
+                            </p>
+                            <ul className="space-y-2">
+                              {payload.map((entry) => (
+                                <li
+                                  key={String(entry.dataKey)}
+                                  className="flex items-center justify-between gap-6 text-sm"
+                                >
+                                  <span className="flex items-center gap-2">
+                                    <span
+                                      className="h-2.5 w-2.5 shrink-0 rounded-full"
+                                      style={{
+                                        backgroundColor: entry.color ?? "#999",
+                                      }}
+                                    />
+                                    <span>{entry.name}</span>
+                                  </span>
+                                  <span className="font-semibold tabular-nums">
+                                    {formatCurrency(Number(entry.value))}
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        );
+                      }}
+                    />
+                    <Legend
+                      verticalAlign="top"
+                      align="right"
+                      wrapperStyle={{ fontSize: chartFontSize }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="income"
+                      name="Receita"
+                      stroke="hsl(142 72% 46%)"
+                      fill="hsl(142 72% 42%)"
+                      fillOpacity={0.45}
+                      strokeWidth={2}
+                      isAnimationActive={!reduceMotion}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="expense"
+                      name="Despesa"
+                      stroke="hsl(350 78% 54%)"
+                      fill="hsl(350 70% 48%)"
+                      fillOpacity={0.38}
+                      strokeWidth={2}
+                      isAnimationActive={!reduceMotion}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
               </div>
             </div>
           </CardContent>
@@ -482,7 +671,9 @@ export default function Dashboard() {
               <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
               Gastos por Categoria
             </CardTitle>
-            <CardDescription className="text-xs sm:text-sm">Distribuição dos gastos deste mês</CardDescription>
+            <CardDescription className="text-xs sm:text-sm">
+              Despesas por categoria no período selecionado no topo (mês)
+            </CardDescription>
           </CardHeader>
           <CardContent className="p-3 sm:p-6 pt-0">
             {categoryData.length > 0 ? (
@@ -501,6 +692,7 @@ export default function Dashboard() {
                         outerRadius={isMobile ? 90 : 120}
                         fill="#8884d8"
                         dataKey="value"
+                        isAnimationActive={!reduceMotion}
                       >
                         {categoryData.map((entry, index) => (
                           <Cell
@@ -555,18 +747,7 @@ export default function Dashboard() {
                 </div>
               </div>
             ) : (
-              <div className="flex items-center justify-center h-[300px] text-muted-foreground">
-                <div className="text-center">
-                  <CreditCard className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg font-medium mb-2">
-                    Nenhum gasto registrado
-                  </p>
-                  <p className="text-sm">
-                    Adicione transações de despesas para ver a distribuição por
-                    categoria
-                  </p>
-                </div>
-              </div>
+              <CategorySpendingEmpty />
             )}
           </CardContent>
         </Card>
@@ -584,46 +765,69 @@ export default function Dashboard() {
             <CardDescription className="text-xs sm:text-sm">Acompanhe o progresso dos seus objetivos</CardDescription>
           </CardHeader>
           <CardContent className="p-3 sm:p-6 pt-0 space-y-4">
-            {goalProgress.map((goal) => (
-              <div key={goal.id} className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="font-medium">{goal.name}</span>
-                  <span className="text-muted-foreground">
-                    {formatCurrency(goal.currentAmount)} /{" "}
-                    {formatCurrency(goal.targetAmount)}
-                  </span>
-                </div>
-                <Progress value={goal.progressPercentage} className="h-2" />
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>{(goal.progressPercentage ?? 0).toFixed(1)}% concluído</span>
-                  <span
-                    className={`flex items-center gap-1 ${
-                      goal.status === "on_track"
-                        ? "text-success"
-                        : goal.status === "at_risk"
-                          ? "text-warning"
-                          : goal.status === "achieved"
+            {goalProgress.map((goal) => {
+              const dueAbs = goalDueAbsolute(goal.dueDate);
+              return (
+                <div
+                  key={goal.id}
+                  className="flex flex-col gap-3 rounded-lg border border-border/60 bg-card/40 p-3 sm:flex-row sm:items-center sm:gap-4"
+                >
+                  <div className="flex shrink-0 justify-center sm:justify-start">
+                    <div className="relative grid place-items-center">
+                      <GoalProgressRing pct={goal.progressPercentage} />
+                      <span className="absolute text-sm font-semibold tabular-nums text-foreground">
+                        {(goal.progressPercentage ?? 0).toFixed(0)}%
+                      </span>
+                    </div>
+                  </div>
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="font-medium">{goal.name}</span>
+                      <span className="text-sm text-muted-foreground tabular-nums">
+                        {formatCurrency(goal.currentAmount)} /{" "}
+                        {formatCurrency(goal.targetAmount)}
+                      </span>
+                    </div>
+                    <Progress value={goal.progressPercentage} className="h-2" />
+                    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                      <span
+                        title={dueAbs}
+                        className="inline-flex items-center gap-1"
+                      >
+                        Prazo: {goalDueCaption(goal.dueDate)}
+                        {dueAbs ? ` (${dueAbs})` : null}
+                      </span>
+                      <span
+                        className={cn(
+                          "flex items-center gap-1 font-medium",
+                          goal.status === "on_track"
                             ? "text-success"
-                            : "text-destructive"
-                    }`}
-                  >
-                    {goal.status === "on_track" && (
-                      <ArrowUpRight className="h-3 w-3" />
-                    )}
-                    {goal.status === "at_risk" && (
-                      <ArrowDownRight className="h-3 w-3" />
-                    )}
-                    {goal.status === "on_track"
-                      ? "No ritmo"
-                      : goal.status === "at_risk"
-                        ? "Em risco"
-                        : goal.status === "achieved"
-                          ? "Atingida"
-                          : "Atrasada"}
-                  </span>
+                            : goal.status === "at_risk"
+                              ? "text-warning"
+                              : goal.status === "achieved"
+                                ? "text-success"
+                                : "text-destructive",
+                        )}
+                      >
+                        {goal.status === "on_track" && (
+                          <ArrowUpRight className="h-3 w-3" />
+                        )}
+                        {goal.status === "at_risk" && (
+                          <ArrowDownRight className="h-3 w-3" />
+                        )}
+                        {goal.status === "on_track"
+                          ? "No ritmo"
+                          : goal.status === "at_risk"
+                            ? "Em risco"
+                            : goal.status === "achieved"
+                              ? "Atingida"
+                              : "Atrasada"}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </CardContent>
         </Card>
 
@@ -633,43 +837,91 @@ export default function Dashboard() {
             <CardTitle className="text-base sm:text-lg">Transações Recentes</CardTitle>
             <CardDescription className="text-xs sm:text-sm">Últimas movimentações</CardDescription>
           </CardHeader>
-          <CardContent className="p-3 sm:p-6 pt-0 space-y-3">
-            {transactions.slice(0, 5).map((transaction) => {
-              const category = categories.find(
-                (c) => c.id === transaction.category,
-              );
-              return (
-                <div
-                  key={transaction.id}
-                  className="flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="text-lg">{category?.icon || "💰"}</div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium truncate">
-                        {transaction.description}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {category?.name} •{" "}
-                        {new Date(transaction.date).toLocaleDateString("pt-BR")}
-                      </p>
+          <CardContent className="p-3 sm:p-6 pt-0">
+            <div className="divide-y divide-border/50">
+              {transactions.slice(0, 5).map((transaction) => {
+                const category = categories.find(
+                  (c) => c.id === transaction.category,
+                );
+                const isIncome = transaction.type === "income";
+                return (
+                  <div
+                    key={transaction.id}
+                    className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
+                  >
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
+                      <span
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted/80 text-base"
+                        aria-hidden
+                      >
+                        {category?.icon || "💰"}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="mb-1 flex flex-wrap items-center gap-2">
+                          <p className="text-sm font-medium truncate">
+                            {transaction.description}
+                          </p>
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "shrink-0 text-[10px] font-semibold uppercase tracking-wide",
+                              isIncome
+                                ? "border-success/40 text-success bg-success/5"
+                                : "border-expense/40 text-expense bg-expense/5",
+                            )}
+                          >
+                            {isIncome ? "Entrada" : "Saída"}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {category?.name} •{" "}
+                          {new Date(transaction.date).toLocaleDateString(
+                            "pt-BR",
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                    <div
+                      className={cn(
+                        "text-sm font-semibold tabular-nums shrink-0",
+                        isIncome ? "text-success" : "text-expense",
+                      )}
+                    >
+                      {formatCurrency(transaction.amount)}
                     </div>
                   </div>
-                  <div
-                    className={`text-sm font-medium ${
-                      transaction.type === "income"
-                        ? "text-success"
-                        : "text-expense"
-                    }`}
-                  >
-                    {formatCurrency(transaction.amount)}
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </CardContent>
         </Card>
       </div>
+    </>
+  );
+}
+
+export default function Dashboard() {
+  const [storeHydrated, setStoreHydrated] = useState(() =>
+    useFinancialStore.persist.hasHydrated(),
+  );
+
+  useEffect(() => {
+    const unsub = useFinancialStore.persist.onFinishHydration(() => {
+      setStoreHydrated(true);
+    });
+    if (useFinancialStore.persist.hasHydrated()) {
+      setStoreHydrated(true);
+    }
+    return unsub;
+  }, []);
+
+  return (
+    <PageLayout
+      title="Dashboard"
+      subtitle="Visão geral da sua situação financeira"
+      className="space-y-3 sm:space-y-6"
+    >
+      {storeHydrated ? <DashboardContent /> : <DashboardPageSkeleton />}
     </PageLayout>
   );
 }

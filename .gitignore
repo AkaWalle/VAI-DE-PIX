@@ -79,6 +79,8 @@ coverage/
 .pytest_cache/
 .coverage
 htmlcov/
+playwright-report/
+test-results/
 
 # Python
 __pycache__/

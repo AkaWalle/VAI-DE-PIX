@@ -37,6 +37,8 @@
 
 ## Outros documentos
 
+- [PRD.md](./PRD.md) — PRD das melhorias de UX/UI (login → dashboard → fluxos secundários)
+- [SPEC.md](./SPEC.md) — Critérios de aceite e fases de implementação (SDD)
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — Camadas do sistema, fluxos e decisões técnicas
 - [DATABASE.md](./DATABASE.md) — Tabelas, campos, índices e migrations
 - [API.md](./API.md) — Autenticação e endpoints por domínio
