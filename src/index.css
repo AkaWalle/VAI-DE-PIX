@@ -2,157 +2,90 @@
 @tailwind components;
 @tailwind utilities;
 
-/* VAI DE PIX - Sistema de Controle Financeiro Brasileiro */
-/* Design System with Financial Themes */
+/* VAI DE PIX — Dark Premium Fintech Design System */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 @layer base {
   :root {
-    /* Core Financial Brand Colors */
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
+    /* ── Base ── */
+    --background: 222 47% 5%;
+    --foreground: 213 31% 95%;
 
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
+    --card: 222 40% 8%;
+    --card-foreground: 213 31% 95%;
 
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 222 40% 8%;
+    --popover-foreground: 213 31% 95%;
 
-    /* Primary: Financial Green (Brazilian Real) */
-    --primary: 142 76% 36%;
-    --primary-foreground: 355.7 100% 97.3%;
+    /* ── Primary: Violet/Indigo ── */
+    --primary: 258 90% 66%;
+    --primary-foreground: 0 0% 100%;
 
-    /* Secondary: Neutral Financial */
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
+    /* ── Secondary ── */
+    --secondary: 222 30% 13%;
+    --secondary-foreground: 213 31% 85%;
 
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
+    --muted: 222 30% 13%;
+    --muted-foreground: 220 15% 50%;
 
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
+    --accent: 258 60% 20%;
+    --accent-foreground: 258 90% 80%;
 
-    /* Financial Status Colors */
-    --success: 142 76% 36%;
-    --success-foreground: 355.7 100% 97.3%;
+    /* ── Status ── */
+    --destructive: 346 87% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --warning: 47.9 95.8% 53.1%;
-    --warning-foreground: 26 83.3% 14.1%;
+    --success: 168 84% 45%;
+    --success-foreground: 0 0% 100%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
+    --warning: 38 92% 55%;
+    --warning-foreground: 0 0% 10%;
 
-    /* Income/Revenue Colors */
-    --income: 142 76% 36%;
-    --income-foreground: 355.7 100% 97.3%;
+    /* ── Income / Expense ── */
+    --income: 168 84% 45%;
+    --income-foreground: 0 0% 100%;
 
-    /* Expense Colors */
-    --expense: 0 84.2% 60.2%;
-    --expense-foreground: 0 0% 98%;
+    --expense: 346 87% 60%;
+    --expense-foreground: 0 0% 100%;
 
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 142 76% 36%;
+    /* ── Borders / Inputs ── */
+    --border: 222 30% 16%;
+    --input: 222 30% 13%;
+    --ring: 258 90% 66%;
 
-    --radius: 0.5rem;
+    /* ── Radius ── */
+    --radius: 0.875rem;
 
-    /* Sidebar Colors */
-    --sidebar-background: 240 10% 3.9%;
-    --sidebar-foreground: 240 5% 64.9%;
-    --sidebar-primary: 142 76% 36%;
-    --sidebar-primary-foreground: 355.7 100% 97.3%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 142 76% 36%;
+    /* ── Sidebar ── */
+    --sidebar-background: 222 47% 4%;
+    --sidebar-foreground: 220 15% 65%;
+    --sidebar-primary: 258 90% 66%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 222 35% 11%;
+    --sidebar-accent-foreground: 213 31% 95%;
+    --sidebar-border: 222 30% 10%;
+    --sidebar-ring: 258 90% 66%;
 
-    /* Financial Gradients */
-    --gradient-primary: linear-gradient(
-      135deg,
-      hsl(142 76% 36%),
-      hsl(142 76% 45%)
-    );
-    --gradient-income: linear-gradient(
-      135deg,
-      hsl(142 76% 36%),
-      hsl(120 100% 25%)
-    );
-    --gradient-expense: linear-gradient(
-      135deg,
-      hsl(0 84.2% 60.2%),
-      hsl(0 100% 50%)
-    );
-    --gradient-card: linear-gradient(
-      145deg,
-      hsl(240 10% 3.9%),
-      hsl(240 3.7% 15.9%)
-    );
+    /* ── Gradients ── */
+    --gradient-primary: linear-gradient(135deg, hsl(258 90% 60%), hsl(230 85% 65%));
+    --gradient-income: linear-gradient(135deg, hsl(168 84% 40%), hsl(168 84% 55%));
+    --gradient-expense: linear-gradient(135deg, hsl(346 87% 55%), hsl(346 87% 68%));
+    --gradient-card: linear-gradient(145deg, hsl(222 40% 9%), hsl(222 35% 12%));
+    --gradient-sidebar: linear-gradient(180deg, hsl(222 47% 4%), hsl(222 45% 6%));
+    --gradient-hero: linear-gradient(135deg, hsl(258 90% 60% / 0.15), hsl(168 84% 45% / 0.08));
 
-    /* Shadows with Financial Theme */
-    --shadow-financial: 0 10px 30px -15px hsl(142 76% 36% / 0.3);
-    --shadow-card: 0 4px 12px -2px hsl(240 10% 3.9% / 0.8);
-    --shadow-glow: 0 0 20px hsl(142 76% 36% / 0.4);
+    /* ── Shadows ── */
+    --shadow-financial: 0 20px 40px -12px hsl(258 90% 66% / 0.25);
+    --shadow-card: 0 4px 24px -4px hsl(222 47% 3% / 0.6);
+    --shadow-glow: 0 0 24px hsl(258 90% 66% / 0.35);
+    --shadow-income-glow: 0 0 20px hsl(168 84% 45% / 0.3);
+    --shadow-expense-glow: 0 0 20px hsl(346 87% 60% / 0.3);
 
-    /* Transitions */
-    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    /* ── Transitions ── */
+    --transition-smooth: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-bounce: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-  }
-
-  .light {
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-
-    --primary: 142 76% 36%;
-    --primary-foreground: 355.7 100% 97.3%;
-
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
-
-    --success: 142 76% 36%;
-    --success-foreground: 355.7 100% 97.3%;
-
-    --warning: 47.9 95.8% 53.1%;
-    --warning-foreground: 26 83.3% 14.1%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-
-    --income: 142 76% 36%;
-    --income-foreground: 355.7 100% 97.3%;
-
-    --expense: 0 84.2% 60.2%;
-    --expense-foreground: 0 0% 98%;
-
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 142 76% 36%;
-
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 142 76% 36%;
-    --sidebar-primary-foreground: 355.7 100% 97.3%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 240 5.9% 90%;
-    --sidebar-ring: 142 76% 36%;
-
-    --gradient-card: linear-gradient(
-      145deg,
-      hsl(0 0% 100%),
-      hsl(240 4.8% 95.9%)
-    );
-    --shadow-card: 0 4px 12px -2px hsl(240 10% 3.9% / 0.1);
+    --transition-spring: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 }
 
@@ -161,160 +94,198 @@
     @apply border-border;
   }
 
-  body {
-    @apply bg-background text-foreground font-sans antialiased;
-    font-feature-settings:
-      "rlig" 1,
-      "calt" 1;
-  }
-
-  /* Improve focus accessibility */
-  *:focus-visible {
-    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
-  }
-
-  /* Smooth scrolling */
   html {
     scroll-behavior: smooth;
+    overflow-x: hidden;
   }
 
-  /* Better text rendering */
   body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-feature-settings: "rlig" 1, "calt" 1, "cv11" 1;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-  }
-
-  /* Prevent horizontal overflow */
-  html,
-  body {
     overflow-x: hidden;
     max-width: 100vw;
   }
 
-  /* Ensure all containers respect viewport width */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
   * {
     box-sizing: border-box;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: hsl(222 47% 5%);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(222 30% 20%);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(258 90% 66% / 0.5);
   }
 }
 
 @layer components {
-  /* Financial Status Indicators */
+  /* ── Premium Card ── */
+  .card-premium {
+    @apply relative overflow-hidden rounded-2xl border border-white/5 bg-gradient-to-br from-card to-secondary/50;
+    box-shadow: var(--shadow-card);
+    backdrop-filter: blur(12px);
+  }
+
+  .card-premium::before {
+    content: '';
+    @apply absolute inset-0 opacity-0 transition-opacity duration-300;
+    background: linear-gradient(135deg, hsl(258 90% 66% / 0.06), transparent);
+  }
+
+  .card-premium:hover::before {
+    @apply opacity-100;
+  }
+
+  /* ── Stat Cards ── */
+  .stat-card-income {
+    @apply relative overflow-hidden rounded-2xl border border-emerald-500/15;
+    background: linear-gradient(145deg, hsl(168 84% 45% / 0.08), hsl(168 84% 45% / 0.03));
+    box-shadow: 0 4px 24px -4px hsl(168 84% 45% / 0.15);
+  }
+
+  .stat-card-expense {
+    @apply relative overflow-hidden rounded-2xl border border-rose-500/15;
+    background: linear-gradient(145deg, hsl(346 87% 60% / 0.08), hsl(346 87% 60% / 0.03));
+    box-shadow: 0 4px 24px -4px hsl(346 87% 60% / 0.15);
+  }
+
+  .stat-card-balance {
+    @apply relative overflow-hidden rounded-2xl border border-violet-500/20;
+    background: linear-gradient(145deg, hsl(258 90% 66% / 0.1), hsl(258 90% 66% / 0.04));
+    box-shadow: 0 4px 24px -4px hsl(258 90% 66% / 0.2);
+  }
+
+  /* ── Financial Status ── */
   .status-positive {
-    @apply text-income bg-income/10 border-income/20;
+    @apply text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2 py-0.5 text-xs font-medium;
   }
 
   .status-negative {
-    @apply text-expense bg-expense/10 border-expense/20;
+    @apply text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-full px-2 py-0.5 text-xs font-medium;
   }
 
   .status-warning {
-    @apply text-warning bg-warning/10 border-warning/20;
+    @apply text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-full px-2 py-0.5 text-xs font-medium;
   }
 
-  /* Financial Card Variants */
-  .financial-card {
-    @apply bg-gradient-card shadow-card-custom border border-border/50;
-  }
-
-  .financial-card-hover {
-    @apply transition-all duration-300 hover:shadow-financial hover:scale-[1.02];
-  }
-
-  /* Currency Display */
+  /* ── Currency ── */
   .currency-positive {
-    @apply text-income font-semibold;
+    @apply text-emerald-400 font-semibold tabular-nums;
   }
 
   .currency-negative {
-    @apply text-expense font-semibold;
+    @apply text-rose-400 font-semibold tabular-nums;
   }
 
   .currency-neutral {
-    @apply text-muted-foreground font-medium;
+    @apply text-muted-foreground font-medium tabular-nums;
+  }
+
+  /* ── Glow Effects ── */
+  .glow-primary {
+    box-shadow: var(--shadow-glow);
+  }
+
+  .glow-income {
+    box-shadow: var(--shadow-income-glow);
+  }
+
+  .glow-expense {
+    box-shadow: var(--shadow-expense-glow);
+  }
+
+  /* ── Glass ── */
+  .glass {
+    @apply border border-white/8;
+    background: hsl(222 40% 8% / 0.8);
+    backdrop-filter: blur(16px);
+  }
+
+  /* ── Sidebar Active Item ── */
+  .nav-item-active {
+    background: linear-gradient(90deg, hsl(258 90% 66% / 0.2), hsl(258 90% 66% / 0.05));
+    @apply border-l-2 border-violet-500 text-white;
+  }
+
+  /* ── Animated Number ── */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
   }
 }
 
 @layer utilities {
-  /* Custom financial animations */
-  @keyframes pulse-income {
-    0%,
-    100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.7;
-    }
+  /* Animations */
+  @keyframes fade-in-up {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
   }
 
-  @keyframes pulse-expense {
-    0%,
-    100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.7;
-    }
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
   }
 
-  .animate-pulse-income {
-    animation: pulse-income 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  @keyframes scale-in {
+    from { opacity: 0; transform: scale(0.95); }
+    to   { opacity: 1; transform: scale(1); }
   }
 
-  .animate-pulse-expense {
-    animation: pulse-expense 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  @keyframes shimmer {
+    0%   { background-position: -200% center; }
+    100% { background-position:  200% center; }
   }
 
-  /* Mobile-first responsive utilities */
-  .mobile-scroll {
-    @apply overflow-x-auto;
-    -webkit-overflow-scrolling: touch;
+  @keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 12px hsl(258 90% 66% / 0.3); }
+    50%       { box-shadow: 0 0 28px hsl(258 90% 66% / 0.6); }
   }
 
-  .mobile-grid {
-    @apply grid gap-4;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  .animate-fade-in-up   { animation: fade-in-up 0.4s ease-out both; }
+  .animate-fade-in      { animation: fade-in 0.3s ease-out both; }
+  .animate-scale-in     { animation: scale-in 0.2s ease-out both; }
+  .animate-pulse-glow   { animation: pulse-glow 2.5s ease-in-out infinite; }
+
+  .animate-delay-100 { animation-delay: 100ms; }
+  .animate-delay-200 { animation-delay: 200ms; }
+  .animate-delay-300 { animation-delay: 300ms; }
+  .animate-delay-400 { animation-delay: 400ms; }
+
+  /* Shimmer skeleton */
+  .shimmer {
+    background: linear-gradient(90deg, hsl(222 30% 13%), hsl(222 30% 18%), hsl(222 30% 13%));
+    background-size: 200% auto;
+    animation: shimmer 1.5s linear infinite;
   }
 
-  .mobile-flex {
-    @apply flex flex-col sm:flex-row;
-  }
+  /* Mobile */
+  .mobile-scroll  { @apply overflow-x-auto; -webkit-overflow-scrolling: touch; }
+  .mobile-grid    { @apply grid gap-4; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+  .mobile-flex    { @apply flex flex-col sm:flex-row; }
+  .mobile-text    { @apply text-sm sm:text-base; }
+  .mobile-padding { @apply p-4 sm:p-6; }
 
-  .mobile-text {
-    @apply text-sm sm:text-base;
-  }
+  /* Misc */
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
 
-  .mobile-padding {
-    @apply p-4 sm:p-6;
-  }
-
-  .mobile-margin {
-    @apply m-4 sm:m-6;
-  }
-
-  /* Prevent text overflow */
-  .text-overflow-ellipsis {
-    @apply truncate;
-  }
-
-  /* Responsive table wrapper */
-  .table-responsive {
-    @apply overflow-x-auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  /* Responsive chart container */
-  .chart-responsive {
-    @apply w-full h-auto;
-    min-height: 200px;
-  }
-
-  /* Hide scrollbar but keep functionality */
-  .scrollbar-hide {
-    -ms-overflow-style: none; /* Internet Explorer 10+ */
-    scrollbar-width: none; /* Firefox */
-  }
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none; /* Safari and Chrome */
-  }
+  .table-responsive { @apply overflow-x-auto; -webkit-overflow-scrolling: touch; }
+  .chart-responsive { @apply w-full h-auto; min-height: 200px; }
 }
