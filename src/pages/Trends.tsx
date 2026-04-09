@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useFinancialStore } from "@/stores/financial-store";
 import {
   Card,
@@ -30,6 +30,8 @@ import {
 
 export default function Trends() {
   const { transactions, categories, getCashflow } = useFinancialStore();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   // Análise de tendências
   const last6MonthsData = getCashflow(6);
@@ -296,38 +298,42 @@ export default function Trends() {
             <CardDescription>Tendência de receitas e despesas</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={last6MonthsData}>
-                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                <YAxis
-                  tick={{ fontSize: 12 }}
-                  tickFormatter={(value) =>
-                    formatCurrency(value, { abbreviated: true })
-                  }
-                />
-                <Tooltip
-                  formatter={(value, name) => [
-                    formatCurrency(Number(value) || 0),
-                    name === "income" ? "Receitas" : "Despesas",
-                  ]}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="income"
-                  stroke="hsl(var(--income))"
-                  strokeWidth={2}
-                  name="income"
-                />
-                <Line
-                  type="monotone"
-                  dataKey="expense"
-                  stroke="hsl(var(--expense))"
-                  strokeWidth={2}
-                  name="expense"
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            {!mounted ? (
+              <div className="h-[300px] animate-pulse rounded-lg bg-muted" />
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={last6MonthsData}>
+                  <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                  <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                  <YAxis
+                    tick={{ fontSize: 12 }}
+                    tickFormatter={(value) =>
+                      formatCurrency(value, { abbreviated: true })
+                    }
+                  />
+                  <Tooltip
+                    formatter={(value, name) => [
+                      formatCurrency(Number(value) || 0),
+                      name === "income" ? "Receitas" : "Despesas",
+                    ]}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="income"
+                    stroke="hsl(var(--income))"
+                    strokeWidth={2}
+                    name="income"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="expense"
+                    stroke="hsl(var(--expense))"
+                    strokeWidth={2}
+                    name="expense"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
 
@@ -341,36 +347,40 @@ export default function Trends() {
             <CardDescription>Panorama completo do ano</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={last12MonthsData}>
-                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                <YAxis
-                  tick={{ fontSize: 12 }}
-                  tickFormatter={(value) =>
-                    formatCurrency(value, { abbreviated: true })
-                  }
-                />
-                <Tooltip
-                  formatter={(value, name) => [
-                    formatCurrency(Number(value) || 0),
-                    name === "balance"
-                      ? "Saldo"
-                      : name === "income"
-                        ? "Receitas"
-                        : "Despesas",
-                  ]}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="balance"
-                  stroke="hsl(var(--primary))"
-                  fill="hsl(var(--primary))"
-                  fillOpacity={0.3}
-                  name="balance"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+            {!mounted ? (
+              <div className="h-[300px] animate-pulse rounded-lg bg-muted" />
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <AreaChart data={last12MonthsData}>
+                  <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                  <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                  <YAxis
+                    tick={{ fontSize: 12 }}
+                    tickFormatter={(value) =>
+                      formatCurrency(value, { abbreviated: true })
+                    }
+                  />
+                  <Tooltip
+                    formatter={(value, name) => [
+                      formatCurrency(Number(value) || 0),
+                      name === "balance"
+                        ? "Saldo"
+                        : name === "income"
+                          ? "Receitas"
+                          : "Despesas",
+                    ]}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="balance"
+                    stroke="hsl(var(--primary))"
+                    fill="hsl(var(--primary))"
+                    fillOpacity={0.3}
+                    name="balance"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
       </div>

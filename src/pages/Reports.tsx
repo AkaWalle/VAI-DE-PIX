@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useFinancialStore } from "@/stores/financial-store";
 import {
   Card,
@@ -45,6 +45,8 @@ export default function Reports() {
   const { toast } = useToast();
   const [selectedPeriod, setSelectedPeriod] = useState("6");
   const [isExporting, setIsExporting] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   // Análises de dados
   const totalTransactions = transactions.length;
@@ -250,60 +252,64 @@ export default function Reports() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={cashflowData}>
-                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                <YAxis
-                  tick={{ fontSize: 12 }}
-                  tickFormatter={(value) =>
-                    formatCurrency(value, { abbreviated: true })
-                  }
-                />
-                <Tooltip
-                  formatter={(value, name) => [
-                    formatCurrency(Number(value)),
-                    name === "income" ? "Receitas" : "Despesas",
-                  ]}
-                  position={{ x: 0, y: 0 }}
-                  allowEscapeViewBox={{ x: true, y: true }}
-                  contentStyle={{
-                    background: "hsl(var(--card))",
-                    color: "hsl(var(--card-foreground))",
-                    border: "1px solid hsl(var(--border))",
-                    padding: "8px 12px",
-                    borderRadius: 8,
-                    boxShadow:
-                      "0 10px 15px -3px rgba(0,0,0,0.3), 0 4px 6px -2px rgba(0,0,0,0.1)",
-                    opacity: 1,
-                    backdropFilter: "none",
-                    zIndex: 1000,
-                  }}
-                  labelStyle={{
-                    color: "hsl(var(--card-foreground))",
-                    marginBottom: 4,
-                    fontWeight: 500,
-                  }}
-                  itemStyle={{
-                    color: "hsl(var(--card-foreground))",
-                    padding: 0,
-                    lineHeight: 1.2,
-                    fontWeight: 600,
-                  }}
-                  wrapperStyle={{
-                    outline: "none",
-                    zIndex: 1000,
-                  }}
-                  offset={20}
-                />
-                <Bar dataKey="income" fill="hsl(var(--income))" name="income" />
-                <Bar
-                  dataKey="expense"
-                  fill="hsl(var(--expense))"
-                  name="expense"
-                />
-              </BarChart>
-            </ResponsiveContainer>
+            {!mounted ? (
+              <div className="h-[300px] animate-pulse rounded-lg bg-muted" />
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={cashflowData}>
+                  <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                  <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                  <YAxis
+                    tick={{ fontSize: 12 }}
+                    tickFormatter={(value) =>
+                      formatCurrency(value, { abbreviated: true })
+                    }
+                  />
+                  <Tooltip
+                    formatter={(value, name) => [
+                      formatCurrency(Number(value)),
+                      name === "income" ? "Receitas" : "Despesas",
+                    ]}
+                    position={{ x: 0, y: 0 }}
+                    allowEscapeViewBox={{ x: true, y: true }}
+                    contentStyle={{
+                      background: "hsl(var(--card))",
+                      color: "hsl(var(--card-foreground))",
+                      border: "1px solid hsl(var(--border))",
+                      padding: "8px 12px",
+                      borderRadius: 8,
+                      boxShadow:
+                        "0 10px 15px -3px rgba(0,0,0,0.3), 0 4px 6px -2px rgba(0,0,0,0.1)",
+                      opacity: 1,
+                      backdropFilter: "none",
+                      zIndex: 1000,
+                    }}
+                    labelStyle={{
+                      color: "hsl(var(--card-foreground))",
+                      marginBottom: 4,
+                      fontWeight: 500,
+                    }}
+                    itemStyle={{
+                      color: "hsl(var(--card-foreground))",
+                      padding: 0,
+                      lineHeight: 1.2,
+                      fontWeight: 600,
+                    }}
+                    wrapperStyle={{
+                      outline: "none",
+                      zIndex: 1000,
+                    }}
+                    offset={20}
+                  />
+                  <Bar dataKey="income" fill="hsl(var(--income))" name="income" />
+                  <Bar
+                    dataKey="expense"
+                    fill="hsl(var(--expense))"
+                    name="expense"
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
 
@@ -322,24 +328,28 @@ export default function Reports() {
             <div className="flex flex-col lg:flex-row gap-6">
               {/* Gráfico */}
               <div className="flex-1 min-w-0">
-                <ResponsiveContainer width="100%" height={300}>
-                  <RechartsPieChart>
-                    <Pie
-                      data={categoryExpenses.slice(0, 6)}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={false}
-                      outerRadius={100}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {categoryExpenses.slice(0, 6).map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                  </RechartsPieChart>
-                </ResponsiveContainer>
+                {!mounted ? (
+                  <div className="h-[300px] animate-pulse rounded-lg bg-muted" />
+                ) : (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <RechartsPieChart>
+                      <Pie
+                        data={categoryExpenses.slice(0, 6)}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={false}
+                        outerRadius={100}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {categoryExpenses.slice(0, 6).map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                    </RechartsPieChart>
+                  </ResponsiveContainer>
+                )}
               </div>
 
               {/* Legenda */}
