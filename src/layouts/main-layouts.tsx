@@ -1,4 +1,4 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -8,6 +8,25 @@ import { useTheme } from "@/components/theme-provider";
 import { useLoadData } from "@/hooks/use-load-data";
 import { NotificationBell } from "@/components/NotificationBell";
 
+const PAGE_NAMES: Record<string, string> = {
+  "/":                        "Dashboard",
+  "/transactions":            "Transações",
+  "/goals":                   "Metas",
+  "/envelopes":               "Caixinhas",
+  "/shared-expenses":         "Despesas Compartilhadas",
+  "/shared-expenses/pending": "Pendências",
+  "/activity-feed":           "Feed de Atividades",
+  "/reports":                 "Relatórios",
+  "/trends":                  "Tendências",
+  "/automations":             "Automações",
+  "/settings":                "Configurações",
+};
+
+function usePageName(): string {
+  const { pathname } = useLocation();
+  return PAGE_NAMES[pathname] ?? "VAI DE PIX";
+}
+
 function ThemeToggle() {
   const { theme, setTheme } = useTheme();
 
@@ -16,7 +35,8 @@ function ThemeToggle() {
       variant="ghost"
       size="sm"
       onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-      className="h-9 w-9"
+      className="h-9 w-9 rounded-full"
+      title="Alternar tema"
     >
       <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
       <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
@@ -26,8 +46,8 @@ function ThemeToggle() {
 }
 
 export function MainLayout() {
-  // Carregar dados da API quando o usuário estiver autenticado
   useLoadData();
+  const pageName = usePageName();
 
   return (
     <ThemeProvider>
@@ -37,13 +57,13 @@ export function MainLayout() {
 
           <div className="flex-1 flex flex-col min-w-0">
             {/* Header */}
-            <header className="sticky top-0 z-40 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <header className="sticky top-0 z-40 w-full border-b border-border bg-card shadow-[var(--shadow-sm)]">
               <div className="flex h-14 items-center justify-between px-4">
                 <div className="flex items-center gap-2 min-w-0">
                   <SidebarTrigger className="-ml-1 flex-shrink-0" />
                   <div className="h-4 w-px bg-border flex-shrink-0" />
-                  <h2 className="text-lg font-semibold text-foreground truncate">
-                    VAI DE PIX
+                  <h2 className="text-base font-semibold text-foreground truncate">
+                    {pageName}
                   </h2>
                 </div>
 

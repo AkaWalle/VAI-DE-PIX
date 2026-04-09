@@ -1,339 +1,193 @@
 import { useFinancialStore } from "@/stores/financial-store";
 import { envelopesService } from "@/services/envelopes.service";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
 import { ActionButton } from "@/components/ui/action-button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EnvelopeForm } from "@/components/forms/EnvelopeForm";
 import { EnvelopeValueForm } from "@/components/forms/EnvelopeValueForm";
 import { formatCurrency } from "@/utils/format";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Plus,
-  Wallet,
-  ArrowLeftRight,
-  TrendingUp,
-  Trash2,
-} from "lucide-react";
+import { Plus, Wallet, ArrowLeftRight, TrendingUp, Trash2 } from "lucide-react";
 
 export default function Envelopes() {
   const { envelopes, deleteEnvelope } = useFinancialStore();
   const { toast } = useToast();
 
-  const handleDeleteEnvelope = async (envelopeId: string, envelopeName: string) => {
+  const handleDelete = async (id: string, name: string) => {
     try {
-      await envelopesService.deleteEnvelope(envelopeId);
-      deleteEnvelope(envelopeId);
-      toast({
-        title: "Caixinha removida!",
-        description: `A caixinha "${envelopeName}" foi removida com sucesso.`,
-      });
+      await envelopesService.deleteEnvelope(id);
+      deleteEnvelope(id);
+      toast({ title: "Caixinha removida!", description: `"${name}" removida.` });
     } catch {
-      toast({
-        title: "Erro ao remover caixinha",
-        description: "Não foi possível remover a caixinha. Tente novamente.",
-        variant: "destructive",
-      });
+      toast({ title: "Erro ao remover caixinha", variant: "destructive" });
     }
   };
 
-  const totalBalance = envelopes.reduce((sum, env) => sum + env.balance, 0);
-  const totalTarget = envelopes.reduce(
-    (sum, env) => sum + (env.targetAmount || 0),
-    0,
-  );
+  const totalBalance = envelopes.reduce((s, e) => s + e.balance, 0);
+  const totalTarget  = envelopes.reduce((s, e) => s + (e.targetAmount || 0), 0);
+  const overallPct   = totalTarget > 0 ? (totalBalance / totalTarget) * 100 : 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-7 animate-fade-in">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Caixinhas</h1>
-          <p className="text-muted-foreground">
-            Sistema de envelopes para organizar seu orçamento
-          </p>
+          <p className="text-xs font-medium uppercase tracking-widest text-[#128c7e] mb-1">Orçamento</p>
+          <h1 className="text-2xl font-bold text-foreground">Caixinhas</h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">Envelopes para organizar seu orçamento</p>
         </div>
         <div className="flex gap-2">
-          <ActionButton variant="outline" icon={ArrowLeftRight}>
-            Transferir
-          </ActionButton>
+          <ActionButton variant="outline" icon={ArrowLeftRight} className="border-white/10 text-muted-foreground hover:text-white">Transferir</ActionButton>
           <EnvelopeForm />
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="bg-gradient-card shadow-card-custom">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Alocado
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatCurrency(totalBalance)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {envelopes.length} caixinhas ativas
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-primary/5 border-primary/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-primary">
-              Meta Total
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatCurrency(totalTarget)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Objetivos das caixinhas
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-success/5 border-success/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-success">
-              Progresso Geral
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {totalTarget > 0
-                ? ((totalBalance / totalTarget) * 100).toFixed(1)
-                : 0}
-              %
-            </div>
-            <p className="text-xs text-muted-foreground">Das metas atingidas</p>
-          </CardContent>
-        </Card>
+      {/* Stats */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        <div className="rounded-2xl border border-white/8 bg-white/3 p-5">
+          <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground mb-1">Total Alocado</p>
+          <p className="text-3xl font-bold text-white tabular-nums">{formatCurrency(totalBalance)}</p>
+          <p className="text-xs text-muted-foreground mt-1">{envelopes.length} caixinhas ativas</p>
+        </div>
+        <div className="rounded-2xl border border-[rgba(18,140,126,0.2)] bg-[rgba(18,140,126,0.06)] p-5">
+          <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground mb-1">Meta Total</p>
+          <p className="text-3xl font-bold text-white tabular-nums">{formatCurrency(totalTarget)}</p>
+          <p className="text-xs text-muted-foreground mt-1">Objetivo das caixinhas</p>
+        </div>
+        <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/8 p-5">
+          <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground mb-1">Progresso Geral</p>
+          <p className="text-3xl font-bold text-emerald-400 tabular-nums">{overallPct.toFixed(1)}%</p>
+          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-white/5">
+            <div className="h-full rounded-full bg-emerald-400 transition-all duration-700" style={{ width: `${Math.min(overallPct, 100)}%` }} />
+          </div>
+        </div>
       </div>
 
-      {/* Envelopes Grid */}
+      {/* Empty state */}
       {envelopes.length === 0 ? (
-        <Card className="bg-gradient-card shadow-card-custom">
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <Wallet className="h-16 w-16 text-muted-foreground/50 mb-4" />
-            <h3 className="text-xl font-semibold mb-2">
-              Nenhuma caixinha criada
-            </h3>
-            <p className="text-muted-foreground text-center mb-6 max-w-sm">
-              Crie caixinhas para organizar seu orçamento por categoria ou
-              objetivo
-            </p>
-            <EnvelopeForm
-              trigger={
-                <ActionButton icon={Plus}>Criar Primeira Caixinha</ActionButton>
-              }
-            />
-          </CardContent>
-        </Card>
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-white/5 bg-card py-20">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5">
+            <Wallet className="h-8 w-8 text-muted-foreground/40" />
+          </div>
+          <h3 className="text-lg font-semibold text-white mb-2">Nenhuma caixinha criada</h3>
+          <p className="text-sm text-muted-foreground text-center mb-6 max-w-sm">Organize seu orçamento criando caixinhas por categoria</p>
+          <EnvelopeForm trigger={<ActionButton icon={Plus}>Criar Primeira Caixinha</ActionButton>} />
+        </div>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {envelopes.map((envelope) => {
-            const progressPercentage = envelope.targetAmount
-              ? Math.min((envelope.balance / envelope.targetAmount) * 100, 100)
-              : 0;
-            const isOverTarget =
-              envelope.targetAmount && envelope.balance > envelope.targetAmount;
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+          {envelopes.map((env) => {
+            const pct = env.targetAmount ? Math.min((env.balance / env.targetAmount) * 100, 100) : 0;
+            const isOver = !!(env.targetAmount && env.balance > env.targetAmount);
+            const statusLabel = !env.targetAmount ? "Sem meta"
+              : isOver            ? "Acima da Meta"
+              : pct >= 100        ? "Meta Atingida"
+              : pct >= 75         ? "Quase Lá"
+              : pct >= 50         ? "No Caminho"
+              :                    "Precisa de Mais";
+            const statusColor = !env.targetAmount ? "text-muted-foreground border-white/10"
+              : isOver || pct >= 100 ? "text-emerald-400 border-emerald-500/30"
+              : pct >= 75            ? "text-[#128c7e] border-[rgba(18,140,126,0.3)]"
+              : pct >= 50            ? "text-amber-400 border-amber-500/30"
+              :                       "text-rose-400 border-rose-500/30";
 
             return (
-              <Card
-                key={envelope.id}
-                className="bg-gradient-card shadow-card-custom transition-all hover:shadow-financial"
-                style={{
-                  borderTopColor: envelope.color,
-                  borderTopWidth: "4px",
-                }}
+              <div key={env.id}
+                className="relative flex flex-col rounded-2xl border border-white/8 bg-card p-5 transition-all duration-200 hover:scale-[1.01] hover:border-white/12"
+                style={{ borderTopColor: env.color, borderTopWidth: "3px" }}
               >
-                <CardHeader className="pb-4">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg font-semibold">
-                      {envelope.name}
-                    </CardTitle>
-                    <div
-                      className="h-3 w-3 rounded-full"
-                      style={{ backgroundColor: envelope.color }}
-                    />
+                {/* Header */}
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1 min-w-0 pr-2">
+                    <h3 className="font-semibold text-white truncate">{env.name}</h3>
+                    {env.description && <p className="text-xs text-muted-foreground mt-0.5 truncate">{env.description}</p>}
                   </div>
-                  {envelope.description && (
-                    <CardDescription className="text-sm">
-                      {envelope.description}
-                    </CardDescription>
+                  <div className="h-3 w-3 shrink-0 rounded-full mt-1" style={{ backgroundColor: env.color }} />
+                </div>
+
+                {/* Balance */}
+                <div className="text-center mb-4">
+                  <p className="text-3xl font-bold text-white tabular-nums">{formatCurrency(env.balance)}</p>
+                  {env.targetAmount && (
+                    <p className="text-xs text-muted-foreground mt-1">de {formatCurrency(env.targetAmount)}</p>
                   )}
-                </CardHeader>
+                </div>
 
-                <CardContent className="space-y-4">
-                  {/* Balance */}
-                  <div className="text-center">
-                    <div className="text-3xl font-bold mb-1">
-                      {formatCurrency(envelope.balance)}
+                {/* Progress */}
+                {env.targetAmount && (
+                  <div className="space-y-1.5 mb-4">
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Progresso</span>
+                      <span className={isOver ? "text-amber-400" : "text-white"}>{pct.toFixed(1)}%</span>
                     </div>
-                    {envelope.targetAmount && (
-                      <div className="text-sm text-muted-foreground">
-                        de {formatCurrency(envelope.targetAmount)}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Progress Bar */}
-                  {envelope.targetAmount && (
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Progresso</span>
-                        <span
-                          className={`font-medium ${isOverTarget ? "text-warning" : ""}`}
-                        >
-                          {progressPercentage.toFixed(1)}%
-                        </span>
-                      </div>
-                      <Progress
-                        value={Math.min(progressPercentage, 100)}
-                        className="h-2"
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/5">
+                      <div
+                        className={`h-full rounded-full transition-all duration-700 ${isOver ? "bg-[#f59e0b]" : pct >= 100 ? "bg-[#25d366]" : "bg-[#128c7e]"}`}
+                        style={{ width: `${Math.min(pct, 100)}%` }}
                       />
-                      {isOverTarget && (
-                        <div className="text-xs text-warning flex items-center gap-1">
-                          <TrendingUp className="h-3 w-3" />
-                          Acima da meta em{" "}
-                          {formatCurrency(
-                            envelope.balance - envelope.targetAmount,
-                          )}
-                        </div>
-                      )}
                     </div>
-                  )}
-
-                  {/* Status Badge */}
-                  <div className="flex justify-center">
-                    {envelope.targetAmount ? (
-                      <Badge
-                        variant={
-                          isOverTarget
-                            ? "default"
-                            : progressPercentage >= 100
-                              ? "default"
-                              : progressPercentage >= 75
-                                ? "secondary"
-                                : progressPercentage >= 50
-                                  ? "outline"
-                                  : "destructive"
-                        }
-                        className="text-xs"
-                      >
-                        {isOverTarget
-                          ? "Acima da Meta"
-                          : progressPercentage >= 100
-                            ? "Meta Atingida"
-                            : progressPercentage >= 75
-                              ? "Quase Lá"
-                              : progressPercentage >= 50
-                                ? "No Caminho"
-                                : "Precisa de Mais"}
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-xs">
-                        Sem Meta Definida
-                      </Badge>
+                    {isOver && (
+                      <div className="flex items-center gap-1 text-xs text-amber-400">
+                        <TrendingUp className="h-3 w-3" />
+                        Acima da meta em {formatCurrency(env.balance - (env.targetAmount ?? 0))}
+                      </div>
                     )}
                   </div>
+                )}
 
-                  {/* Actions */}
-                  <div className="flex gap-2 pt-2">
-                    <EnvelopeValueForm
-                      envelopeId={envelope.id}
-                      envelopeName={envelope.name}
-                      currentBalance={envelope.balance}
-                      type="add"
-                    />
-                    <EnvelopeValueForm
-                      envelopeId={envelope.id}
-                      envelopeName={envelope.name}
-                      currentBalance={envelope.balance}
-                      type="withdraw"
-                    />
-                    <ConfirmDialog
-                      trigger={
-                        <ActionButton
-                          variant="outline"
-                          size="sm"
-                          className="px-2"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </ActionButton>
-                      }
-                      title="Remover Caixinha"
-                      description={`Tem certeza que deseja remover a caixinha "${envelope.name}"? Esta ação não pode ser desfeita.`}
-                      confirmText="Remover"
-                      onConfirm={() =>
-                        handleDeleteEnvelope(envelope.id, envelope.name)
-                      }
-                    />
-                  </div>
-                </CardContent>
-              </Card>
+                {/* Status badge */}
+                <div className="flex justify-center mb-4">
+                  <span className={`rounded-full border px-3 py-1 text-[11px] font-medium ${statusColor}`}>{statusLabel}</span>
+                </div>
+
+                {/* Actions */}
+                <div className="mt-auto flex gap-2">
+                  <EnvelopeValueForm envelopeId={env.id} envelopeName={env.name} currentBalance={env.balance} type="add" />
+                  <EnvelopeValueForm envelopeId={env.id} envelopeName={env.name} currentBalance={env.balance} type="withdraw" />
+                  <ConfirmDialog
+                    trigger={
+                      <button className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/8 text-muted-foreground transition-colors hover:border-rose-500/30 hover:bg-rose-500/10 hover:text-rose-400">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    }
+                    title="Remover Caixinha"
+                    description={`Remover "${env.name}"? Ação irreversível.`}
+                    confirmText="Remover"
+                    onConfirm={() => handleDelete(env.id, env.name)}
+                  />
+                </div>
+              </div>
             );
           })}
         </div>
       )}
 
-      {/* Transfer Section */}
+      {/* Transfer section */}
       {envelopes.length > 1 && (
-        <Card className="bg-gradient-card shadow-card-custom">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ArrowLeftRight className="h-5 w-5 text-primary" />
-              Transferências Rápidas
-            </CardTitle>
-            <CardDescription>
-              Mova valores entre suas caixinhas facilmente
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">De:</label>
-                <select className="w-full p-2 border border-input rounded-md bg-background">
+        <div className="rounded-2xl border border-white/8 bg-card p-5">
+          <div className="flex items-center gap-2.5 mb-4">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[rgba(18,140,126,0.12)]">
+              <ArrowLeftRight className="h-4 w-4 text-[#128c7e]" />
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold text-foreground">Transferência entre Caixinhas</h2>
+              <p className="text-xs text-muted-foreground">Mova valores facilmente</p>
+            </div>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {["De:", "Para:"].map((label) => (
+              <div key={label} className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">{label}</label>
+                <select className="w-full h-10 rounded-xl border border-border bg-secondary px-3 text-sm text-foreground focus:border-primary focus:outline-none">
                   <option value="">Selecione uma caixinha</option>
-                  {envelopes.map((env) => (
-                    <option key={env.id} value={env.id}>
-                      {env.name} ({formatCurrency(env.balance)})
-                    </option>
-                  ))}
+                  {envelopes.map(e => <option key={e.id} value={e.id}>{e.name} ({formatCurrency(e.balance)})</option>)}
                 </select>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Para:</label>
-                <select className="w-full p-2 border border-input rounded-md bg-background">
-                  <option value="">Selecione uma caixinha</option>
-                  {envelopes.map((env) => (
-                    <option key={env.id} value={env.id}>
-                      {env.name} ({formatCurrency(env.balance)})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div className="mt-4 flex gap-2">
-              <input
-                type="number"
-                placeholder="Valor da transferência"
-                className="flex-1 p-2 border border-input rounded-md bg-background"
-              />
-              <ActionButton icon={ArrowLeftRight}>Transferir</ActionButton>
-            </div>
-          </CardContent>
-        </Card>
+            ))}
+          </div>
+          <div className="mt-4 flex gap-2">
+            <input type="number" placeholder="Valor" className="h-10 flex-1 rounded-xl border border-border bg-secondary px-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none" />
+            <ActionButton icon={ArrowLeftRight} className="bg-primary hover:bg-[#075e54] text-white">Transferir</ActionButton>
+          </div>
+        </div>
       )}
     </div>
   );
