@@ -672,7 +672,7 @@ export default function Automations() {
 
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
-                          <h3 className="font-semibold">{rule.name}</h3>
+                          <p className="font-semibold">{rule.name}</p>
                           <Badge
                             variant={rule.isActive ? "default" : "secondary"}
                             className="text-xs"
@@ -743,9 +743,9 @@ export default function Automations() {
         <Card className="bg-gradient-card shadow-card-custom">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Zap className="h-16 w-16 text-muted-foreground/50 mb-4" />
-            <h3 className="text-xl font-semibold mb-2">
+            <p className="text-xl font-semibold mb-2">
               Nenhuma automação configurada
-            </h3>
+            </p>
             <p className="text-muted-foreground text-center mb-6 max-w-sm">
               Crie regras automáticas para facilitar o gerenciamento das suas
               finanças

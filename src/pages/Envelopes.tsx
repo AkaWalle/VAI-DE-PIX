@@ -68,7 +68,7 @@ export default function Envelopes() {
           <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5">
             <Wallet className="h-8 w-8 text-muted-foreground/40" />
           </div>
-          <h3 className="text-lg font-semibold text-white mb-2">Nenhuma caixinha criada</h3>
+          <p className="text-lg font-semibold text-white mb-2">Nenhuma caixinha criada</p>
           <p className="text-sm text-muted-foreground text-center mb-6 max-w-sm">Organize seu orçamento criando caixinhas por categoria</p>
           <EnvelopeForm trigger={<ActionButton icon={Plus}>Criar Primeira Caixinha</ActionButton>} />
         </div>
@@ -97,7 +97,7 @@ export default function Envelopes() {
                 {/* Header */}
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1 min-w-0 pr-2">
-                    <h3 className="font-semibold text-white truncate">{env.name}</h3>
+                    <p className="font-semibold text-white truncate">{env.name}</p>
                     {env.description && <p className="text-xs text-muted-foreground mt-0.5 truncate">{env.description}</p>}
                   </div>
                   <div className="h-3 w-3 shrink-0 rounded-full mt-1" style={{ backgroundColor: env.color }} />

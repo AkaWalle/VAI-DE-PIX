@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/stores/auth-store-index";
 import { hasSessionToken } from "@/lib/auth-session";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Check, AlertCircle } from "lucide-react";
+import { Loader2, Check, AlertCircle, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 /* ── Pix diamond logo ── */
@@ -38,6 +38,8 @@ export default function Auth() {
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
   const [registerForm, setRegisterForm] = useState({ name: "", email: "", password: "", confirmPassword: "" });
   const [error, setError] = useState("");
+  const [resetStatus, setResetStatus] = useState<"idle" | "sent" | "no-email">("idle");
+  const emailInputRef = useRef<HTMLInputElement>(null);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -165,11 +167,15 @@ export default function Auth() {
                   <Label htmlFor="login-email" className="text-[13px] font-medium text-[#1a1a1a]">Email</Label>
                   <Input
                     id="login-email"
+                    ref={emailInputRef}
                     type="email"
                     placeholder="seu@email.com"
                     className={inputClass}
                     value={loginForm.email}
-                    onChange={(e) => setLoginForm(p => ({ ...p, email: e.target.value }))}
+                    onChange={(e) => {
+                      setLoginForm(p => ({ ...p, email: e.target.value }));
+                      if (resetStatus !== "idle") setResetStatus("idle");
+                    }}
                     disabled={isLoading}
                   />
                 </div>
@@ -188,12 +194,35 @@ export default function Auth() {
                 <div className="flex justify-end">
                   <button
                     type="button"
-                    onClick={() => toast({ title: "Recuperação de senha", description: "Função disponível em breve." })}
+                    onClick={() => {
+                      if (!loginForm.email.trim()) {
+                        setResetStatus("no-email");
+                        emailInputRef.current?.focus();
+                        return;
+                      }
+                      setResetStatus("sent");
+                    }}
                     className="text-[13px] text-[#128c7e] hover:text-[#075e54] hover:underline transition-colors"
                   >
                     Esqueceu a senha?
                   </button>
                 </div>
+                {resetStatus === "no-email" && (
+                  <Alert className="rounded-[8px] border-amber-400/30 bg-amber-400/10">
+                    <AlertCircle className="h-4 w-4 text-amber-600" />
+                    <AlertDescription className="text-amber-700">
+                      Digite seu email acima para receber o link de recuperação.
+                    </AlertDescription>
+                  </Alert>
+                )}
+                {resetStatus === "sent" && (
+                  <Alert className="rounded-[8px] border-emerald-500/30 bg-emerald-500/10">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                    <AlertDescription className="text-emerald-700">
+                      Se <strong>{loginForm.email}</strong> tiver uma conta, o link de recuperação será enviado em breve. Verifique sua caixa de entrada.
+                    </AlertDescription>
+                  </Alert>
+                )}
                 {error && (
                   <Alert className="rounded-[8px] border-rose-500/30 bg-rose-500/10">
                     <AlertCircle className="h-4 w-4 text-rose-500" />

@@ -92,12 +92,12 @@ export function MobileNav({ onNewTransaction }: MobileNavProps) {
           <span className="text-[10px] font-medium">Transações</span>
         </NavLink>
 
-        {/* Center: Nova Transação */}
-        <div className="flex flex-1 items-center justify-center">
+        {/* Center: Nova Transação — floats 24px above bar */}
+        <div className="flex flex-1 items-center justify-center -mt-6">
           <button
             onClick={onNewTransaction}
             aria-label="Nova Transação"
-            className="flex h-12 w-12 items-center justify-center rounded-full bg-[#128c7e] dark:bg-[#25d366] text-white shadow-lg active:scale-95 transition-transform"
+            className="flex h-14 w-14 items-center justify-center rounded-full bg-[#128c7e] dark:bg-[#25d366] text-white shadow-[0_4px_16px_rgba(18,140,126,0.45)] dark:shadow-[0_4px_16px_rgba(37,211,102,0.35)] active:scale-95 transition-transform"
           >
             <Plus className="h-6 w-6" />
           </button>
