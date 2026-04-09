@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Outlet, useLocation } from "react-router-dom";
+import { Outlet } from "react-router-dom";
 import { ThemeProvider } from "@/components/theme-provider";
 import { useLoadData } from "@/hooks/use-load-data";
 import { MobileNav } from "@/components/mobile-nav";
