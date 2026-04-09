@@ -70,39 +70,45 @@ function NavItem({
   active: boolean;
 }) {
   const Icon = item.icon;
+  const { isMobile, setOpenMobile } = useSidebar();
+
+  const handleClick = () => {
+    if (isMobile) setOpenMobile(false);
+  };
 
   return (
     <SidebarMenuItem className={collapsed ? "flex justify-center" : ""}>
       <SidebarMenuButton
         asChild
         tooltip={collapsed ? item.title : undefined}
-        className={collapsed ? "!w-10 !h-10 !p-0 !justify-center" : ""}
+        className={cn(
+          // Reset Shadcn hover so our NavLink controls it
+          "hover:!bg-transparent hover:!text-inherit active:!bg-transparent p-0",
+          collapsed ? "!w-10 !h-10 !p-0 !justify-center" : "",
+        )}
       >
         <NavLink
           to={item.url}
           end={item.url === "/"}
           title={item.description}
+          onClick={handleClick}
           className={cn(
-            "group relative flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-all duration-150",
-            "rounded-[8px]",
+            "group relative flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-all duration-150 rounded-[8px]",
             collapsed ? "justify-center !px-0 !py-0 w-10 h-10" : "",
             active
-              ? "bg-[hsl(var(--sidebar-accent))] border-l-[3px] border-[#25d366] pl-[10px] text-white opacity-100"
-              : "text-sidebar-foreground/75 hover:bg-white/8 hover:text-sidebar-foreground hover:opacity-100",
+              ? "!bg-[rgba(255,255,255,0.12)] border-l-[3px] border-white pl-[10px] text-white"
+              : "text-white/70 hover:!bg-[rgba(255,255,255,0.08)] hover:text-white",
           )}
         >
           <span
             className={cn(
               "flex h-5 w-5 items-center justify-center shrink-0 transition-colors",
-              active ? "text-[#25d366]" : "text-sidebar-foreground/75 group-hover:text-sidebar-foreground",
+              active ? "text-white" : "text-white/70 group-hover:text-white",
             )}
           >
             <Icon className="h-[18px] w-[18px]" />
           </span>
           {!collapsed && <span className="truncate">{item.title}</span>}
-          {active && !collapsed && (
-            <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#25d366] shrink-0" />
-          )}
         </NavLink>
       </SidebarMenuButton>
     </SidebarMenuItem>
@@ -139,14 +145,11 @@ export function AppSidebar() {
         )}
       >
         <div className={cn("flex items-center", collapsed ? "justify-center" : "gap-3")}>
-          {/* Pix diamond logo */}
           <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#128c7e] shadow-md">
             <PixLogo size={20} />
           </div>
           {!collapsed && (
-            <div className="flex flex-col min-w-0">
-              <span className="text-[15px] font-bold tracking-tight text-white">VAI DE PIX</span>
-            </div>
+            <span className="text-[15px] font-bold tracking-tight text-white">VAI DE PIX</span>
           )}
         </div>
       </SidebarHeader>
@@ -156,7 +159,7 @@ export function AppSidebar() {
         {/* Principal */}
         <SidebarGroup className="mb-1">
           {!collapsed && (
-            <SidebarGroupLabel className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40">
+            <SidebarGroupLabel className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-white/40">
               Principal
             </SidebarGroupLabel>
           )}
@@ -169,12 +172,12 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {!collapsed && <div className="mx-3 my-2 h-px bg-sidebar-border/60" />}
+        {!collapsed && <div className="mx-3 my-2 h-px bg-white/10" />}
 
         {/* Análises */}
         <SidebarGroup className="mb-1">
           {!collapsed && (
-            <SidebarGroupLabel className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40">
+            <SidebarGroupLabel className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-white/40">
               Análises
             </SidebarGroupLabel>
           )}
@@ -187,12 +190,12 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {!collapsed && <div className="mx-3 my-2 h-px bg-sidebar-border/60" />}
+        {!collapsed && <div className="mx-3 my-2 h-px bg-white/10" />}
 
         {/* Sistema */}
         <SidebarGroup>
           {!collapsed && (
-            <SidebarGroupLabel className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40">
+            <SidebarGroupLabel className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-white/40">
               Sistema
             </SidebarGroupLabel>
           )}
@@ -207,7 +210,7 @@ export function AppSidebar() {
       </SidebarContent>
 
       {/* Footer */}
-      <SidebarFooter className={cn("border-t border-sidebar-border", collapsed ? "p-2" : "p-3")}>
+      <SidebarFooter className={cn("border-t border-white/10", collapsed ? "p-2" : "p-3")}>
         <div
           className={cn(
             "flex items-center gap-3 rounded-[8px] p-2 transition-colors hover:bg-white/8",
@@ -223,12 +226,12 @@ export function AppSidebar() {
             <>
               <div className="flex-1 min-w-0">
                 <p className="truncate text-xs font-semibold text-white">{user?.name || "Usuário"}</p>
-                <p className="truncate text-[10px] text-sidebar-foreground/60">{user?.email || ""}</p>
+                <p className="truncate text-[10px] text-white/50">{user?.email || ""}</p>
               </div>
               <button
                 onClick={logout}
                 title="Sair"
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-sidebar-foreground/50 transition-colors hover:bg-rose-500/15 hover:text-rose-400"
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-white/40 transition-colors hover:bg-rose-500/15 hover:text-rose-400"
               >
                 <LogOut className="h-3.5 w-3.5" />
               </button>

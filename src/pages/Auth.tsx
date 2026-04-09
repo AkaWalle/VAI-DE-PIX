@@ -185,6 +185,15 @@ export default function Auth() {
                     disabled={isLoading}
                   />
                 </div>
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => toast({ title: "Recuperação de senha", description: "Função disponível em breve." })}
+                    className="text-[13px] text-[#128c7e] hover:text-[#075e54] hover:underline transition-colors"
+                  >
+                    Esqueceu a senha?
+                  </button>
+                </div>
                 {error && (
                   <Alert className="rounded-[8px] border-rose-500/30 bg-rose-500/10">
                     <AlertCircle className="h-4 w-4 text-rose-500" />
