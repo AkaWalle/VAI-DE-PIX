@@ -75,7 +75,7 @@ export default function Goals() {
           <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5">
             <Target className="h-8 w-8 text-muted-foreground/40" />
           </div>
-          <h3 className="text-lg font-semibold text-white mb-2">Nenhuma meta criada</h3>
+          <p className="text-lg font-semibold text-white mb-2">Nenhuma meta criada</p>
           <p className="text-sm text-muted-foreground text-center mb-6 max-w-sm">
             Defina seus objetivos financeiros para acompanhar o progresso
           </p>
@@ -96,7 +96,7 @@ export default function Goals() {
                 {/* Card header */}
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1 min-w-0 pr-3">
-                    <h3 className="font-semibold text-white truncate">{goal.name}</h3>
+                    <p className="font-semibold text-white truncate">{goal.name}</p>
                     <div className="mt-1.5 flex items-center gap-2">
                       <span className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium ${cfg.color} ${cfg.border}`}>
                         <StatusIcon className="h-3 w-3" />{cfg.label}

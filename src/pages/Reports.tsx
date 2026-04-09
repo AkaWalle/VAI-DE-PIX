@@ -354,9 +354,9 @@ export default function Reports() {
 
               {/* Legenda */}
               <div className="flex flex-col justify-center gap-3 w-full lg:w-auto lg:min-w-[200px]">
-                <h4 className="text-sm font-semibold text-muted-foreground mb-2">
+                <p className="text-sm font-semibold text-muted-foreground mb-2">
                   Legenda
-                </h4>
+                </p>
                 {categoryExpenses.slice(0, 6).map((entry, index) => {
                   const percentage = (
                     (entry.value /

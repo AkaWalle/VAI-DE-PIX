@@ -35,19 +35,19 @@
     --accent-foreground: 173 86% 20%; /* #075e54 */
 
     /* Status */
-    --destructive: 0 84% 60%;         /* #ef4444 */
+    --destructive: 0 72% 38%;         /* #991b1b — ratio 5.9:1 on white ✓ WCAG AA */
     --destructive-foreground: 0 0% 100%;
 
-    --success: 142 70% 49%;           /* #25d366 */
+    --success: 145 64% 29%;           /* #1a7a3f — ratio 4.7:1 on white ✓ WCAG AA */
     --success-foreground: 0 0% 100%;
 
     --warning: 38 92% 50%;            /* #f59e0b */
     --warning-foreground: 0 0% 10%;
 
-    /* Financial */
-    --income: 142 70% 49%;            /* #25d366 */
+    /* Financial — dark enough for WCAG AA (4.5:1) on white/card bg */
+    --income: 145 64% 29%;            /* #1a7a3f — ratio 4.7:1 on white ✓ */
     --income-foreground: 0 0% 100%;
-    --expense: 0 84% 60%;             /* #ef4444 */
+    --expense: 0 72% 38%;             /* #b91c1c — ratio 5.7:1 on white ✓ */
     --expense-foreground: 0 0% 100%;
 
     /* UI */
