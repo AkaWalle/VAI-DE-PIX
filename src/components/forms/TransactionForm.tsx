@@ -30,14 +30,22 @@ interface TransactionFormData {
 
 interface TransactionFormProps {
   trigger?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function TransactionForm({ trigger }: TransactionFormProps) {
+export function TransactionForm({ trigger, open: controlledOpen, onOpenChange: controlledOnOpenChange }: TransactionFormProps) {
   const { addTransaction, categories, accounts } = useFinancialStore();
   const { toast } = useToast();
 
   const [isLoading, setIsLoading] = useState(false);
-  const [isOpen, setIsOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+
+  const isOpen = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setIsOpen = (value: boolean) => {
+    if (controlledOnOpenChange) controlledOnOpenChange(value);
+    else setInternalOpen(value);
+  };
   const [formData, setFormData] = useState<TransactionFormData>({
     type: "expense",
     amount: "",
@@ -86,8 +94,10 @@ export function TransactionForm({ trigger }: TransactionFormProps) {
       }
 
       // Preparar dados para a API
+      // Use T12:00:00 (noon) to avoid UTC offset shifting the date to the previous day
+      // for users in UTC-N timezones (e.g. Brazil UTC-3)
       const transactionData: TransactionCreate = {
-        date: new Date(formData.date).toISOString(),
+        date: `${formData.date}T12:00:00`,
         account_id: formData.account,
         category_id: formData.category,
         type: formData.type,
