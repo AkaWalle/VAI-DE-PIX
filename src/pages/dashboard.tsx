@@ -1,4 +1,5 @@
 import { useMemo, useEffect, useState } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useFinancialStore } from "@/stores/financial-store";
 import { formatCurrency } from "@/utils/format";
 import {
@@ -126,6 +127,7 @@ function Panel({ children, className = "" }: { children: React.ReactNode; classN
 }
 
 export default function Dashboard() {
+  const isMobile = useIsMobile();
   const {
     getTotalBalance,
     getIncomeThisMonth,
@@ -240,7 +242,7 @@ export default function Dashboard() {
       </div>
 
       {/* ── Stat Cards ── */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <StatCard title="Saldo Total"  value={formatCurrency(totalBalance)}    icon={Wallet}      variant="balance"                          sub="Todas as contas"   delay={0}   />
         <StatCard title="Receitas"     value={formatCurrency(monthlyIncome)}   icon={TrendingUp}  variant="income"                           sub="Este mês"          delay={80}  />
         <StatCard title="Despesas"     value={formatCurrency(monthlyExpenses)} icon={TrendingDown} variant="expense"                         sub="Este mês"          delay={160} />
@@ -252,7 +254,7 @@ export default function Dashboard() {
         {/* Cashflow — 3 cols */}
         <Panel className="lg:col-span-3">
           <SectionTitle icon={TrendingUp} title="Fluxo de Caixa" sub="Últimos 6 meses" />
-          <ResponsiveContainer width="100%" height={260}>
+          <ResponsiveContainer width="100%" height={isMobile ? 200 : 260}>
             <AreaChart data={cashflowData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="gradIncome" x1="0" y1="0" x2="0" y2="1">
@@ -325,7 +327,7 @@ export default function Dashboard() {
           <SectionTitle icon={CreditCard} title="Gastos por Categoria" sub="Este mês" />
           {categoryData.length > 0 ? (
             <>
-              <ResponsiveContainer width="100%" height={180}>
+              <ResponsiveContainer width="100%" height={isMobile ? 160 : 180}>
                 <PieChart>
                   <Pie
                     data={categoryData}

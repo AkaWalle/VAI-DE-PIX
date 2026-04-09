@@ -58,15 +58,17 @@ export function MainLayout() {
           <div className="flex-1 flex flex-col min-w-0">
             {/* Header */}
             <header className="sticky top-0 z-40 w-full border-b border-border bg-card shadow-[var(--shadow-sm)]">
-              <div className="flex h-14 items-center justify-between px-4">
-                <div className="flex items-center gap-2 min-w-0">
-                  <SidebarTrigger className="-ml-1 flex-shrink-0" />
-                  <div className="h-4 w-px bg-border flex-shrink-0" />
-                  <h2 className="text-base font-semibold text-foreground truncate">
-                    {pageName}
-                  </h2>
-                </div>
+              <div className="flex h-14 items-center px-4 gap-2">
+                {/* Left: hambúrguer */}
+                <SidebarTrigger className="-ml-1 flex-shrink-0" />
+                <div className="h-4 w-px bg-border flex-shrink-0" />
 
+                {/* Center (mobile) / Left (desktop): page name */}
+                <h2 className="flex-1 text-base font-semibold text-foreground text-center md:text-left truncate">
+                  {pageName}
+                </h2>
+
+                {/* Right: actions */}
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <NotificationBell />
                   <ThemeToggle />
