@@ -319,7 +319,7 @@ export default function Transactions() {
             Gerencie suas receitas e despesas
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <BankImportDialog
             trigger={
               <ActionButton variant="outline" size="sm" icon={Download}>
@@ -679,7 +679,7 @@ export default function Transactions() {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto rounded-md border">
-            <Table>
+            <Table className="tx-table">
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-12">
@@ -725,7 +725,7 @@ export default function Transactions() {
                           : ""
                       }
                     >
-                      <TableCell>
+                      <TableCell className="tx-cell-check">
                         <Checkbox
                           checked={selectedTransactions.has(transaction.id)}
                           onCheckedChange={(checked) =>
@@ -737,23 +737,23 @@ export default function Transactions() {
                           aria-label={`Selecionar transação ${transaction.description}`}
                         />
                       </TableCell>
-                      <TableCell className="font-medium">
+                      <TableCell data-label="Data" className="font-medium">
                         {formatDate(transaction.date)}
                       </TableCell>
-                      <TableCell>
+                      <TableCell data-label="Descrição">
                         <div className="flex flex-col">
                           <span className="font-medium">
                             {transaction.description}
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell data-label="Categoria">
                         {getCategoryName(transaction.category)}
                       </TableCell>
-                      <TableCell>
+                      <TableCell data-label="Conta">
                         {getAccountName(transaction.account)}
                       </TableCell>
-                      <TableCell>
+                      <TableCell data-label="Tags" className="tx-cell-tags">
                         <div className="flex flex-wrap gap-1">
                           {transaction.tags.slice(0, 2).map((tag) => (
                             <Badge
@@ -771,7 +771,7 @@ export default function Transactions() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell data-label="Valor" className="tx-cell-value text-right">
                         <span
                           className={`font-semibold ${
                             transaction.type === "income"
@@ -779,7 +779,8 @@ export default function Transactions() {
                               : "text-expense"
                           }`}
                         >
-                          {formatCurrency(transaction.amount)}
+                          {transaction.type === "income" ? "+" : "-"}
+                          {formatCurrency(Math.abs(transaction.amount), { showSign: false })}
                         </span>
                       </TableCell>
                     </TableRow>
