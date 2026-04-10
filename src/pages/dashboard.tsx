@@ -86,12 +86,14 @@ function StatCard({
           <p className="mb-1 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
             {title}
           </p>
-          <p className={`tabular text-[20px] sm:text-[28px] font-bold tracking-tight ${styles.val}`}>
+          <p
+            className={`stat-card-value-responsive tabular text-[20px] sm:text-[28px] font-bold tracking-tight leading-tight break-all ${styles.val}`}
+          >
             {value}
           </p>
           {sub && <p className="mt-1.5 text-[13px] text-muted-foreground">{sub}</p>}
         </div>
-        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] ${styles.icon}`}>
+        <div className={`stat-card-icon-responsive flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] ${styles.icon}`}>
           <Icon className="h-5 w-5" />
         </div>
       </div>
