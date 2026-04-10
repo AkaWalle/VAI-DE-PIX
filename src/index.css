@@ -350,7 +350,7 @@
 @media (max-width: 768px) {
   /* Reduce stat card value font size so long currency strings don't overflow */
   .stat-card-value-responsive {
-    font-size: clamp(1.1rem, 4vw, 1.75rem) !important;
+    font-size: clamp(1rem, 4vw, 1.75rem) !important;
     word-break: break-all;
   }
 
