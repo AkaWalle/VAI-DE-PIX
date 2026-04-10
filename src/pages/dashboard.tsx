@@ -86,7 +86,7 @@ function StatCard({
           <p className="mb-1 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
             {title}
           </p>
-          <p className={`tabular text-[28px] font-bold tracking-tight ${styles.val}`}>
+          <p className={`tabular text-[20px] sm:text-[28px] font-bold tracking-tight ${styles.val}`}>
             {value}
           </p>
           {sub && <p className="mt-1.5 text-[13px] text-muted-foreground">{sub}</p>}
