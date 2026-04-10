@@ -87,7 +87,7 @@ function StatCard({
             {title}
           </p>
           <p
-            className={`stat-card-value-responsive tabular text-[20px] sm:text-[28px] font-bold tracking-tight leading-tight break-all ${styles.val}`}
+            className={`stat-card-value-responsive tabular text-[20px] sm:text-[28px] font-bold tracking-tight leading-tight ${styles.val}`}
           >
             {value}
           </p>
@@ -335,8 +335,8 @@ export default function Dashboard() {
                     data={categoryData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={55}
-                    outerRadius={85}
+                    innerRadius={35}
+                    outerRadius={55}
                     paddingAngle={3}
                     dataKey="value"
                     stroke="none"
@@ -457,7 +457,7 @@ export default function Dashboard() {
                       </p>
                     </div>
                     <span className={`shrink-0 text-xs font-semibold tabular-nums ${isIncome ? "text-[#25d366]" : "text-[#ef4444]"}`}>
-                      {isIncome ? "+" : "-"}{formatCurrency(Math.abs(tx.amount))}
+                      {isIncome ? "+" : "-"}{formatCurrency(Math.abs(tx.amount), { showSign: false })}
                     </span>
                   </div>
                 );
