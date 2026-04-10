@@ -150,6 +150,8 @@ try:
     print("5.2 — auth importado")
     print("5.3 — Tentando importar outros routers...")
     from routers import transactions, goals, envelopes, categories, accounts, reports, automations, notifications, shared_expenses, activity_feed, activity_feed_ws, users
+    from auth_utils import get_current_user
+    from models import User
     print("5.4 — Todos os routers importados")
     print("5 — Routers importados com sucesso!")
 except ImportError as e:
@@ -196,63 +198,40 @@ except Exception as e:
     traceback.print_exc()
     raise
 
+# Explicit list of allowed origins — do not use wildcards or dynamic matching
+_ALLOWED_ORIGINS = {
+    "https://vai-de-pix.vercel.app",
+    "http://localhost:5000",
+    "http://localhost:3000",
+}
+
 # Middleware to handle OPTIONS requests and CORS headers
 class CORSOptionsMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        # LOGS DETALHADOS
-        print(f"→ [CORS] Request recebido: {request.method} {request.url.path}")
-        print(f"→ [CORS] Origin: {request.headers.get('origin', 'NÃO PRESENTE')}")
-        
-        # Get origin from request
         origin = request.headers.get("origin", "")
-        
-        # Libera TODAS as origens do Vercel (preview + produção + localhost)
-        # Segue a mesma lógica do middleware Next.js que funciona 100%
-        # SEMPRE permitir qualquer origem do Vercel ou localhost
-        if not origin:
-            # Se não houver origin, permitir todas
-            allowed_origin = "*"
-            allow_credentials = "false"
-        elif "vercel.app" in origin or "localhost" in origin:
-            # Qualquer subdomínio .vercel.app ou localhost - usar origem específica
-            allowed_origin = origin
-            allow_credentials = "true"
-        else:
-            # Qualquer outra origem - permitir também (mais permissivo possível)
-            allowed_origin = origin if origin else "*"
-            allow_credentials = "true"
-        
-        print(f"→ [CORS] Allowed origin: {allowed_origin}, Credentials: {allow_credentials}")
-        
+        is_allowed = origin in _ALLOWED_ORIGINS
+
         # Handle OPTIONS preflight requests
         if request.method == "OPTIONS":
-            print("→ [CORS] Respondendo OPTIONS preflight")
             from fastapi.responses import Response
             response = Response()
-            response.headers["Access-Control-Allow-Origin"] = allowed_origin
+            if is_allowed:
+                response.headers["Access-Control-Allow-Origin"] = origin
+                response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+                response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With, X-CSRF-Token"
+                response.headers["Access-Control-Allow-Credentials"] = "true"
+                response.headers["Access-Control-Max-Age"] = "3600"
+            return response
+
+        response = await call_next(request)
+
+        if is_allowed:
+            response.headers["Access-Control-Allow-Origin"] = origin
             response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
             response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With, X-CSRF-Token"
-            response.headers["Access-Control-Allow-Credentials"] = allow_credentials
-            response.headers["Access-Control-Max-Age"] = "3600"
-            return response
-        
-        try:
-            print(f"→ [CORS] Chamando próximo middleware/handler para {request.method} {request.url.path}")
-            response = await call_next(request)
-            print(f"→ [CORS] Resposta recebida: {response.status_code}")
-        except Exception as e:
-            print(f"→ [CORS] ERRO no call_next: {type(e).__name__}: {str(e)}")
-            import traceback
-            traceback.print_exc()
-            raise
-        
-        # Add CORS headers to all responses
-        response.headers["Access-Control-Allow-Origin"] = allowed_origin
-        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
-        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With, X-CSRF-Token"
-        response.headers["Access-Control-Allow-Credentials"] = allow_credentials
-        response.headers["Access-Control-Expose-Headers"] = "*"
-        
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Expose-Headers"] = "*"
+
         return response
 
 # Middleware to strip /api prefix from path
@@ -365,9 +344,9 @@ async def health_check():
 async def health_check_api():
     return await _health_check_impl()
 
-# Debug endpoint - Database info
+# Debug endpoint - Database info (requires authentication)
 @app.get("/debug/db")
-async def debug_database():
+async def debug_database(current_user: User = Depends(get_current_user)):
     """Debug endpoint to check database connection and tables"""
     try:
         from database import engine
@@ -431,9 +410,9 @@ async def debug_database():
             "error": "Erro ao conectar ao banco.",
         }
 
-# Debug endpoint - Test query
+# Debug endpoint - Test query (requires authentication)
 @app.get("/debug/test-query")
-async def debug_test_query():
+async def debug_test_query(current_user: User = Depends(get_current_user)):
     """Test endpoint that performs a simple database query"""
     try:
         from database import get_db

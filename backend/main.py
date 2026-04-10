@@ -66,20 +66,8 @@ frontend_url = os.getenv("FRONTEND_URL")
 
 # Origens permitidas baseadas no ambiente
 if is_production:
-    # Em produção, permitir TODAS as origens do Vercel
-    # Isso resolve problemas de CORS com diferentes subdomínios
-    allowed_origins = ["*"]  # Permitir todas as origens
-    
-    # Adicionar URLs específicas se configuradas
-    if frontend_url:
-        allowed_origins.append(frontend_url)
-    
-    frontend_url_prod = os.getenv("FRONTEND_URL_PRODUCTION")
-    if frontend_url_prod:
-        allowed_origins.append(frontend_url_prod)
-    
-    # Remover duplicatas
-    allowed_origins = list(set([o for o in allowed_origins if o]))
+    # In production, restrict to the known frontend origin only
+    allowed_origins = ["https://vai-de-pix.vercel.app"]
 else:
     # Em desenvolvimento, permitir localhost e rede local
     allowed_origins = [
@@ -191,7 +179,6 @@ async def protected_route(
 
 if __name__ == "__main__":
     print("🚀 Iniciando servidor de desenvolvimento VAI DE PIX API...")
-    print("🔑 Login de admin: admin@vaidepix.com / 123456")
     print("🌐 API disponível em: http://localhost:8000")
     print("📚 Documentação: http://localhost:8000/docs")
     print("💡 Frontend deve rodar separadamente (npm run dev)")
