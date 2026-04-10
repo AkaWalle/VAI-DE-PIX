@@ -113,7 +113,7 @@ except Exception as e:
 # Importar dependências com tratamento de erro
 print("3 — Tentando importar FastAPI...")
 try:
-    from fastapi import FastAPI, Request, WebSocket
+    from fastapi import FastAPI, Request, WebSocket, Depends
     print("3.1 — FastAPI importado")
     from fastapi.middleware.cors import CORSMiddleware
     print("3.2 — CORSMiddleware importado")
