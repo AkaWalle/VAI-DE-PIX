@@ -268,7 +268,6 @@ async def serve_spa(full_path: str, request: Request):
 if __name__ == "__main__":
     print("🚀 Iniciando servidor de produção VAI DE PIX...")
     print(f"📁 Servindo frontend de: {frontend_dist}")
-    print("🔑 Login de admin: admin@vaidepix.com / 123456")
     print("🌐 Acesse: http://localhost:8000")
     print("📚 API Docs: http://localhost:8000/docs")
     

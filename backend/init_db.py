@@ -28,7 +28,7 @@ def create_default_data():
             db.add(test_user)
             db.commit()
             db.refresh(test_user)
-            print("✅ Usuário admin criado: admin@vaidepix.com / 123456")
+            print("✅ Usuário admin criado com sucesso.")
         
         # Criar categorias padrão (15 mais utilizadas)
         for cat_data in DEFAULT_CATEGORIES:
@@ -90,7 +90,6 @@ def main():
     create_default_data()
     
     print("\n🎉 Banco de dados inicializado com sucesso!")
-    print("🔑 Login: admin@vaidepix.com / 123456")
     print("🚀 Execute: python main.py")
 
 if __name__ == "__main__":
