@@ -350,13 +350,46 @@
 @media (max-width: 768px) {
   /* Reduce stat card value font size so long currency strings don't overflow */
   .stat-card-value-responsive {
-    font-size: clamp(1rem, 4vw, 1.75rem) !important;
-    word-break: break-all;
+    font-size: clamp(0.75rem, 3vw, 1.75rem) !important;
+    white-space: nowrap;        /* keep sign and value on the same line */
+    overflow: hidden;
+    text-overflow: ellipsis;    /* fallback if value is still too wide */
   }
 
-  /* Ensure icon never shrinks below its natural size */
+  /* Shrink icon slightly on small screens so text has more room */
   .stat-card-icon-responsive {
     flex-shrink: 0;
+    width: 2rem !important;
+    height: 2rem !important;
+    border-radius: 8px !important;
+  }
+
+  .stat-card-icon-responsive svg {
+    width: 1rem;
+    height: 1rem;
+  }
+}
+
+/* ── Responsive Transaction Table wrapper ── */
+.tx-table-wrapper {
+  overflow-x: auto;
+}
+
+@media (max-width: 768px) {
+  /* Disable horizontal scroll so the card layout can activate */
+  .tx-table-wrapper {
+    overflow-x: visible;
+  }
+
+  /* Prevent long category/description strings from breaking card layout */
+  .tx-table tbody td > span,
+  .tx-table tbody td > p,
+  .tx-table tbody td > div > span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 55vw;
   }
 }
 

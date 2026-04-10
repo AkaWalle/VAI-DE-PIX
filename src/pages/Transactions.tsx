@@ -319,7 +319,7 @@ export default function Transactions() {
             Gerencie suas receitas e despesas
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 min-w-0">
           <BankImportDialog
             trigger={
               <ActionButton variant="outline" size="sm" icon={Download}>
@@ -357,7 +357,7 @@ export default function Transactions() {
 
               {selectedTransactions.size > 0 && (
                 <AlertDialog>
-                  <AlertDialogTrigger asChild>
+                  <AlertDialogTrigger asChild className="flex items-center">
                     <ActionButton
                       variant="destructive"
                       size="sm"
@@ -399,7 +399,7 @@ export default function Transactions() {
 
           {transactions.length > 0 && (
             <AlertDialog>
-              <AlertDialogTrigger asChild>
+              <AlertDialogTrigger asChild className="flex items-center">
                 <ActionButton
                   variant="outline"
                   size="sm"
@@ -678,7 +678,7 @@ export default function Transactions() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto rounded-md border">
+          <div className="tx-table-wrapper rounded-md border">
             <Table className="tx-table">
               <TableHeader>
                 <TableRow>
