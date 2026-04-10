@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { ActionButton } from "@/components/ui/action-button";
 import { TransactionForm } from "@/components/forms/TransactionForm";
 import { BankImportDialog } from "@/components/forms/BankImportDialog";
+import { transactionsService } from "@/services/transactions.service";
 import { formatCurrency, formatDate } from "@/utils/format";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -279,10 +280,13 @@ export default function Transactions() {
 
     setIsDeleting(true);
     try {
-      // Simular delay
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      // Delete each transaction via API, then remove from local store
+      await Promise.all(
+        Array.from(selectedTransactions).map((id) =>
+          transactionsService.deleteTransaction(id)
+        )
+      );
 
-      // Apagar transações selecionadas
       selectedTransactions.forEach((id) => {
         deleteTransaction(id);
       });
