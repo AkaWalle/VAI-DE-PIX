@@ -187,9 +187,10 @@ export function TransactionForm({ trigger, open: controlledOpen, onOpenChange: c
           <Label htmlFor="type">Tipo *</Label>
           <Select
             value={formData.type}
-            onValueChange={(value: "income" | "expense") =>
-              updateFormData("type", value)
-            }
+            onValueChange={(value: "income" | "expense") => {
+              // Reset category when type changes — categories are type-specific
+              setFormData((prev) => ({ ...prev, type: value, category: "" }));
+            }}
           >
             <SelectTrigger>
               <SelectValue placeholder="Selecione o tipo" />
