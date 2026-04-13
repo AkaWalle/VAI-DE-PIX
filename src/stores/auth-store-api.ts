@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { authService, User } from "@/services/auth.service";
 import { hasSessionToken } from "@/lib/auth-session";
+import { useFinancialStore } from "@/stores/financial-store";
 
 export interface AuthState {
   user: User | null;
@@ -39,6 +40,10 @@ export const useAuthStore = create<AuthStore>()(
         try {
           const response = await authService.login({ email, password });
 
+          // Clear any stale financial data from a previous user before setting
+          // the new session, so the UI never shows another user's data.
+          useFinancialStore.getState().clearUserData();
+
           set({
             user: response.user,
             isAuthenticated: true,
@@ -73,6 +78,8 @@ export const useAuthStore = create<AuthStore>()(
 
       logout: () => {
         authService.logout();
+        // Clear all financial data so the next user starts with a clean store.
+        useFinancialStore.getState().clearUserData();
         set({
           user: null,
           isAuthenticated: false,

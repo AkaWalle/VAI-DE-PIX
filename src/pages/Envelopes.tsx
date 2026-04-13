@@ -178,7 +178,7 @@ export default function Envelopes() {
           <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-500/10">
             <AlertTriangle className="h-7 w-7 text-rose-400" />
           </div>
-          <p className="text-base font-semibold text-white mb-1">Erro ao carregar caixinhas</p>
+          <p className="text-base font-semibold text-foreground mb-1">Erro ao carregar caixinhas</p>
           <p className="text-sm text-muted-foreground mb-6 max-w-sm">{envelopesError}</p>
           <ActionButton icon={RefreshCw} onClick={handleRetryLoad}>
             Tentar Novamente
@@ -229,7 +229,7 @@ export default function Envelopes() {
           <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5">
             <Wallet className="h-8 w-8 text-muted-foreground/40" />
           </div>
-          <p className="text-lg font-semibold text-white mb-2">Nenhuma caixinha criada</p>
+          <p className="text-lg font-semibold text-foreground mb-2">Nenhuma caixinha criada</p>
           <p className="text-sm text-muted-foreground text-center mb-6 max-w-sm">Organize seu orçamento criando caixinhas por categoria</p>
           <EnvelopeForm trigger={<ActionButton icon={Plus}>Criar Primeira Caixinha</ActionButton>} />
         </div>
@@ -258,7 +258,7 @@ export default function Envelopes() {
                 {/* Header */}
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1 min-w-0 pr-2">
-                    <p className="font-semibold text-white truncate">{env.name}</p>
+                    <p className="font-semibold text-foreground truncate">{env.name}</p>
                     {env.description && <p className="text-xs text-muted-foreground mt-0.5 truncate">{env.description}</p>}
                   </div>
                   <div className="h-3 w-3 shrink-0 rounded-full mt-1" style={{ backgroundColor: env.color }} />
@@ -266,7 +266,7 @@ export default function Envelopes() {
 
                 {/* Balance */}
                 <div className="text-center mb-4">
-                  <p className="text-3xl font-bold text-white tabular-nums">{formatCurrency(env.balance)}</p>
+                  <p className="text-3xl font-bold text-foreground tabular-nums">{formatCurrency(env.balance)}</p>
                   {env.targetAmount && (
                     <p className="text-xs text-muted-foreground mt-1">de {formatCurrency(env.targetAmount)}</p>
                   )}
@@ -277,7 +277,7 @@ export default function Envelopes() {
                   <div className="space-y-1.5 mb-4">
                     <div className="flex justify-between text-xs text-muted-foreground">
                       <span>Progresso</span>
-                      <span className={isOver ? "text-amber-400" : "text-white"}>{pct.toFixed(1)}%</span>
+                      <span className={isOver ? "text-amber-400" : "text-foreground"}>{pct.toFixed(1)}%</span>
                     </div>
                     <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/5">
                       <div
