@@ -254,12 +254,11 @@ export default function Transactions() {
   const handleClearAllTransactions = async () => {
     setIsDeleting(true);
     try {
-      // Simular delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
+      await Promise.all(
+        transactions.map((t) => transactionsService.deleteTransaction(t.id)),
+      );
       clearAllTransactions();
       setSelectedTransactions(new Set());
-
       toast({
         title: "Transações apagadas!",
         description: "Todas as transações foram removidas com sucesso.",
