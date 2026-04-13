@@ -35,7 +35,7 @@ interface TransactionFormProps {
 }
 
 export function TransactionForm({ trigger, open: controlledOpen, onOpenChange: controlledOnOpenChange }: TransactionFormProps) {
-  const { addTransaction, categories, accounts } = useFinancialStore();
+  const { transactions, setTransactions, categories, accounts } = useFinancialStore();
   const { toast } = useToast();
 
   const [isLoading, setIsLoading] = useState(false);
@@ -112,24 +112,32 @@ export function TransactionForm({ trigger, open: controlledOpen, onOpenChange: c
       const savedTransaction =
         await transactionsService.createTransaction(transactionData);
 
-      // Converter formato da API para formato do store
-      // API retorna account_id e category_id, mas store espera account e category
-      addTransaction({
-        type: savedTransaction.type as "income" | "expense",
-        amount:
-          savedTransaction.type === "expense"
-            ? -Math.abs(savedTransaction.amount)
-            : Math.abs(savedTransaction.amount),
-        description: savedTransaction.description,
-        category:
-          (savedTransaction as { category_id?: string; category?: string }).category_id ||
-          savedTransaction.category,
-        account:
-          (savedTransaction as { account_id?: string; account?: string }).account_id ||
-          savedTransaction.account,
-        date: savedTransaction.date,
-        tags: savedTransaction.tags || [],
-      });
+      // Adicionar ao store com o ID retornado pela API para que operações
+      // futuras (ex.: delete) usem o ID correto no backend.
+      const apiTx = savedTransaction as typeof savedTransaction & {
+        account_id?: string;
+        category_id?: string;
+        created_at?: string;
+      };
+      setTransactions([
+        {
+          id: savedTransaction.id,
+          date: typeof savedTransaction.date === "string"
+            ? savedTransaction.date
+            : new Date(savedTransaction.date).toISOString().split("T")[0],
+          account: apiTx.account_id ?? savedTransaction.account,
+          category: apiTx.category_id ?? savedTransaction.category,
+          type: savedTransaction.type as "income" | "expense",
+          amount:
+            savedTransaction.type === "expense"
+              ? -Math.abs(savedTransaction.amount)
+              : Math.abs(savedTransaction.amount),
+          description: savedTransaction.description,
+          tags: savedTransaction.tags || [],
+          createdAt: apiTx.created_at ?? new Date().toISOString(),
+        },
+        ...transactions,
+      ]);
 
       toast({
         title: "Transação criada!",

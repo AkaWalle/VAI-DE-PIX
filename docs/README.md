@@ -32,6 +32,9 @@ Relatórios finais de validação (longo prazo):
 - `staging-final.md` — Validação staging local (infra, API, frontend, idempotência, concorrência)
 - `validation-pre-producao.md` — Validação pré-produção (histórico)
 
+### 🐞 [bugs/](./bugs/)
+Registros de bugs e correções futuras (com evidências, reprodução e critérios de aceite).
+
 ### 🔧 [scripts/](./scripts/)
 Scripts auxiliares:
 - Scripts de configuração (.sh, .ps1, .bat)

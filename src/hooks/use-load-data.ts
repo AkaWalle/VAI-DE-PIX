@@ -18,8 +18,16 @@ import { waitUntilAuthReady } from "@/lib/auth-runtime-guard";
  */
 export function useLoadData() {
   const { user, isAuthenticated } = useAuthStore();
-  const { setTransactions, setCategories, setAccounts, setGoals, setEnvelopes } =
-    useFinancialStore();
+  const {
+    setTransactions,
+    setCategories,
+    setAccounts,
+    setGoals,
+    setEnvelopes,
+    setEnvelopesLoading,
+    setEnvelopesError,
+    setDataLoading,
+  } = useFinancialStore();
 
   useEffect(() => {
     let cancelled = false;
@@ -42,6 +50,7 @@ export function useLoadData() {
       const loadData = async () => {
       try {
         console.log("🔄 Carregando dados da API...");
+        setDataLoading(true);
 
         // Carregar categorias
         console.log("📂 Carregando categorias...");
@@ -149,6 +158,8 @@ export function useLoadData() {
 
         // Carregar caixinhas (envelopes)
         console.log("📦 Carregando caixinhas...");
+        setEnvelopesLoading(true);
+        setEnvelopesError(null);
         try {
           const loadedEnvelopes = await envelopesService.getEnvelopes();
           if (loadedEnvelopes && loadedEnvelopes.length >= 0) {
@@ -166,6 +177,10 @@ export function useLoadData() {
           }
         } catch (err) {
           console.warn("⚠️ Erro ao carregar caixinhas:", err);
+          const msg = err instanceof Error ? err.message : "Erro ao carregar caixinhas";
+          setEnvelopesError(msg);
+        } finally {
+          setEnvelopesLoading(false);
         }
 
         // GOD MODE: sync despesas compartilhadas do backend (read-model)
@@ -182,6 +197,8 @@ export function useLoadData() {
           console.error("❌ Status:", err.response.status);
           console.error("❌ Dados:", err.response.data);
         }
+      } finally {
+        setDataLoading(false);
       }
     };
 
@@ -192,7 +209,7 @@ export function useLoadData() {
     return () => {
       cancelled = true;
     };
-  }, [isAuthenticated, user, setCategories, setAccounts, setTransactions, setGoals, setEnvelopes]);
+  }, [isAuthenticated, user, setCategories, setAccounts, setTransactions, setGoals, setEnvelopes, setEnvelopesLoading, setEnvelopesError, setDataLoading]);
 
   // Retornar função para recarregar manualmente se necessário
   return {

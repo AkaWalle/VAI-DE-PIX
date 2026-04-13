@@ -117,6 +117,14 @@ interface FinancialStore {
   sharedExpenses: SharedExpense[];
   expenseSplits: ExpenseSplit[];
 
+  // Loading / error state for async data
+  envelopesLoading: boolean;
+  envelopesError: string | null;
+  dataLoading: boolean;
+  setEnvelopesLoading: (loading: boolean) => void;
+  setEnvelopesError: (error: string | null) => void;
+  setDataLoading: (loading: boolean) => void;
+
   // UI State
   selectedAccount: string | null;
   dateRange: { from: Date; to: Date };
@@ -205,6 +213,14 @@ export const useFinancialStore = create<FinancialStore>()(
       automationRules: [],
       sharedExpenses: [],
       expenseSplits: [],
+
+      // Loading / error state
+      envelopesLoading: false,
+      envelopesError: null,
+      dataLoading: false,
+      setEnvelopesLoading: (loading) => set({ envelopesLoading: loading }),
+      setEnvelopesError: (error) => set({ envelopesError: error }),
+      setDataLoading: (loading) => set({ dataLoading: loading }),
 
       // UI State
       selectedAccount: null,

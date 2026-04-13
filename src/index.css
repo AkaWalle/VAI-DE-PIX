@@ -51,7 +51,7 @@
     --expense-foreground: 0 0% 100%;
 
     /* UI */
-    --border: 220 13% 91%;            /* #e5e7eb */
+    --border: 220 13% 82%;            /* #c8cdd6 — more visible in light mode */
     --input: 0 0% 100%;
     --ring: 173 77% 31%;              /* #128c7e */
 
