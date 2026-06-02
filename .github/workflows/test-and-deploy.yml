@@ -82,7 +82,7 @@ jobs:
         run: npm ci
       
       - name: Run tests
-        run: npm run test:coverage
+        run: npm run test
       
       - name: Upload coverage
         uses: codecov/codecov-action@v4

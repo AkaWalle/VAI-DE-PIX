@@ -52,12 +52,6 @@ jobs:
           pip install -r requirements-test.txt
           pip install ruff black
       
-      - name: Install Playwright browsers
-        working-directory: ./backend
-        run: |
-          playwright install chromium
-          playwright install-deps chromium
-      
       - name: Lint with ruff
         working-directory: ./backend
         run: |
@@ -100,7 +94,6 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment:
       name: production
-      url: https://${{ secrets.RAILWAY_DOMAIN }}
     
     steps:
       - name: Checkout code

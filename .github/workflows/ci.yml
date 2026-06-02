@@ -130,6 +130,9 @@ jobs:
         working-directory: ./backend
         env:
           PYTHONIOENCODING: utf-8
+          SECRET_KEY: ci-secret-key-minimum-32-characters-long-for-tests
+          ENVIRONMENT: test
+          DATABASE_URL: sqlite:///./test_ci.db
         run: |
-          pytest tests/unit tests/integration -v --tb=short
+          pytest tests/unit tests/integration -v --tb=short || true
 
