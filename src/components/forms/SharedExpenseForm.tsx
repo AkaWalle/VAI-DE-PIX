@@ -53,8 +53,7 @@ export function SharedExpenseForm({
   onClose,
   onSuccess,
 }: SharedExpenseFormProps) {
-  const { sharedExpenses, categories, addSharedExpense, updateSharedExpense } =
-    useFinancialStore();
+  const { sharedExpenses, categories, updateSharedExpense } = useFinancialStore();
   const { user } = useAuthStore();
   const { createExpense } = useSharedExpensesStore();
   const { toast } = useToast();

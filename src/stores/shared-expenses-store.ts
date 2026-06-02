@@ -28,7 +28,7 @@ export interface SharedExpensesActions {
 
 export type SharedExpensesStore = SharedExpensesState & SharedExpensesActions;
 
-export const useSharedExpensesStore = create<SharedExpensesStore>((set, get) => ({
+export const useSharedExpensesStore = create<SharedExpensesStore>((set) => ({
   pendingShares: [],
   loading: false,
   error: null,
