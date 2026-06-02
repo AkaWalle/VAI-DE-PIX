@@ -26,7 +26,7 @@ if _sentry_dsn:
 from fastapi import FastAPI, Depends, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from sqlalchemy.orm import Session
@@ -45,15 +45,21 @@ from core.prometheus_metrics import get_metrics_content, get_metrics_content_typ
 # Load environment variables
 load_dotenv()
 
-# Rate limiter
-limiter = Limiter(key_func=get_remote_address)
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development").lower()
+is_production = (
+    ENVIRONMENT == "production" or os.getenv("VERCEL") == "1"
+)
+
+# Rate limiter (mesma instância do router de auth)
+limiter = auth.limiter
 
 app = FastAPI(
     title="VAI DE PIX API",
     description="API completa para sistema de controle financeiro pessoal",
     version="1.1.0",
-    docs_url="/docs",
-    redoc_url="/redoc"
+    docs_url=None if is_production else "/docs",
+    redoc_url=None if is_production else "/redoc",
+    openapi_url=None if is_production else "/openapi.json",
 )
 
 # Configurar rate limiter
@@ -61,7 +67,6 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS configuration - Configuração baseada em ambiente
-is_production = os.getenv("ENVIRONMENT", "development").lower() == "production" or os.getenv("VERCEL") == "1"
 frontend_url = os.getenv("FRONTEND_URL")
 
 # Origens permitidas baseadas no ambiente
@@ -94,9 +99,6 @@ app.add_middleware(
 
 # Security
 security = HTTPBearer()
-
-# Injetar limiter no router de autenticação
-auth.limiter = limiter
 
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
@@ -139,13 +141,15 @@ def _check_database() -> str:
         return f"error: {type(e).__name__}"
 
 
-@app.get("/metrics")
-async def metrics():
-    """Endpoint Prometheus: métricas de insights e outras (text/plain)."""
-    return Response(
-        content=get_metrics_content(),
-        media_type=get_metrics_content_type(),
-    )
+if not is_production:
+
+    @app.get("/metrics")
+    async def metrics():
+        """Endpoint Prometheus: métricas de insights e outras (text/plain)."""
+        return Response(
+            content=get_metrics_content(),
+            media_type=get_metrics_content_type(),
+        )
 
 
 @app.get("/health")

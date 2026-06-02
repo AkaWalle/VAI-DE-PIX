@@ -32,9 +32,11 @@ def get_secret_key() -> str:
     # Verificar se não é o valor padrão inseguro
     insecure_defaults = [
         "your-secret-key-change-in-production",
+        "your-super-secret-key-here-change-in-production",
         "dev-secret-key-change-in-production",
         "secret-key",
         "change-me",
+        "changeme",
     ]
     
     if secret_key in insecure_defaults:

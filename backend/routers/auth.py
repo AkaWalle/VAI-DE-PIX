@@ -29,8 +29,8 @@ from core.default_categories import DEFAULT_CATEGORIES
 
 router = APIRouter()
 
-# Rate limiter será criado e injetado do app principal
-limiter = None
+# Rate limiter compartilhado com main.py (app.state.limiter)
+limiter = Limiter(key_func=get_remote_address)
 
 # Cookie refresh token: HttpOnly, Secure em produção
 def _refresh_cookie_max_age() -> int:
@@ -101,6 +101,7 @@ class LoginRequest(BaseModel):
         return v
 
 @router.post("/register", response_model=Token)
+@limiter.limit("3/minute")
 async def register(
     user_data: UserCreate,
     request: Request,
@@ -179,6 +180,7 @@ async def register(
         )
 
 @router.post("/login", response_model=Token)
+@limiter.limit("5/minute")
 async def login(
     login_data: LoginRequest,
     request: Request,
@@ -225,6 +227,7 @@ async def login(
     }
 
 @router.post("/refresh", response_model=Token)
+@limiter.limit("10/minute")
 async def refresh_access_token(
     request: Request,
     response: Response,

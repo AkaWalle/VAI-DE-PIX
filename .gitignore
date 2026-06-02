@@ -114,6 +114,12 @@ CLAUDE.local.md
 .claude/settings.local.json
 .claude/logs/
 
+# Scripts com credenciais reais (nunca versionar)
+scripts/config_vercel_env.sh
+scripts/config_vercel_env.ps1
+scripts/*secret*
+scripts/*credentials*
+
 # =============================================================================
 # Deploy / plataformas
 # =============================================================================

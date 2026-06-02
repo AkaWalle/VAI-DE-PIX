@@ -3,7 +3,7 @@
 ## ❌ Erro Comum
 
 ```
-Invalid JDBC URL: postgresql://vai_de_pix_user:vai_de_pix_pass@192.168.6.40:5432/vai_de_pix
+Invalid JDBC URL: postgresql://<SEU_USUARIO>:<SUA_SENHA_LOCAL>@<SEU_IP_LOCAL>:5432/vai_de_pix
 ```
 
 **Causa**: Tentar colocar a URL completa no campo "JDBC URL" do DBeaver.
@@ -28,11 +28,11 @@ No DBeaver, **NÃO** use o campo "JDBC URL" diretamente. Preencha os campos indi
    Preencha apenas estes campos:
    
    ```
-   Host:     192.168.6.40
+   Host:     <SEU_IP_LOCAL>
    Port:     5432
    Database: vai_de_pix
-   Username: vai_de_pix_user
-   Password: vai_de_pix_pass
+   Username: <SEU_USUARIO>
+   Password: <SUA_SENHA_LOCAL>
    ```
    
    ✅ Marque "Salvar senha" se quiser
@@ -51,17 +51,17 @@ No DBeaver, **NÃO** use o campo "JDBC URL" diretamente. Preencha os campos indi
 
 | Campo | Valor | Onde Preencher |
 |-------|-------|----------------|
-| **Host** | `192.168.6.40` | Aba "Principal" → Campo "Host" |
+| **Host** | `<SEU_IP_LOCAL>` | Aba "Principal" → Campo "Host" |
 | **Port** | `5432` | Aba "Principal" → Campo "Port" |
 | **Database** | `vai_de_pix` | Aba "Principal" → Campo "Database" |
-| **Username** | `vai_de_pix_user` | Aba "Principal" → Campo "Username" |
-| **Password** | `vai_de_pix_pass` | Aba "Principal" → Campo "Password" |
+| **Username** | `<SEU_USUARIO>` | Aba "Principal" → Campo "Username" |
+| **Password** | `<SUA_SENHA_LOCAL>` | Aba "Principal" → Campo "Password" |
 
 ## ⚠️ O que NÃO fazer
 
 ❌ **NÃO** preencha o campo "JDBC URL" com:
 ```
-postgresql://vai_de_pix_user:vai_de_pix_pass@192.168.6.40:5432/vai_de_pix
+postgresql://<SEU_USUARIO>:<SUA_SENHA_LOCAL>@<SEU_IP_LOCAL>:5432/vai_de_pix
 ```
 
 ✅ **DEIXE** o campo "JDBC URL" vazio ou deixe o DBeaver gerar automaticamente
@@ -70,7 +70,7 @@ postgresql://vai_de_pix_user:vai_de_pix_pass@192.168.6.40:5432/vai_de_pix
 
 Após preencher os campos individuais, o DBeaver automaticamente gerará uma URL como:
 ```
-jdbc:postgresql://192.168.6.40:5432/vai_de_pix
+jdbc:postgresql://<SEU_IP_LOCAL>:5432/vai_de_pix
 ```
 
 **Note a diferença:**
@@ -86,10 +86,10 @@ jdbc:postgresql://192.168.6.40:5432/vai_de_pix
 │                                         │
 │  Aba: Principal                        │
 │                                         │
-│  Host:     [192.168.6.40      ]     │
+│  Host:     [<SEU_IP_LOCAL>      ]     │
 │  Port:     [5432                ]     │
 │  Database: [vai_de_pix          ]     │
-│  Username: [vai_de_pix_user     ]     │
+│  Username: [<SEU_USUARIO>     ]     │
 │  Password: [••••••••••          ]     │
 │            [✓] Salvar senha            │
 │                                         │
@@ -129,14 +129,14 @@ sudo grep listen_addresses /etc/postgresql/*/main/postgresql.conf
 sudo grep vai_de_pix /etc/postgresql/*/main/pg_hba.conf
 
 # Deve ter uma linha permitindo conexões:
-# host    vai_de_pix    vai_de_pix_user    0.0.0.0/0    md5
+# host    vai_de_pix    <SEU_USUARIO>    0.0.0.0/0    md5
 ```
 
 ### 4. Testar conexão via linha de comando
 
 Do seu PC (se tiver psql instalado):
 ```bash
-psql -h 192.168.6.40 -U vai_de_pix_user -d vai_de_pix
+psql -h <SEU_IP_LOCAL> -U <SEU_USUARIO> -d vai_de_pix
 ```
 
 ## 📝 Resumo Rápido

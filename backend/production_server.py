@@ -22,6 +22,8 @@ if os.getenv("SENTRY_DSN"):
     )
 
 from fastapi import FastAPI, Depends, HTTPException, status, Request
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 from fastapi.requests import Request
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -44,22 +46,45 @@ from core.recurring_job import start_scheduler
 
 # Tabelas devem ser gerenciadas via Alembic (alembic upgrade head)
 
+_is_production_env = os.getenv("ENVIRONMENT", "development").lower() == "production"
+
 app = FastAPI(
     title="VAI DE PIX API",
     description="API completa para sistema de controle financeiro pessoal",
     version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc"
+    docs_url=None if _is_production_env else "/docs",
+    redoc_url=None if _is_production_env else "/redoc",
+    openapi_url=None if _is_production_env else "/openapi.json",
 )
 
 # Logs estruturados (opcional via ENABLE_STRUCTURED_LOGS=1)
+app.state.limiter = auth.limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 app.add_middleware(StructuredLoggingMiddleware)
 # X-Request-ID: gera ou propaga; contextvar para correlação em logs
 app.add_middleware(RequestIDMiddleware)
-# CORS configuration
+# CORS — origens permitidas por ambiente
+_frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5000")
+_is_production = os.getenv("ENVIRONMENT", "development").lower() == "production"
+
+if _is_production:
+    _allowed_origins = [
+        "https://vai-de-pix.vercel.app",
+        _frontend_url,
+    ]
+    _allowed_origins = list({o for o in _allowed_origins if o})
+else:
+    _allowed_origins = [
+        _frontend_url,
+        "http://localhost:5000",
+        "http://localhost:3000",
+        "http://127.0.0.1:5000",
+    ]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Permitir todas as origens durante desenvolvimento
+    allow_origins=_allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
