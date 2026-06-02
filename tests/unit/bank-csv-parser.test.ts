@@ -11,14 +11,14 @@ Data;Histórico;Docto.;Crédito;Débito;Saldo
 03/01/2026;PIX RECEBIDO;;100,00;;1100,00`;
 
 const ITAU_EXTRATO_CC_SAMPLE = `Extrato Conta Corrente
-Conta ;112384102
+Conta ;000000001
 Período ;01/02/2026 a 25/05/2026
 Saldo ;153,67
 
 Data Lançamento;Histórico;Descrição;Valor;Saldo
-25/05/2026;Pix recebido;Maria Clemilda Ventura Correia;70,00;153,67
+25/05/2026;Pix recebido;CLIENTE EXEMPLO 002;70,00;153,67
 19/05/2026;Deb Cartao + Protegido;Cartão + Protegido;-1,90;39,67
-19/05/2026;Pix enviado ;Valdeci Pollheim;-29,00;41,57`;
+19/05/2026;Pix enviado ;CLIENTE EXEMPLO 003;-29,00;41,57`;
 
 const REAL_EXTRATO_FIXTURE = join(
   process.cwd(),
@@ -70,7 +70,7 @@ describe("parseBankCsv — Itaú Extrato Conta Corrente", () => {
 
     expect(result.transactions[0]).toMatchObject({
       date: "2026-05-25",
-      description: "Pix recebido - Maria Clemilda Ventura Correia",
+      description: "Pix recebido - CLIENTE EXEMPLO 002",
       type: "income",
       amount: 70,
     });
@@ -104,7 +104,7 @@ describe("parseBankCsv — Itaú Extrato Conta Corrente", () => {
     expect(expenses.every((t) => t.amount < 0)).toBe(true);
 
     const pixRecebido = result.transactions.find((t) =>
-      t.description.includes("Maria Clemilda Ventura Correia"),
+      t.description.includes("CLIENTE EXEMPLO 002"),
     );
     expect(pixRecebido).toMatchObject({
       date: "2026-05-25",
@@ -133,7 +133,7 @@ describe("parseBankCsv — Itaú Extrato Conta Corrente", () => {
     const devolvido = result.transactions.find(
       (t) =>
         t.date === "2026-02-06" &&
-        t.description.includes("Barbara Vicente") &&
+        t.description.includes("CLIENTE EXEMPLO 001") &&
         t.amount < 0,
     );
     expect(devolvido?.amount).toBe(-150);

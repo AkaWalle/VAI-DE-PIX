@@ -31,16 +31,31 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   Upload,
   FileText,
   X,
   Download,
+  TrendingUp,
+  TrendingDown,
+  List,
 } from "lucide-react";
 import {
-  parseBankCsv,
-  type ParsedBankRow,
-  type BankReportType,
-} from "@/lib/bank-csv-parser";
+  parseBankImportFile,
+  buildImportPreview,
+  formatCurrency,
+  formatLabel,
+  type ImportedTransaction,
+  type BankImportResult,
+  type ImportPreview,
+} from "@/lib/bank-import";
 
 interface BankImportDialogProps {
   trigger?: React.ReactNode;
@@ -55,11 +70,13 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
   const [isImporting, setIsImporting] = useState(false);
   const [importProgress, setImportProgress] = useState(0);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [reportType, setReportType] = useState<"auto" | BankReportType>("auto");
-  const [, setDetectedType] = useState<BankReportType | null>(null);
-  const [parsedTransactions, setParsedTransactions] = useState<ParsedBankRow[]>(
-    [],
+  const [importResult, setImportResult] = useState<BankImportResult | null>(
+    null,
   );
+  const [parsedTransactions, setParsedTransactions] = useState<
+    ImportedTransaction[]
+  >([]);
+  const [preview, setPreview] = useState<ImportPreview | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
@@ -70,10 +87,15 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
     if (!file) return;
 
     const lowerName = file.name.toLowerCase();
-    if (lowerName.endsWith(".pdf")) {
+    if (
+      !lowerName.endsWith(".csv") &&
+      !lowerName.endsWith(".pdf") &&
+      !lowerName.endsWith(".ofx") &&
+      !lowerName.endsWith(".txt")
+    ) {
       toast({
         title: "Formato não suportado",
-        description: "Importação disponível apenas para arquivos CSV.",
+        description: "Importação disponível para arquivos CSV, PDF ou OFX.",
         variant: "destructive",
       });
       return;
@@ -84,21 +106,17 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
     setImportProgress(0);
 
     try {
-      const text = await file.text();
       setImportProgress(25);
-
-      const result = parseBankCsv(text, reportType);
-      setDetectedType(result.reportType);
+      const result = await parseBankImportFile(file);
       setImportProgress(100);
+      setImportResult(result);
       setParsedTransactions(result.transactions);
+      setPreview(buildImportPreview(result));
       setShowPreview(true);
-
-      const formatLabel =
-        result.format === "itau" ? " (formato Itaú detectado)" : "";
 
       toast({
         title: "Arquivo processado com sucesso!",
-        description: `${result.transactions.length} transações encontradas${formatLabel}.`,
+        description: `${result.transactions.length} transações encontradas — ${formatLabel(result.format)}.`,
       });
     } catch (error) {
       toast({
@@ -159,6 +177,8 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
 
       setSelectedFile(null);
       setParsedTransactions([]);
+      setImportResult(null);
+      setPreview(null);
       setShowPreview(false);
       setShowConfirmDialog(false);
       setIsOpen(false);
@@ -176,9 +196,9 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
   const resetDialog = () => {
     setSelectedFile(null);
     setParsedTransactions([]);
+    setImportResult(null);
+    setPreview(null);
     setShowPreview(false);
-    setDetectedType(null);
-    setReportType("auto");
     setImportProgress(0);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -209,8 +229,8 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
               Importar Relatório Bancário
             </DialogTitle>
             <DialogDescription>
-              Importe extratos bancários ou relatórios de cartão de crédito em
-              formato CSV (inclui exportação Itaú com separador ;)
+              Importe extratos bancários em CSV, PDF ou OFX — detecção automática
+              de banco e layout (Itaú, Inter e outros)
             </DialogDescription>
           </DialogHeader>
 
@@ -219,7 +239,7 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
               <CardHeader>
                 <CardTitle className="text-lg">1. Selecionar Arquivo</CardTitle>
                 <CardDescription>
-                  Escolha um arquivo CSV com suas transações bancárias
+                  Escolha um arquivo CSV, PDF ou OFX com suas transações bancárias
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -228,7 +248,7 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
                     <Input
                       ref={fileInputRef}
                       type="file"
-                      accept=".csv,.txt"
+                      accept=".csv,.pdf,.ofx,.txt"
                       onChange={handleFileSelect}
                       disabled={isImporting}
                       className="flex-1"
@@ -239,6 +259,10 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
                         size="sm"
                         onClick={() => {
                           setSelectedFile(null);
+                          setImportResult(null);
+                          setPreview(null);
+                          setParsedTransactions([]);
+                          setShowPreview(false);
                           if (fileInputRef.current)
                             fileInputRef.current.value = "";
                         }}
@@ -282,6 +306,12 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
                       <FileText className="h-4 w-4" />
                       {selectedFile.name} (
                       {(selectedFile.size / 1024).toFixed(1)} KB)
+                      {importResult && (
+                        <span className="text-xs bg-muted px-2 py-0.5 rounded">
+                          {formatLabel(importResult.format)} •{" "}
+                          {importResult.source.toUpperCase()}
+                        </span>
+                      )}
                     </div>
                   )}
 
@@ -298,53 +328,121 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
               </CardContent>
             </Card>
 
-            {showPreview && parsedTransactions.length > 0 && (
+            {showPreview && preview && parsedTransactions.length > 0 && (
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">
-                    2. Preview das Transações
+                    2. Preview da Importação
                   </CardTitle>
                   <CardDescription>
-                    {parsedTransactions.length} transações encontradas
+                    Revise os lançamentos antes de confirmar
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {parsedTransactions
-                      .slice(0, 10)
-                      .map((transaction, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between p-2 border rounded"
-                        >
-                          <div className="flex-1">
-                            <div className="font-medium text-sm">
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                    <div className="rounded border px-3 py-2">
+                      <span className="text-muted-foreground">Banco: </span>
+                      <span className="font-medium">{preview.bank}</span>
+                    </div>
+                    <div className="rounded border px-3 py-2">
+                      <span className="text-muted-foreground">Formato: </span>
+                      <span className="font-medium">{preview.fileType}</span>
+                    </div>
+                    <div className="rounded border px-3 py-2 md:col-span-2">
+                      <span className="text-muted-foreground">Layout: </span>
+                      <span className="font-medium">{preview.format}</span>
+                      <span className="text-muted-foreground"> ({preview.layout})</span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="rounded-lg border p-3">
+                      <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
+                        <List className="h-3 w-3" />
+                        Lançamentos
+                      </div>
+                      <div className="text-2xl font-bold">
+                        {preview.totalCount}
+                      </div>
+                    </div>
+                    <div className="rounded-lg border p-3">
+                      <div className="flex items-center gap-2 text-green-600 text-xs mb-1">
+                        <TrendingUp className="h-3 w-3" />
+                        Receitas ({preview.incomeCount})
+                      </div>
+                      <div className="text-lg font-semibold text-green-600">
+                        {formatCurrency(preview.incomeTotal)}
+                      </div>
+                    </div>
+                    <div className="rounded-lg border p-3">
+                      <div className="flex items-center gap-2 text-red-600 text-xs mb-1">
+                        <TrendingDown className="h-3 w-3" />
+                        Despesas ({preview.expenseCount})
+                      </div>
+                      <div className="text-lg font-semibold text-red-600">
+                        {formatCurrency(preview.expenseTotal)}
+                      </div>
+                    </div>
+                    <div className="rounded-lg border p-3">
+                      <div className="text-muted-foreground text-xs mb-1">
+                        Saldo líquido
+                      </div>
+                      <div
+                        className={`text-lg font-semibold ${
+                          preview.netBalance >= 0
+                            ? "text-green-600"
+                            : "text-red-600"
+                        }`}
+                      >
+                        {formatCurrency(preview.netBalance)}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-md border max-h-80 overflow-y-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-28">Data</TableHead>
+                          <TableHead>Descrição</TableHead>
+                          <TableHead className="w-24 text-right">Tipo</TableHead>
+                          <TableHead className="w-32 text-right">Valor</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {preview.previewRows.map((transaction, index) => (
+                          <TableRow key={`${transaction.date}-${index}`}>
+                            <TableCell className="text-xs">
+                              {transaction.date}
+                            </TableCell>
+                            <TableCell className="text-sm max-w-xs truncate">
                               {transaction.description}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {transaction.date} •{" "}
+                            </TableCell>
+                            <TableCell className="text-xs text-right">
                               {transaction.type === "income"
                                 ? "Receita"
                                 : "Despesa"}
-                            </div>
-                          </div>
-                          <div
-                            className={`font-semibold text-sm ${
-                              transaction.type === "income"
-                                ? "text-green-600"
-                                : "text-red-600"
-                            }`}
-                          >
-                            R$ {Math.abs(transaction.amount).toFixed(2)}
-                          </div>
-                        </div>
-                      ))}
-                    {parsedTransactions.length > 10 && (
-                      <div className="text-center text-sm text-muted-foreground py-2">
-                        ... e mais {parsedTransactions.length - 10} transações
-                      </div>
-                    )}
+                            </TableCell>
+                            <TableCell
+                              className={`text-sm text-right font-medium ${
+                                transaction.type === "income"
+                                  ? "text-green-600"
+                                  : "text-red-600"
+                              }`}
+                            >
+                              {formatCurrency(Math.abs(transaction.amount))}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
                   </div>
+
+                  {preview.totalCount > preview.previewRows.length && (
+                    <p className="text-center text-sm text-muted-foreground">
+                      Exibindo {preview.previewRows.length} de{" "}
+                      {preview.totalCount} lançamentos
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -374,7 +472,15 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
             <AlertDialogTitle>Confirmar Importação</AlertDialogTitle>
             <AlertDialogDescription>
               Você está prestes a importar {parsedTransactions.length}{" "}
-              transações. Esta ação não pode ser desfeita. Deseja continuar?
+              transações
+              {preview && (
+                <>
+                  {" "}
+                  ({preview.incomeCount} receitas, {preview.expenseCount}{" "}
+                  despesas)
+                </>
+              )}
+              . Esta ação não pode ser desfeita. Deseja continuar?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

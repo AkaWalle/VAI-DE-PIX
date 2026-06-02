@@ -1,0 +1,58 @@
+[
+  {
+    "bank": "inter",
+    "fileType": "csv",
+    "fileName": "Extrato-01-01-2026-a-02-06-2026-CSV.csv",
+    "size": "8.5 KB",
+    "detectedLayout": "extrato_conta_corrente",
+    "path": "samples\\inter\\csv\\Extrato-01-01-2026-a-02-06-2026-CSV.csv"
+  },
+  {
+    "bank": "inter",
+    "fileType": "ofx",
+    "fileName": "Extrato-01-01-2026-a-02-06-2026-OFX.ofx",
+    "size": "37.1 KB",
+    "detectedLayout": "ofx_standard",
+    "path": "samples\\inter\\ofx\\Extrato-01-01-2026-a-02-06-2026-OFX.ofx"
+  },
+  {
+    "bank": "inter",
+    "fileType": "pdf",
+    "fileName": "Extrato-01-01-2026-a-02-06-2026-PDF.pdf",
+    "size": "166.0 KB",
+    "detectedLayout": "unknown",
+    "path": "samples\\inter\\pdf\\Extrato-01-01-2026-a-02-06-2026-PDF.pdf"
+  },
+  {
+    "bank": "inventory.json",
+    "fileType": "csv",
+    "fileName": "inventory.json",
+    "size": "1.4 KB",
+    "detectedLayout": "unknown",
+    "path": "samples\\inventory.json"
+  },
+  {
+    "bank": "itau",
+    "fileType": "csv",
+    "fileName": "Extrato-01-02-2026-a-25-05-2026-CSV.csv",
+    "size": "6.7 KB",
+    "detectedLayout": "extrato_conta_corrente",
+    "path": "samples\\itau\\csv\\Extrato-01-02-2026-a-25-05-2026-CSV.csv"
+  },
+  {
+    "bank": "itau",
+    "fileType": "csv",
+    "fileName": "itau_extrato_convertido.csv",
+    "size": "5.5 KB",
+    "detectedLayout": "converted_pdf",
+    "path": "samples\\itau\\csv\\itau_extrato_convertido.csv"
+  },
+  {
+    "bank": "itau",
+    "fileType": "pdf",
+    "fileName": "itau_extrato_012026.pdf",
+    "size": "467.9 KB",
+    "detectedLayout": "unknown",
+    "path": "samples\\itau\\pdf\\itau_extrato_012026.pdf"
+  }
+]

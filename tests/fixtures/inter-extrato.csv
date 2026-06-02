@@ -1,9 +1,14 @@
  Extrato Conta Corrente 
 Conta ;000000007771
-Período ;01/02/2026 a 25/05/2026
-Saldo ;153,67
+Período ;01/01/2026 a 02/06/2026
+Saldo ;59,23
 
 Data Lançamento;Histórico;Descrição;Valor;Saldo
+01/06/2026;Pix recebido;CLIENTE EXEMPLO 001;50,00;59,23
+31/05/2026;Pix enviado ;CLIENTE EXEMPLO 002;-90,00;9,23
+29/05/2026;Pix enviado ;ESTABELECIMENTO EXEMPLO 001;-22,97;99,23
+28/05/2026;Pix enviado ;CLIENTE EXEMPLO 007;-8,00;122,20
+27/05/2026;Pix enviado ;ESTABELECIMENTO EXEMPLO 001;-23,47;130,20
 25/05/2026;Pix recebido;CLIENTE EXEMPLO 002;70,00;153,67
 24/05/2026;Pix recebido;CLIENTE EXEMPLO 005;44,00;83,67
 19/05/2026;Deb Cartao + Protegido;Cartão + Protegido;-1,90;39,67
@@ -49,7 +54,7 @@ Data Lançamento;Histórico;Descrição;Valor;Saldo
 08/04/2026;Pix enviado ;Fantoni Conveniencia Ltda;-60,00;15,00
 08/04/2026;Pix enviado ;Zepetto Brasil Ltda;-25,00;75,00
 07/04/2026;Pix recebido;William Ventura De Liz;100,00;100,00
-06/04/2026;Pagamento efetuado;Pagamento Fatura - CLIENTE EXEMPLO TITULAR;-146,81;-0,00
+06/04/2026;Pagamento efetuado;Pagamento Fatura - CLIENTE EXEMPLO TITULAR;-146,81;0,00
 04/04/2026;Pix recebido;CLIENTE EXEMPLO 002;80,00;146,81
 31/03/2026;Compra no débito;Lanchonete Sandroiches Blumenau      Bra;-8,00;66,81
 30/03/2026;Compra no débito;Lanchonete Sandroiches Blumenau      Bra;-8,00;74,81
@@ -100,3 +105,27 @@ Data Lançamento;Histórico;Descrição;Valor;Saldo
 04/02/2026;Pix enviado ;Eduardo Henrique Pereira;-200,00;-198,59
 03/02/2026;Pix recebido;CLIENTE EXEMPLO TITULAR;421,00;1,41
 03/02/2026;Pagamento efetuado;Fatura cartão Inter;-419,61;-419,59
+19/01/2026;Pix recebido;CLIENTE EXEMPLO 001;12,60;0,02
+19/01/2026;Pix recebido;CLIENTE EXEMPLO 001;25,32;-12,58
+19/01/2026;Compra no débito;Ademircofferida        Blumenau      Bra;-25,98;-37,90
+19/01/2026;Pix enviado ;William Ventura De Liz;-30,00;-11,92
+19/01/2026;Pagamento efetuado;CENTRO DE ATIVIDADES BLUMENAU;-82,63;18,08
+18/01/2026;Pix recebido;CLIENTE EXEMPLO 001;64,00;100,71
+10/01/2026;Compra no débito;Brava Parking          Itajai        Bra;-17,00;36,71
+07/01/2026;Compra no débito;Incompany Negocios Ltd Navegantes    Bra;-33,00;53,71
+07/01/2026;Compra no débito;Ambulante              Navegantes    Bra;-26,00;86,71
+05/01/2026;Pix enviado ;Shpp Brasil Instituicao De Pag;-26,99;112,71
+05/01/2026;Pix recebido;Otacilio Vicente;27,00;139,70
+04/01/2026;Compra no débito;Brasilgames            Itajai        Bra;-179,90;112,70
+03/01/2026;Pagamento efetuado;Fatura cartão Inter;-32,70;292,60
+03/01/2026;Pix recebido;CLIENTE EXEMPLO 001;39,00;325,30
+03/01/2026;Pix recebido;CLIENTE EXEMPLO TITULAR;62,87;286,30
+02/01/2026;Compra no débito;Posto Mime  Fl76       Blumenau      Bra;-39,95;223,43
+02/01/2026;Compra no débito;Posto Fl 16            Blumenau      Bra;-78,81;263,38
+02/01/2026;Pix recebido;Patricia Dos Santos;53,00;342,19
+02/01/2026;Pix recebido;Sharon Jennice Morgenstern Da Silva;32,00;289,19
+02/01/2026;Pix recebido;Otacilio Vicente;33,00;257,19
+02/01/2026;Pix enviado ;CLIENTE EXEMPLO 008;-39,00;224,19
+02/01/2026;Pix enviado ;Jefferson Alessandro Peyerl;-204,94;263,19
+01/01/2026;Pix recebido;CLIENTE EXEMPLO 001;181,00;468,13
+01/01/2026;Pix enviado ;Sharon Jennice Morgenstern Da Silva;-17,78;287,13
