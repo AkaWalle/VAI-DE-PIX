@@ -56,25 +56,30 @@ def test_reconstruct_balance_at_t_minus_1_and_t_minus_2(
         balance_now = get_balance_from_ledger(account.id, postgres_db)
         assert float(balance_now) == 150.0
 
-        # Saldo "em T-1" = antes da última transação: usar created_at da última entrada - 1s
-        last_entry = (
+        # Entradas ordenadas (created_at pode colidir no mesmo segundo no Postgres)
+        entries_ordered = (
             postgres_db.query(LedgerEntry)
             .filter(LedgerEntry.account_id == account.id)
-            .order_by(LedgerEntry.created_at.desc())
-            .first()
+            .order_by(LedgerEntry.created_at.asc(), LedgerEntry.id.asc())
+            .all()
         )
-        assert last_entry is not None
-        t_minus_1 = last_entry.created_at - timedelta(seconds=1)
-        balance_t1 = get_balance_from_ledger_until(account.id, t_minus_1, postgres_db)
+        assert len(entries_ordered) >= 2
+
+        # Saldo em T-1 = todas as entradas exceto a última (receita de +50)
+        balance_t1 = sum(float(e.amount) for e in entries_ordered[:-1])
         assert abs(balance_t1 - 100.0) < 0.01
 
-        # T-2 = antes de qualquer transação nossa (apenas abertura)
-        first_entry = (
-            postgres_db.query(LedgerEntry)
-            .filter(LedgerEntry.account_id == account.id)
-            .order_by(LedgerEntry.created_at.asc())
-            .first()
-        )
+        # Quando timestamps são distintos, get_balance_from_ledger_until deve coincidir
+        last_entry = entries_ordered[-1]
+        if entries_ordered[-2].created_at < last_entry.created_at:
+            t_minus_1 = last_entry.created_at - timedelta(seconds=1)
+            balance_t1_fn = get_balance_from_ledger_until(
+                account.id, t_minus_1, postgres_db
+            )
+            assert abs(balance_t1_fn - 100.0) < 0.01
+
+        # T-2 = antes da primeira entrada (sem movimentos no ledger)
+        first_entry = entries_ordered[0]
         t_minus_2 = first_entry.created_at - timedelta(seconds=1)
         balance_t2 = get_balance_from_ledger_until(account.id, t_minus_2, postgres_db)
         assert abs(balance_t2) < 0.01
