@@ -1,30 +1,76 @@
-# Dependencies
+# =============================================================================
+# Dependências
+# =============================================================================
 node_modules/
 backend/venv/
-backend/__pycache__/
+.venv/
+venv/
+ENV/
+env/
+
+# =============================================================================
+# Variáveis de ambiente e segredos
+# =============================================================================
+.env
+.env.*
+!.env.example
+!**/.env.example
+!env.local.example
+
+secrets.*
+*credentials*
+*.pem
+*.key
+*.p12
+*.pfx
+
+# =============================================================================
+# Python
+# =============================================================================
+__pycache__/
 **/__pycache__/
 *.py[cod]
 *$py.class
-
-# Build outputs
-dist/
-build/
-.vite/
-dist-ssr/
+*.so
+.Python
 *.egg-info/
+pip-log.txt
+pip-delete-this-directory.txt
 
-# Environment files
-.env
-.env.local
-.env.production
-.env.development
-.env.staging
-.env.vercel
-.env.*.local
-backend/.env
-*.env
+# =============================================================================
+# Build e cache
+# =============================================================================
+dist/
+dist-ssr/
+build/
+out/
+.next/
+.nuxt/
+.vite/
+.cache/
+.parcel-cache/
+*.tsbuildinfo
 
+# =============================================================================
+# Testes e cobertura
+# =============================================================================
+coverage/
+.nyc_output/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# =============================================================================
+# Banco local (dev)
+# =============================================================================
+*.db
+*.sqlite
+*.sqlite3
+backend/vai_de_pix.db
+
+# =============================================================================
 # Logs
+# =============================================================================
 logs/
 *.log
 npm-debug.log*
@@ -33,29 +79,9 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Database files
-*.db
-*.sqlite
-*.sqlite3
-backend/vai_de_pix.db
-
-# IDE files
-.vscode/*
-!.vscode/extensions.json
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-.idea/
-*.swp
-*.swo
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sublime-project
-*.sublime-workspace
-
-# OS files
+# =============================================================================
+# Sistema operacional
+# =============================================================================
 .DS_Store
 .DS_Store?
 ._*
@@ -65,55 +91,46 @@ ehthumbs.db
 Thumbs.db
 desktop.ini
 
-# Cache
-.cache/
-.parcel-cache/
-.next/
-.nuxt/
-.vercel/
-*.local
-
-# Testing
-coverage/
-.nyc_output/
-.pytest_cache/
-.coverage
-htmlcov/
-
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-venv/
-ENV/
-env/
-.venv
-pip-log.txt
-pip-delete-this-directory.txt
-
-# TypeScript
-*.tsbuildinfo
-
-# Temporary files
-*.tmp
-*.temp
-*.bak
-*.swp
-*~
-
-# Cursor AI (se necessário)
+# =============================================================================
+# IDE e agentes
+# =============================================================================
 .cursor/
+.idea/
+.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/tasks.json
+!.vscode/launch.json
+*.swp
+*.swo
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sublime-project
+*.sublime-workspace
 
-# Deployment
+# Claude Code — preferências locais
+CLAUDE.local.md
+.claude/settings.local.json
+.claude/logs/
+
+# =============================================================================
+# Deploy / plataformas
+# =============================================================================
 .vercel
 .railway
 
-# Local development
-.local
-*.local
-
-# Backup files
+# =============================================================================
+# Temporários e backups
+# =============================================================================
+*.tmp
+*.temp
+*.bak
 *.backup
 *.old
+*~
+.local
+
+# Playwright (relatórios locais)
+playwright-report/
+test-results/

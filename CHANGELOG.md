@@ -9,7 +9,7 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ### 🎉 Release Inicial - Production Ready
 
-Primeira versão estável e completa do VAI DE PIX, pronta para produção e uso em Raspberry Pi 5 como totem kiosk.
+Primeira versão estável e completa do VAI DE PIX, pronta para produção. [REMOVIDO: suporte kiosk Raspberry Pi 5 — removido na limpeza 2025.]
 
 ### ✨ Adicionado
 
@@ -29,16 +29,16 @@ Primeira versão estável e completa do VAI DE PIX, pronta para produção e uso
 - ✅ Backend FastAPI completo com PostgreSQL
 - ✅ Frontend React + TypeScript + Tailwind CSS
 - ✅ Servidor de produção unificado (API + Frontend estático)
-- ✅ Suporte completo para Raspberry Pi 5
-- ✅ Modo kiosk configurável
-- ✅ Docker e Docker Compose
+- [REMOVIDO] Suporte completo para Raspberry Pi 5
+- [REMOVIDO] Modo kiosk configurável
+- [REMOVIDO] Docker e Docker Compose
 - ✅ Scripts de automação para deploy
 
 #### Documentação
 - ✅ README.md profissional e completo
 - ✅ ARCHITECTURE.md com diagramas e explicações
 - ✅ CONTRIBUTING.md com guia de contribuição
-- ✅ SETUP-RASPBERRY-PI.md com passo a passo completo
+- [REMOVIDO] SETUP-RASPBERRY-PI.md com passo a passo completo
 - ✅ Documentação de API (Swagger/OpenAPI)
 
 #### Segurança
@@ -54,7 +54,7 @@ Primeira versão estável e completa do VAI DE PIX, pronta para produção e uso
 - ✅ Lazy loading de rotas
 - ✅ Code splitting otimizado
 - ✅ Cache de requisições (React Query)
-- ✅ Otimizações para Raspberry Pi 5
+- [REMOVIDO] Otimizações para Raspberry Pi 5
 - ✅ Build otimizado de produção
 
 ### 🔧 Corrigido
@@ -96,13 +96,13 @@ Primeira versão estável e completa do VAI DE PIX, pronta para produção e uso
 - ✅ Guia de contribuição profissional
 - ✅ Changelog completo
 
-### 🍓 Raspberry Pi 5
+### 🍓 Raspberry Pi 5 [REMOVIDO]
 
-- ✅ Suporte completo para Pi 5
-- ✅ Scripts de setup automatizados
-- ✅ Configuração de modo kiosk
-- ✅ Otimizações de performance
-- ✅ Documentação específica
+- [REMOVIDO] Suporte completo para Pi 5
+- [REMOVIDO] Scripts de setup automatizados
+- [REMOVIDO] Configuração de modo kiosk
+- [REMOVIDO] Otimizações de performance
+- [REMOVIDO] Documentação específica
 
 ### 🔐 Segurança
 
@@ -119,7 +119,7 @@ Primeira versão estável e completa do VAI DE PIX, pronta para produção e uso
 - ✅ Lazy loading implementado
 - ✅ Cache de requisições
 - ✅ Otimizações de banco de dados
-- ✅ Configurações para Raspberry Pi
+- [REMOVIDO] Configurações para Raspberry Pi
 
 ---
 

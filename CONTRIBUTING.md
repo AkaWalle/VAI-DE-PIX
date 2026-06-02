@@ -10,7 +10,7 @@ Obrigado por considerar contribuir com o **VAI DE PIX**! Este guia vai te ajudar
 # Fork o repositório no GitHub, depois:
 git clone https://github.com/SEU-USUARIO/VAI-DE-PIX.git
 cd VAI-DE-PIX
-git checkout raspberry-pi-5
+git checkout main
 ```
 
 ### 2. Instalar Dependências
@@ -225,7 +225,7 @@ npm run test:e2e
 - [ ] Type check passa (`npm run type-check`)
 - [ ] Documentação atualizada (se necessário)
 - [ ] Commits seguem o padrão (tipo: descrição)
-- [ ] Branch está atualizada com `raspberry-pi-5`
+- [ ] Branch está atualizada com `main` (ou `develop`)
 
 ## 🎯 Áreas que Precisam de Ajuda
 

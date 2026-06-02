@@ -104,7 +104,7 @@ jdbc:postgresql://192.168.6.40:5432/vai_de_pix
 
 ### 1. Verificar se PostgreSQL aceita conexões remotas
 
-No Raspberry Pi:
+No servidor onde o PostgreSQL está instalado:
 ```bash
 # Verificar se está escutando
 sudo netstat -tlnp | grep 5432

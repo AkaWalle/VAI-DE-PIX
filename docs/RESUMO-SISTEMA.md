@@ -14,7 +14,7 @@ Resumo completo do projeto: o que é, como funciona, tecnologias usadas e melhor
 - Ver relatórios, tendências e dashboard
 - Usar automações (transações recorrentes, alertas, lembretes)
 - Gerenciar despesas compartilhadas
-- Funcionar como totem kiosk em Raspberry Pi 5 ou em qualquer dispositivo via navegador
+- Funcionar em qualquer dispositivo via navegador (desktop, tablet ou mobile)
 
 O frontend é uma SPA (React) que consome uma API REST (FastAPI); os dados ficam em PostgreSQL (ou SQLite em dev).
 
@@ -25,7 +25,7 @@ O frontend é uma SPA (React) que consome uma API REST (FastAPI); os dados ficam
 ### 2.1 Visão geral
 
 ```
-[Navegador / Kiosk]
+[Navegador]
        │
        │  HTTP/REST + JWT
        ▼
@@ -115,10 +115,8 @@ O frontend é uma SPA (React) que consome uma API REST (FastAPI); os dados ficam
 
 | Item | Uso |
 |------|-----|
-| **Docker / Docker Compose** | Containerização e orquestração local. |
 | **GitHub Actions** | CI: lint, type-check, testes, build. |
 | **Vercel** | Deploy do frontend (e serverless API quando usado). |
-| **Raspberry Pi 5** | Modo kiosk (totem). |
 | **ESLint + Prettier** | Lint e formatação no frontend. |
 | **Husky** | Hooks Git (ex.: pre-commit). |
 
@@ -136,7 +134,6 @@ VAI DE PIX/
 ├── tests/             # Testes frontend (Vitest, E2E)
 ├── docs/              # Documentação
 ├── public/            # Assets estáticos
-├── docker-compose.yml
 ├── package.json
 ├── vite.config.ts
 └── README.md
@@ -175,7 +172,7 @@ Resumo do que já foi implementado no projeto:
 | **Qualidade de código** | ESLint, TypeScript strict, Prettier; Flake8/Black no backend. |
 | **Testes** | Vitest (frontend, testes unitários); pytest (backend, unit + integration). |
 | **CI** | GitHub Actions: lint frontend/backend, type-check, testes, build. |
-| **Deploy** | Build de produção (Vite); suporte Docker e Vercel. |
+| **Deploy** | Build de produção (Vite); Vercel e Railway. |
 | **UX** | Lazy loading de rotas, React Query para cache, tema claro/escuro. |
 | **Documentação** | README, ARCHITECTURE, CONTRIBUTING, CHANGELOG; docs em `docs/`. |
 | **Ambiente** | `.env.example` no backend; variáveis documentadas. |
@@ -194,7 +191,6 @@ Resumo do que já foi implementado no projeto:
 | `npm run type-check` | Verificação de tipos (TypeScript). |
 | `cd backend && python main.py` | Sobe a API em desenvolvimento. |
 | `cd backend && pytest tests/unit tests/integration -v` | Testes do backend. |
-| `docker-compose up -d` | Sobe stack com Docker. |
 
 ---
 

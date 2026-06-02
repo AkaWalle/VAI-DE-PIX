@@ -1,263 +1,186 @@
-# 💰 VAI DE PIX
+# VAI DE PIX
 
-<div align="center">
+> Aplicação web de controle financeiro pessoal: transações, metas, envelopes (caixinhas), relatórios, automações e despesas compartilhadas — com API REST em FastAPI e interface React.
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
-![License](https://img.shields.io/badge/license-MIT-green.svg)
-![Build](https://img.shields.io/badge/build-passing-brightgreen.svg)
-![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)
-![Node](https://img.shields.io/badge/Node-20.x-green.svg)
+## Stack
 
-**Sistema Completo de Controle Financeiro Pessoal com Interface Kiosk para Raspberry Pi**
+| Camada | Tecnologias |
+|--------|-------------|
+| Frontend | React 18, TypeScript 5, Vite 7, Tailwind CSS 3, Radix UI, Zustand, TanStack React Query, Axios, Zod |
+| Backend | Python 3.11+, FastAPI 0.104, SQLAlchemy 1.4, Alembic, Pydantic 2, JWT, APScheduler |
+| Banco | PostgreSQL 15 (obrigatório em dev/prod; SQLite só para casos pontuais documentados no backend) |
+| Testes | Vitest (frontend), Pytest (backend) |
+| Deploy opcional | Vercel (frontend + serverless `api/`), Railway (`railway.json`) |
 
-[🚀 Começar](#-instalação-rápida) • [📖 Documentação](#-documentação) • [🤝 Contribuir](CONTRIBUTING.md) • [🍓 Raspberry Pi](SETUP-RASPBERRY-PI.md)
+## Pré-requisitos
 
-</div>
+- **Node.js** 20.x e npm
+- **Python** 3.11+
+- **PostgreSQL** 15+ acessível localmente (ou serviço gerenciado, ex.: Neon)
+- Git
 
----
+## Como rodar
 
-## 📸 Preview
+### 1. Banco de dados
 
-> **💡 Em breve:** Screenshot ou GIF da aplicação rodando no totem Raspberry Pi 5
+Crie o banco `vai_de_pix` no PostgreSQL e anote usuário, senha e host.
 
-## 🎯 O que é?
-
-**VAI DE PIX** é um sistema completo de gestão financeira pessoal desenvolvido para funcionar como **totem kiosk** em Raspberry Pi 5, mas também pode ser usado em qualquer dispositivo via navegador.
-
-### ✨ Features Principais
-
-- 💳 **Gestão Completa de Transações** - Receitas, despesas, categorização inteligente
-- 🎯 **Metas Financeiras** - Defina objetivos e acompanhe progresso em tempo real
-- 📦 **Sistema de Caixinhas (Envelopes)** - Organize seu dinheiro por categoria/objetivo
-- 📊 **Dashboard Interativo** - Gráficos, relatórios e análises detalhadas
-- 🤖 **Automações Inteligentes** - Transações recorrentes, alertas e lembretes
-- 🔐 **Autenticação Segura** - JWT, criptografia de senhas, proteção de rotas
-- 📱 **Interface Responsiva** - Funciona perfeitamente em desktop, tablet e mobile
-- 🍓 **Modo Kiosk Raspberry Pi** - Transforme seu Pi 5 em totem 24/7
-
-## 🛠 Stack Tecnológica
-
-### Frontend
-- **React 18.3** + **TypeScript 5.8** - Interface moderna e type-safe
-- **Vite 7.2** - Build tool ultra-rápido
-- **Tailwind CSS 3.4** - Estilização utility-first
-- **Zustand** - Gerenciamento de estado leve
-- **React Router 6** - Roteamento SPA
-- **Recharts** - Gráficos e visualizações
-- **Radix UI** - Componentes acessíveis
-
-### Backend
-- **FastAPI 0.104** - API REST moderna e rápida
-- **PostgreSQL** - Banco de dados relacional robusto
-- **SQLAlchemy 1.4** - ORM Python
-- **Alembic** - Migrações de banco de dados
-- **JWT** - Autenticação stateless
-- **Pydantic** - Validação de dados
-- **Uvicorn/Gunicorn** - Servidor ASGI de produção
-
-### Infraestrutura
-- **Docker** - Containerização
-- **Docker Compose** - Orquestração local
-- **Raspberry Pi 5** - Hardware kiosk
-- **PostgreSQL** - Banco de dados
-
-## 🚀 Instalação Rápida
-
-### Opção 1: Desenvolvimento Local (5 minutos)
+### 2. Backend
 
 ```bash
-# 1. Clonar repositório
-git clone https://github.com/AkaWalle/VAI-DE-PIX.git
-cd VAI-DE-PIX
-git checkout raspberry-pi-5
-
-# 2. Backend
 cd backend
 python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+# Windows:
+venv\Scripts\activate
+# Linux/macOS:
+# source venv/bin/activate
+
 pip install -r requirements.txt
-cp .env.example .env  # Edite com suas configurações
-python init_db.py
-python main.py  # http://localhost:8000
-
-# 3. Frontend (novo terminal)
-cd ..
-npm install
-npm run dev  # http://localhost:5000
+pip install -r requirements-test.txt
+cp .env.example .env
 ```
 
-### Opção 2: Docker (1 comando)
+Edite `backend/.env` (mínimo):
+
+- `DATABASE_URL` — connection string PostgreSQL
+- `SECRET_KEY` — mínimo 32 caracteres
+- `FRONTEND_URL` — `http://localhost:5000` (porta do Vite neste projeto)
 
 ```bash
-docker-compose up -d
-```
-
-Acesse:
-- **Frontend:** http://localhost:8080
-- **Backend API:** http://localhost:8000
-- **API Docs:** http://localhost:8000/docs
-
-### Opção 3: Raspberry Pi 5 Kiosk (Comando Único)
-
-```bash
-# No Raspberry Pi 5
-git clone https://github.com/AkaWalle/VAI-DE-PIX.git
-cd VAI-DE-PIX
-git checkout raspberry-pi-5
-chmod +x scripts/setup-raspberry-pi.sh
-./scripts/setup-raspberry-pi.sh
-```
-
-**Pronto!** O sistema estará rodando em modo kiosk 24/7. Veja [SETUP-RASPBERRY-PI.md](SETUP-RASPBERRY-PI.md) para detalhes completos.
-
-## ⚙️ Variáveis de Ambiente
-
-### Backend (`backend/.env`)
-
-```env
-# Database
-DATABASE_URL=postgresql://user:pass@localhost:5432/vai_de_pix
-
-# Security
-SECRET_KEY=your-super-secret-key-minimum-32-characters
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
-
-# Server
-PORT=8000
-ENVIRONMENT=production
-
-# Frontend (CORS)
-FRONTEND_URL=http://localhost:5000
-```
-
-### Frontend (`.env.local`)
-
-```env
-VITE_API_URL=http://localhost:8000/api
-VITE_APP_NAME=VAI DE PIX
-VITE_APP_VERSION=1.0.0
-```
-
-## 📚 Documentação
-
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Arquitetura do sistema e estrutura de pastas
-- **[CONTRIBUTING.md](CONTRIBUTING.md)** - Como contribuir com o projeto
-- **[SETUP-RASPBERRY-PI.md](SETUP-RASPBERRY-PI.md)** - Guia completo para Raspberry Pi 5
-- **[CHANGELOG.md](CHANGELOG.md)** - Histórico de versões e mudanças
-
-## 🎮 Como Usar
-
-### Credenciais de Teste
-
-- **Email:** `admin@vaidepix.com`
-- **Senha:** `123456`
-
-Ou crie uma nova conta diretamente na interface.
-
-### Funcionalidades
-
-1. **Dashboard** - Visão geral das finanças com gráficos interativos
-2. **Transações** - Adicione receitas e despesas com categorização
-3. **Metas** - Defina objetivos financeiros e acompanhe progresso
-4. **Caixinhas** - Organize dinheiro por categoria/objetivo
-5. **Relatórios** - Análises detalhadas por período, categoria, etc.
-6. **Configurações** - Gerencie contas, categorias e perfil
-
-## 🧪 Testes
-
-```bash
-# Frontend
-npm run test
-
-# Backend
-cd backend
-pytest
-
-# E2E
-npm run test:e2e
-```
-
-## 📦 Estrutura do Projeto
-
-```
-VAI-DE-PIX/
-├── backend/              # API FastAPI + PostgreSQL
-│   ├── routers/         # Endpoints da API
-│   ├── models/          # Modelos SQLAlchemy
-│   ├── repositories/    # Camada de acesso a dados
-│   ├── services/        # Lógica de negócio
-│   └── alembic/         # Migrações de banco
-├── src/                  # Frontend React + TypeScript
-│   ├── components/      # Componentes React
-│   ├── pages/           # Páginas da aplicação
-│   ├── services/        # Serviços de API
-│   └── stores/          # Estado global (Zustand)
-├── scripts/             # Scripts de automação
-├── docs/                 # Documentação adicional
-└── docker-compose.yml   # Orquestração Docker
-```
-
-Veja [ARCHITECTURE.md](ARCHITECTURE.md) para detalhes completos.
-
-## 🐛 Troubleshooting
-
-### Problema: Porta 8000 já em uso
-
-```bash
-# Linux/Mac
-sudo lsof -ti:8000 | xargs kill -9
-
-# Windows
-netstat -ano | findstr :8000
-taskkill /PID <PID> /F
-```
-
-### Problema: Frontend não conecta à API
-
-1. Verifique se o backend está rodando: `curl http://localhost:8000/api/health`
-2. Verifique `VITE_API_URL` no `.env.local`
-3. Limpe cache: `npm run clean && npm install`
-
-### Problema: Erro de migração do banco
-
-```bash
-cd backend
 alembic upgrade head
+python init_db.py
+python main.py
 ```
 
-## 🤝 Contribuindo
+API: `http://localhost:8000` · OpenAPI: `http://localhost:8000/docs`
 
-Contribuições são bem-vindas! Veja [CONTRIBUTING.md](CONTRIBUTING.md) para:
+### 3. Frontend
 
-- Como fazer fork e criar branches
-- Padrões de código e commits
-- Processo de Pull Request
-- Como reportar bugs
+Em outro terminal, na raiz do repositório:
 
-## 📄 Licença
+```bash
+cp env.local.example .env.local
+npm install
+npm run dev
+```
 
-Este projeto está sob a licença **MIT**. Veja [LICENSE](LICENSE) para detalhes.
+App: `http://localhost:5000`
 
-## 👨‍💻 Autor
+### 4. Verificação rápida
 
-**Wallace Ventura**
+```bash
+npm run type-check
+npx vitest run tests/basic.spec.ts
+cd backend && pytest tests/unit/ -q --tb=line
+```
 
-- GitHub: [@AkaWalle](https://github.com/AkaWalle)
-- Projeto: [VAI-DE-PIX](https://github.com/AkaWalle/VAI-DE-PIX)
+### Produção local (API + static)
 
-## 🙏 Agradecimentos
+```bash
+npm run build
+cd backend && python production_server.py
+```
 
-- Comunidade React e FastAPI
-- Mantenedores das bibliotecas open-source utilizadas
-- Contribuidores do projeto
+## Estrutura do projeto
 
----
+```
+├── src/                 # SPA React (pages, components, stores, services, hooks, lib)
+├── backend/             # API FastAPI (routers, services, repositories, domain, core)
+│   ├── alembic/         # Migrações de banco
+│   └── tests/           # Pytest (unit, integration, e2e)
+├── tests/               # Vitest (unit, integration, e2e, basic.spec.ts)
+├── api/                 # Entry Vercel serverless (Mangum + FastAPI)
+├── docs/                # PRD, arquitetura, runbooks, relatórios
+├── specs/               # Templates de especificação de features
+├── scripts/             # Utilitários de deploy, migração e manutenção
+├── .claude/             # Configuração Claude Code (equipe)
+├── .github/workflows/   # CI (Postgres + pytest, etc.)
+├── CLAUDE.md            # Regras para agentes de código
+└── INDEX.md             # Mapa detalhado do repositório
+```
 
-<div align="center">
+## Variáveis de ambiente
 
-**💰 VAI DE PIX - Sua vida financeira na palma da mão!**
+### Frontend (`.env.local` — use `env.local.example`)
 
-[⭐ Dê uma estrela](https://github.com/AkaWalle/VAI-DE-PIX) se este projeto te ajudou!
+| Variável | Descrição |
+|----------|-----------|
+| `VITE_API_URL` | Base da API, ex.: `http://localhost:8000/api` |
+| `VITE_APP_NAME` | Nome exibido na UI |
+| `VITE_DEBUG` | Logs de debug no cliente |
+| `VITE_SENTRY_DSN` | Opcional — Sentry no frontend |
 
-</div>
+### Backend (`backend/.env` — use `backend/.env.example`)
+
+| Variável | Descrição |
+|----------|-----------|
+| `DATABASE_URL` | PostgreSQL |
+| `SECRET_KEY` | Assinatura JWT |
+| `ALGORITHM` | Padrão `HS256` |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | Expiração do access token |
+| `FRONTEND_URL` | Origem CORS (dev: `http://localhost:5000`) |
+| `USE_REFRESH_TOKENS` | Opcional — refresh token |
+| `SMTP_*` | Opcional — e-mail |
+| `WEBHOOK_SECRET` | Opcional — webhooks |
+
+Nunca commite `.env` ou `.env.local`. Apenas os arquivos `*.example`.
+
+## Scripts disponíveis
+
+### npm (raiz)
+
+| Script | Uso |
+|--------|-----|
+| `npm run dev` | Dev server Vite (porta 5000) |
+| `npm run build` | Build de produção em `dist/` |
+| `npm run preview` | Preview do build |
+| `npm run lint` / `lint:fix` | ESLint |
+| `npm run type-check` | `tsc --noEmit` |
+| `npm run test` / `test:unit` | Vitest em `tests/unit/` |
+| `npm run test:all` | Vitest em todo `tests/` |
+| `npm run test:prod` | Testes contra API de produção configurada |
+| `npm run format` / `format:check` | Prettier em `src/` |
+| `npm run assert-auth` | Guarda de refresh token (`scripts/`) |
+
+### Make (raiz)
+
+| Alvo | Uso |
+|------|-----|
+| `make install` | Backend + frontend |
+| `make dev-backend` | `python main.py` |
+| `make dev-frontend` | `npm run dev` |
+| `make test` | Pytest completo + Vitest unit |
+| `make test-unit` | Unitários back + front |
+| `make test-e2e` | E2E Pytest + Vitest (`test:all`) |
+| `make build` | `npm run build` |
+| `make clean` | Remove artefatos de build/cache |
+
+### Backend (`cd backend`)
+
+| Comando | Uso |
+|---------|-----|
+| `python main.py` | Servidor de desenvolvimento |
+| `python production_server.py` | API + frontend estático |
+| `alembic upgrade head` | Aplicar migrações |
+| `pytest tests/ -v --tb=short` | Suite de testes |
+
+## Contribuindo
+
+1. Fork e branch: `feat/<escopo>/descricao` ou `fix/<escopo>/descricao`
+2. Configure `.env` / `.env.local` a partir dos exemplos
+3. Antes do PR: `npm run type-check`, `npm run test:unit`, `cd backend && pytest tests/unit/ -v`
+4. **Commits:** [Conventional Commits](https://www.conventionalcommits.org/) — `tipo(escopo): descrição imperativa` (máx. 72 caracteres)
+
+   Escopos comuns: `frontend`, `backend`, `api`, `auth`, `db`, `ui`, `store`, `docs`, `test`
+
+5. Detalhes: [CONTRIBUTING.md](CONTRIBUTING.md) · Mapa: [INDEX.md](INDEX.md) · Agentes: [CLAUDE.md](CLAUDE.md)
+
+## Documentação adicional
+
+- [docs/PRD.md](docs/PRD.md) — requisitos de produto (SDD)
+- [ARCHITECTURE.md](ARCHITECTURE.md) — visão arquitetural
+- [docs/THREAT-MODEL.md](docs/THREAT-MODEL.md) — modelo de ameaças
+
+## Licença
+
+MIT — ver [LICENSE](LICENSE).

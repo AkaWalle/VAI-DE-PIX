@@ -18,7 +18,7 @@ Por isso o workflow está configurado para **rodar somente em `ubuntu-latest`**:
 
 - **Banco limpo por execução:** cada job do GitHub Actions sobe um **novo** container Postgres (service), sem volumes. O schema é aplicado via `alembic upgrade head` no próprio job.
 - **Mesmo motor de produção:** uso de PostgreSQL 15 (Alpine), alinhado ao ambiente de produção/Docker.
-- **Reprodutibilidade:** o mesmo fluxo (migrations + pytest) pode ser reproduzido localmente em Linux com `docker-compose.test.yml`.
+- **Reprodutibilidade:** o mesmo fluxo (migrations + pytest) pode ser reproduzido localmente com PostgreSQL 15 e as variáveis do workflow.
 
 ---
 

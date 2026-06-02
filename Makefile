@@ -1,4 +1,4 @@
-.PHONY: help install install-backend install-frontend dev dev-backend dev-frontend test test-unit test-e2e build clean
+.PHONY: help install install-backend install-frontend dev dev-backend dev-frontend test test-backend test-frontend test-unit test-integration test-e2e build clean
 
 help:
 	@echo "💰 VAI DE PIX - Comandos Disponíveis"
@@ -16,7 +16,8 @@ help:
 	@echo "Testes:"
 	@echo "  make test                 - Roda todos os testes"
 	@echo "  make test-unit            - Roda testes unitários"
-	@echo "  make test-e2e             - Roda testes E2E"
+	@echo "  make test-integration     - Integração (backend + frontend)"
+	@echo "  make test-e2e             - E2E backend + Vitest"
 	@echo ""
 	@echo "Build:"
 	@echo "  make build                - Build para produção"
@@ -73,20 +74,18 @@ test-unit:
 test-integration:
 	@echo "🧪 Rodando testes de integração..."
 	cd backend && pytest tests/integration/ -v --tb=short
-	npm run test:integration
+	npm run test:all
 
 test-e2e:
 	@echo "🧪 Rodando testes E2E..."
 	cd backend && pytest tests/e2e/ -v --tb=short
-	npm run test:e2e
+	npm run test:all
 
-coverage:
-	@echo "📊 Gerando relatório de cobertura..."
-	cd backend && pytest tests/ --cov=backend --cov-report=html --cov-report=term-missing
-	npm run test:coverage
-	@echo "✅ Relatórios gerados em:"
-	@echo "   - Backend: backend/htmlcov/index.html"
-	@echo "   - Frontend: coverage/index.html"
+# TODO: adicionar script test:coverage no package.json
+# coverage:
+# 	@echo "📊 Gerando relatório de cobertura..."
+# 	cd backend && pytest tests/ --cov=backend --cov-report=html --cov-report=term-missing
+# 	npm run test:coverage
 
 build:
 	@echo "🏗️  Building para produção..."
@@ -103,4 +102,3 @@ clean:
 	rm -rf backend/.pytest_cache
 	rm -rf backend/test*.db
 	@echo "✅ Limpeza concluída"
-

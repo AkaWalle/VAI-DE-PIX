@@ -15,7 +15,7 @@ usuário "vai_de_pix_user", banco de dados "postgres", encriptação SSL
 
 ### Opção 1: Adicionar regra para o IP específico
 
-Execute no Raspberry Pi:
+Execute no servidor onde o PostgreSQL está instalado:
 
 ```bash
 # Adicionar regra para o IP 10.250.250.2
