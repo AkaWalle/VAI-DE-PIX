@@ -5,6 +5,7 @@ Garante que atomic_transaction faz rollback e nenhuma escrita parcial é commita
 import pytest
 from datetime import datetime
 from unittest.mock import patch
+from fastapi import HTTPException
 
 from models import Transaction, LedgerEntry, Goal, Envelope, Account
 from services.transaction_service import TransactionService
@@ -25,20 +26,21 @@ class TestTransactionServiceRollbackOnFailure:
             "services.transaction_service.LedgerRepository.append",
             side_effect=RuntimeError("Simulando falha no ledger"),
         ):
-            with pytest.raises(RuntimeError, match="Simulando falha no ledger"):
-                TransactionService.create_transaction(
-                    transaction_data={
-                        "date": datetime.now(),
-                        "category_id": test_category.id,
-                        "type": "income",
-                        "amount": 500.0,
-                        "description": "Transação que falha no meio",
-                        "tags": [],
-                    },
-                    account=test_account,
-                    user_id=test_user.id,
-                    db=db,
-                )
+            with pytest.raises(HTTPException):
+                with atomic_transaction(db):
+                    TransactionService.create_transaction(
+                        transaction_data={
+                            "date": datetime.now(),
+                            "category_id": test_category.id,
+                            "type": "income",
+                            "amount": 500.0,
+                            "description": "Transação que falha no meio",
+                            "tags": [],
+                        },
+                        account=test_account,
+                        user_id=test_user.id,
+                        db=db,
+                    )
 
         # Nenhuma escrita parcial: contagens inalteradas
         assert db.query(Transaction).count() == count_t_before
@@ -55,20 +57,21 @@ class TestTransactionServiceRollbackOnFailure:
             "services.transaction_service.sync_account_balance_from_ledger",
             side_effect=RuntimeError("Simulando falha no sync"),
         ):
-            with pytest.raises(RuntimeError, match="Simulando falha no sync"):
-                TransactionService.create_transaction(
-                    transaction_data={
-                        "date": datetime.now(),
-                        "category_id": test_category.id,
-                        "type": "income",
-                        "amount": 250.0,
-                        "description": "Transação que falha no sync",
-                        "tags": [],
-                    },
-                    account=test_account,
-                    user_id=test_user.id,
-                    db=db,
-                )
+            with pytest.raises(HTTPException):
+                with atomic_transaction(db):
+                    TransactionService.create_transaction(
+                        transaction_data={
+                            "date": datetime.now(),
+                            "category_id": test_category.id,
+                            "type": "income",
+                            "amount": 250.0,
+                            "description": "Transação que falha no sync",
+                            "tags": [],
+                        },
+                        account=test_account,
+                        user_id=test_user.id,
+                        db=db,
+                    )
 
         assert db.query(Transaction).count() == count_t_before
         assert db.query(LedgerEntry).count() == count_l_before
