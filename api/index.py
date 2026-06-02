@@ -147,7 +147,7 @@ try:
     from routers import auth
     print("5.2 — auth importado")
     print("5.3 — Tentando importar outros routers...")
-    from routers import transactions, goals, envelopes, categories, accounts, reports, automations, notifications, shared_expenses, activity_feed, activity_feed_ws, users
+    from routers import transactions, goals, envelopes, categories, accounts, reports, automations, notifications, shared_expenses, activity_feed, activity_feed_ws, users, insights
     from auth_utils import get_current_user
     from models import User
     print("5.4 — Todos os routers importados")
@@ -301,6 +301,7 @@ def _include_routers(prefix: str):
     app.include_router(shared_expenses.router, prefix=f"{prefix}/shared-expenses", tags=["Shared Expenses"])
     app.include_router(activity_feed.router, prefix=f"{prefix}/activity-feed", tags=["Activity Feed"])
     app.include_router(users.router, prefix=f"{prefix}/users", tags=["Users"])
+    app.include_router(insights.router, prefix=f"{prefix}/insights", tags=["Insights"])
 
 _include_routers("")       # /auth, /transactions, ...
 _include_routers("/api")   # /api/auth, /api/transactions, ... (path que a Vercel envia)

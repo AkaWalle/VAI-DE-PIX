@@ -36,16 +36,11 @@ import {
   X,
   Download,
 } from "lucide-react";
-
-interface ImportedTransaction {
-  date: string;
-  description: string;
-  amount: number;
-  type: "income" | "expense";
-  category?: string;
-  account?: string;
-  rawData: Record<string, unknown>;
-}
+import {
+  parseBankCsv,
+  type ParsedBankRow,
+  type BankReportType,
+} from "@/lib/bank-csv-parser";
 
 interface BankImportDialogProps {
   trigger?: React.ReactNode;
@@ -60,235 +55,29 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
   const [isImporting, setIsImporting] = useState(false);
   const [importProgress, setImportProgress] = useState(0);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [reportType, setReportType] = useState<"auto" | "extract" | "card">(
-    "auto",
+  const [reportType, setReportType] = useState<"auto" | BankReportType>("auto");
+  const [, setDetectedType] = useState<BankReportType | null>(null);
+  const [parsedTransactions, setParsedTransactions] = useState<ParsedBankRow[]>(
+    [],
   );
-  const [, setDetectedType] = useState<"extract" | "card" | null>(
-    null,
-  );
-  const [parsedTransactions, setParsedTransactions] = useState<
-    ImportedTransaction[]
-  >([]);
   const [showPreview, setShowPreview] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-
-  // Templates de mapeamento para diferentes tipos de relatório
-  const fieldMappings = {
-    extract: {
-      date: ["data", "date", "data_transacao", "data_movimento"],
-      description: [
-        "descricao",
-        "description",
-        "historico",
-        "descricao_detalhada",
-      ],
-      amount: ["valor", "amount", "valor_transacao", "valor_movimento"],
-      type: ["tipo", "type", "natureza", "debito_credito"],
-    },
-    card: {
-      date: ["data", "date", "data_compra", "data_transacao"],
-      description: ["descricao", "description", "estabelecimento", "local"],
-      amount: ["valor", "amount", "valor_compra", "valor_transacao"],
-      type: ["tipo", "type", "natureza"],
-    },
-  };
-
-  const detectReportType = (headers: string[]): "extract" | "card" | null => {
-    const headerText = headers.join(" ").toLowerCase();
-
-    // Indicadores de extrato bancário
-    const extractIndicators = [
-      "saldo",
-      "saldo_anterior",
-      "data_movimento",
-      "historico",
-      "valor_movimento",
-    ];
-    // Indicadores de cartão de crédito
-    const cardIndicators = [
-      "estabelecimento",
-      "data_compra",
-      "valor_compra",
-      "parcelas",
-      "categoria_estabelecimento",
-    ];
-
-    const extractScore = extractIndicators.filter((indicator) =>
-      headerText.includes(indicator),
-    ).length;
-
-    const cardScore = cardIndicators.filter((indicator) =>
-      headerText.includes(indicator),
-    ).length;
-
-    if (extractScore > cardScore && extractScore > 0) return "extract";
-    if (cardScore > extractScore && cardScore > 0) return "card";
-
-    return null;
-  };
-
-  const parseCSV = (csvText: string): Record<string, string>[] => {
-    const lines = csvText.split("\n").filter((line) => line.trim());
-    if (lines.length < 2) return [];
-
-    const headers = lines[0].split(",").map((h) => h.trim().replace(/"/g, ""));
-    const rows = lines.slice(1).map((line) => {
-      const values = line.split(",").map((v) => v.trim().replace(/"/g, ""));
-      const row: Record<string, string> = {};
-      headers.forEach((header, index) => {
-        row[header] = values[index] ?? "";
-      });
-      return row;
-    });
-
-    return rows;
-  };
-
-  const mapTransaction = (
-    row: Record<string, string>,
-    type: "extract" | "card",
-  ): ImportedTransaction | null => {
-    const mapping = fieldMappings[type];
-
-    // Encontrar campos por similaridade
-    const findField = (fieldType: keyof typeof mapping) => {
-      const possibleNames = mapping[fieldType];
-      for (const name of possibleNames) {
-        const foundKey = Object.keys(row).find((key) =>
-          key.toLowerCase().includes(name.toLowerCase()),
-        );
-        if (foundKey) return foundKey;
-      }
-      return null;
-    };
-
-    const dateField = findField("date");
-    const descriptionField = findField("description");
-    const amountField = findField("amount");
-    const typeField = findField("type");
-
-    if (!dateField || !descriptionField || !amountField) {
-      return null;
-    }
-
-    // Verificar se os campos existem no row
-    if (!row[dateField] || !row[descriptionField] || !row[amountField]) {
-      return null;
-    }
-
-    // Parse da data
-    let date = row[dateField];
-    if (date) {
-      const dateStr = date.toString().trim();
-
-      // Tentar diferentes formatos de data
-      const dateFormats = [
-        /(\d{2})\/(\d{2})\/(\d{4})/, // DD/MM/YYYY
-        /(\d{4})-(\d{2})-(\d{2})/, // YYYY-MM-DD
-        /(\d{2})-(\d{2})-(\d{4})/, // DD-MM-YYYY
-        /(\d{4})\/(\d{2})\/(\d{2})/, // YYYY/MM/DD
-        /(\d{1,2})\/(\d{1,2})\/(\d{4})/, // D/M/YYYY ou DD/MM/YYYY
-      ];
-
-      let parsedDate = null;
-
-      for (const format of dateFormats) {
-        const match = dateStr.match(format);
-        if (match) {
-          let year, month, day;
-
-          if (
-            format.source.includes("YYYY") &&
-            format.source.indexOf("YYYY") === 0
-          ) {
-            // YYYY-MM-DD ou YYYY/MM/DD
-            year = match[1];
-            month = match[2];
-            day = match[3];
-          } else {
-            // DD/MM/YYYY ou DD-MM-YYYY
-            day = match[1];
-            month = match[2];
-            year = match[3];
-          }
-
-          // Validar se a data é válida
-          const testDate = new Date(
-            parseInt(year),
-            parseInt(month) - 1,
-            parseInt(day),
-          );
-          if (
-            testDate.getFullYear() == year &&
-            testDate.getMonth() == month - 1 &&
-            testDate.getDate() == day
-          ) {
-            parsedDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
-            break;
-          }
-        }
-      }
-
-      // Se não conseguiu parsear, usar data atual
-      if (!parsedDate) {
-        const today = new Date();
-        parsedDate = today.toISOString().split("T")[0];
-      }
-
-      date = parsedDate;
-    } else {
-      // Se não há data, usar data atual
-      const today = new Date();
-      date = today.toISOString().split("T")[0];
-    }
-
-    // Parse do valor
-    let amount = 0;
-    if (row[amountField]) {
-      const amountStr = row[amountField]
-        .toString()
-        .replace(/[^\d,-]/g, "")
-        .replace(",", ".");
-      amount = parseFloat(amountStr);
-      if (isNaN(amount)) amount = 0;
-    }
-
-    // Determinar tipo (receita/despesa)
-    let transactionType: "income" | "expense" = "expense";
-    if (typeField && row[typeField]) {
-      const typeValue = row[typeField].toLowerCase();
-      if (
-        typeValue.includes("credito") ||
-        typeValue.includes("receita") ||
-        typeValue.includes("entrada")
-      ) {
-        transactionType = "income";
-      }
-    } else if (type === "extract") {
-      // Para extratos, valores negativos são despesas, positivos são receitas
-      transactionType = amount < 0 ? "expense" : "income";
-    } else {
-      // Para cartão, geralmente são despesas
-      transactionType = "expense";
-    }
-
-    // Garantir que o valor seja positivo
-    amount = Math.abs(amount);
-
-    return {
-      date,
-      description: row[descriptionField] || "Transação importada",
-      amount: transactionType === "expense" ? -amount : amount,
-      type: transactionType,
-      rawData: row,
-    };
-  };
 
   const handleFileSelect = async (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    const lowerName = file.name.toLowerCase();
+    if (lowerName.endsWith(".pdf")) {
+      toast({
+        title: "Formato não suportado",
+        description: "Importação disponível apenas para arquivos CSV.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setSelectedFile(file);
     setIsImporting(true);
@@ -298,40 +87,18 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
       const text = await file.text();
       setImportProgress(25);
 
-      const rows = parseCSV(text);
-      setImportProgress(50);
-
-      if (rows.length === 0) {
-        throw new Error("Nenhuma transação encontrada no arquivo");
-      }
-
-      // Detectar tipo do relatório
-      const headers = Object.keys(rows[0]);
-      const detected = detectReportType(headers);
-      setDetectedType(detected);
-
-      setImportProgress(75);
-
-      // Usar tipo detectado ou selecionado
-      const finalType = reportType === "auto" ? detected : reportType;
-      if (!finalType) {
-        throw new Error(
-          "Não foi possível identificar o tipo do relatório. Selecione manualmente.",
-        );
-      }
-
-      // Mapear transações
-      const transactions = rows
-        .map((row) => mapTransaction(row, finalType))
-        .filter((t): t is ImportedTransaction => t !== null);
-
+      const result = parseBankCsv(text, reportType);
+      setDetectedType(result.reportType);
       setImportProgress(100);
-      setParsedTransactions(transactions);
+      setParsedTransactions(result.transactions);
       setShowPreview(true);
+
+      const formatLabel =
+        result.format === "itau" ? " (formato Itaú detectado)" : "";
 
       toast({
         title: "Arquivo processado com sucesso!",
-        description: `${transactions.length} transações encontradas.`,
+        description: `${result.transactions.length} transações encontradas${formatLabel}.`,
       });
     } catch (error) {
       toast({
@@ -356,24 +123,20 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
       const total = parsedTransactions.length;
 
       for (const transaction of parsedTransactions) {
-        // Usar primeira conta disponível se não especificada
-        const accountId = transaction.account || accounts[0]?.id || "1";
+        const accountId = accounts[0]?.id || "1";
 
-        // Tentar mapear categoria automaticamente
-        let categoryId = transaction.category;
-        if (!categoryId) {
-          const description = transaction.description.toLowerCase();
-          const category = categories.find(
-            (c) =>
-              c.type === transaction.type &&
-              (description.includes(c.name.toLowerCase()) ||
-                c.name.toLowerCase().includes(description.split(" ")[0])),
-          );
-          categoryId =
-            category?.id ||
-            categories.find((c) => c.type === transaction.type)?.id ||
-            "4";
-        }
+        let categoryId: string | undefined;
+        const description = transaction.description.toLowerCase();
+        const category = categories.find(
+          (c) =>
+            c.type === transaction.type &&
+            (description.includes(c.name.toLowerCase()) ||
+              c.name.toLowerCase().includes(description.split(" ")[0])),
+        );
+        categoryId =
+          category?.id ||
+          categories.find((c) => c.type === transaction.type)?.id ||
+          "4";
 
         addTransaction({
           date: transaction.date,
@@ -394,7 +157,6 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
         description: `${imported} transações importadas com sucesso.`,
       });
 
-      // Resetar estado
       setSelectedFile(null);
       setParsedTransactions([]);
       setShowPreview(false);
@@ -448,12 +210,11 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
             </DialogTitle>
             <DialogDescription>
               Importe extratos bancários ou relatórios de cartão de crédito em
-              formato CSV
+              formato CSV (inclui exportação Itaú com separador ;)
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-6">
-            {/* Seleção de Arquivo */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">1. Selecionar Arquivo</CardTitle>
@@ -537,7 +298,6 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
               </CardContent>
             </Card>
 
-            {/* Preview das Transações */}
             {showPreview && parsedTransactions.length > 0 && (
               <Card>
                 <CardHeader>
@@ -608,7 +368,6 @@ export function BankImportDialog({ trigger }: BankImportDialogProps) {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog de Confirmação */}
       <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
