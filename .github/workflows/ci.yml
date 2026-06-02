@@ -2,7 +2,7 @@ name: CI - Validação e Testes
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, develop, feature/visual-redesign ]
   pull_request:
     branches: [ main, develop ]
 
