@@ -7,3 +7,4 @@ httpx==0.25.2
 playwright==1.40.0
 pytest-playwright==0.4.3
 requests==2.32.5
+bleach>=6.0.0
