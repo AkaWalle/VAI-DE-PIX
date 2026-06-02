@@ -14,7 +14,6 @@ import {
   TrendingUp,
   Zap,
   Settings,
-  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -27,13 +26,6 @@ import {
 interface MobileNavProps {
   onNewTransaction: () => void;
 }
-
-const PRIMARY_ITEMS = [
-  { title: "Início",     url: "/",             icon: LayoutDashboard },
-  { title: "Transações", url: "/transactions", icon: CreditCard },
-  // center slot is the + button
-  { title: "Metas",      url: "/goals",        icon: Target },
-];
 
 const MORE_ITEMS = [
   { title: "Caixinhas",       url: "/envelopes",               icon: Wallet },

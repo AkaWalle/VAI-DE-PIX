@@ -1,7 +1,5 @@
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
-  Wallet,
-  FileText,
   Share2,
   Clock,
   TrendingUp,

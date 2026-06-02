@@ -114,7 +114,7 @@ export function SharedExpenseForm({
         ...prev.slice(1),
       ];
     });
-  }, [user?.id, user?.email, user?.name, expense]);
+  }, [user, expense]);
 
   const handleInputChange = (field: string, value: string | number) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
