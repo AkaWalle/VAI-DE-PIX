@@ -29,6 +29,10 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "@bank-import/pdf-worker-node": path.resolve(
+        __dirname,
+        "./src/lib/bank-import/pdf/pdf-worker-node.stub.ts",
+      ),
     },
   },
   build: {

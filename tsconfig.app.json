@@ -23,7 +23,10 @@
 
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@bank-import/pdf-worker-node": [
+        "./src/lib/bank-import/pdf/pdf-worker-node.stub.ts"
+      ]
     }
   },
   "include": ["src"]

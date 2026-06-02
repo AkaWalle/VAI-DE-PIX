@@ -1,4 +1,27 @@
-async function loadPdfJs(): Promise<typeof import("pdfjs-dist/legacy/build/pdf.mjs")> {
+import type { PdfJsModule } from "./pdf-types";
+
+let workerConfigured = false;
+
+async function configurePdfWorker(
+  pdfjsLib: PdfJsModule,
+  env: "browser" | "node",
+): Promise<void> {
+  if (workerConfigured) return;
+
+  if (env === "browser") {
+    const worker = await import("pdfjs-dist/build/pdf.worker.min.mjs?url");
+    pdfjsLib.GlobalWorkerOptions.workerSrc = worker.default;
+  } else {
+    const { configureNodePdfWorker } = await import(
+      "@bank-import/pdf-worker-node"
+    );
+    configureNodePdfWorker(pdfjsLib);
+  }
+
+  workerConfigured = true;
+}
+
+async function loadPdfJs(): Promise<PdfJsModule> {
   if (typeof globalThis.DOMMatrix === "undefined") {
     globalThis.DOMMatrix = class DOMMatrix {
       a = 1;
@@ -22,11 +45,15 @@ async function loadPdfJs(): Promise<typeof import("pdfjs-dist/legacy/build/pdf.m
     } as unknown as typeof DOMMatrix;
   }
 
-  if (typeof window !== "undefined") {
-    return import("pdfjs-dist");
-  }
+  const env = typeof window !== "undefined" ? "browser" : "node";
+  const pdfjsLib =
+    env === "browser"
+      ? await import("pdfjs-dist")
+      : await import("pdfjs-dist/legacy/build/pdf.mjs");
 
-  return import("pdfjs-dist/legacy/build/pdf.mjs");
+  await configurePdfWorker(pdfjsLib, env);
+
+  return pdfjsLib;
 }
 
 export async function extractPdfText(data: ArrayBuffer): Promise<string> {
