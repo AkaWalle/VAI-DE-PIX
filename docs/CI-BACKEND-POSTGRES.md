@@ -1,5 +1,8 @@
 # CI Backend com PostgreSQL
 
+> **Nota:** As credenciais de CI são efêmeras e isoladas do banco de produção.
+> Defina `CI_POSTGRES_PASSWORD` como secret no GitHub Actions — não use a senha do banco de produção.
+
 ## Visão geral do pipeline
 
 O pipeline **Backend CI (PostgreSQL)** roda apenas em **Linux** (`ubuntu-latest`), sobe um **PostgreSQL 15** em container (service), aplica as **migrations** (`alembic upgrade head`) e executa a **suite completa de testes** do backend (`pytest`), exceto os testes e2e. O banco é **limpo a cada execução** (sem volumes). Qualquer falha em teste **falha o job**; nenhuma falha é ignorada.
@@ -38,10 +41,10 @@ Testes **e2e** não são executados (exigem Playwright; não são instalados nes
 
 ## Variáveis de ambiente necessárias
 
-- **`DATABASE_URL`:** `postgresql://vai_de_pix_user:vai_de_pix_pass@localhost:5432/vai_de_pix` (definida no workflow; usada nos steps de alembic e pytest).
+- **`DATABASE_URL`:** `postgresql://vai_de_pix_user:<CI_POSTGRES_PASSWORD>@localhost:5432/vai_de_pix` (montada no workflow com o secret `CI_POSTGRES_PASSWORD`; usada nos steps de alembic e pytest).
 - **`SECRET_KEY`:** definida **apenas** no step de pytest (para testes que dependem de JWT/autenticação).
 
-O serviço Postgres no workflow usa as mesmas credenciais: `POSTGRES_DB=vai_de_pix`, `POSTGRES_USER=vai_de_pix_user`, `POSTGRES_PASSWORD=vai_de_pix_pass`.
+O serviço Postgres no workflow usa: `POSTGRES_DB=vai_de_pix`, `POSTGRES_USER=vai_de_pix_user`, `POSTGRES_PASSWORD` = secret `CI_POSTGRES_PASSWORD`.
 
 ---
 

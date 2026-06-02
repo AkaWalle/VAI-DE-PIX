@@ -123,12 +123,10 @@ try:
     print("3.4 — BaseHTTPMiddleware importado")
     from mangum import Mangum
     print("3.5 — Mangum importado")
-    from slowapi import Limiter, _rate_limit_exceeded_handler
-    print("3.6 — slowapi Limiter importado")
-    from slowapi.util import get_remote_address
-    print("3.7 — get_remote_address importado")
+    from slowapi import _rate_limit_exceeded_handler
+    print("3.6 — slowapi importado")
     from slowapi.errors import RateLimitExceeded
-    print("3.8 — RateLimitExceeded importado")
+    print("3.7 — RateLimitExceeded importado")
     print("3 — TODAS as dependências importadas com sucesso!")
 except ImportError as e:
     print(f"FALHA NO IMPORT DAS DEPENDÊNCIAS: {type(e).__name__}: {str(e)}")
@@ -171,39 +169,50 @@ except Exception as e:
     traceback.print_exc()
     raise
 
-# Create FastAPI app
+# CORS e docs — mesmas regras de backend/main.py e production_server.py
+# (app serverless próprio; não importa backend/main.py para evitar scheduler/static)
+_frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5000")
+_is_production = os.getenv("ENVIRONMENT", "development").lower() == "production"
+_is_vercel = os.getenv("VERCEL", "") == "1"
+_docs_disabled = _is_production or _is_vercel
+
+if _is_production:
+    _allowed_origins = list(
+        {o for o in ["https://vai-de-pix.vercel.app", _frontend_url] if o}
+    )
+else:
+    _allowed_origins = [
+        _frontend_url,
+        "http://localhost:5000",
+        "http://localhost:3000",
+        "http://127.0.0.1:5000",
+    ]
+
+_ALLOWED_ORIGINS = set(_allowed_origins)
+
 app = FastAPI(
     title="VAI DE PIX API",
     description="API completa para sistema de controle financeiro pessoal",
     version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc"
+    docs_url=None if _docs_disabled else "/docs",
+    redoc_url=None if _docs_disabled else "/redoc",
+    openapi_url=None if _docs_disabled else "/openapi.json",
 )
 
-# Initialize rate limiter
+# Rate limiting (SlowAPI) — mesma instância que routers/auth.py (@limiter.limit nas rotas)
+# Vercel serverless: get_remote_address pode refletir IP do edge/proxy; limites por IP
+# podem agrupar clientes. Para proteção forte em produção, use rate limit na Vercel/WAF.
 print("6 — Inicializando rate limiter...")
 try:
-    limiter = Limiter(key_func=get_remote_address)
-    print("6.1 — Limiter criado")
+    limiter = auth.limiter
     app.state.limiter = limiter
-    print("6.2 — Limiter adicionado ao app.state")
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-    print("6.3 — Exception handler adicionado")
-    auth.limiter = limiter
-    print("6.4 — Limiter injetado no auth router")
-    print("6 — Rate limiter inicializado com sucesso!")
+    print("6 — Rate limiter (auth.limiter) registrado no app.state")
 except Exception as e:
     print(f"ERRO ao inicializar rate limiter: {type(e).__name__}: {str(e)}")
     import traceback
     traceback.print_exc()
     raise
-
-# Explicit list of allowed origins — do not use wildcards or dynamic matching
-_ALLOWED_ORIGINS = {
-    "https://vai-de-pix.vercel.app",
-    "http://localhost:5000",
-    "http://localhost:3000",
-}
 
 # Middleware to handle OPTIONS requests and CORS headers
 class CORSOptionsMiddleware(BaseHTTPMiddleware):

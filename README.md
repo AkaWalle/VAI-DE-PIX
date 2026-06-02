@@ -125,6 +125,25 @@ cd backend && python production_server.py
 
 Nunca commite `.env` ou `.env.local`. Apenas os arquivos `*.example`.
 
+### CI/CD — Secrets necessários no GitHub Actions
+
+| Secret | Onde usar | Descrição |
+|--------|-----------|-----------|
+| `CI_POSTGRES_PASSWORD` | backend-postgres-ci.yml | Senha efêmera do Postgres no CI (não usar a de produção) |
+| `VERCEL_TOKEN` | deploy.yml | Token de deploy na Vercel |
+| `VERCEL_ORG_ID` | deploy.yml | ID da organização na Vercel |
+| `VERCEL_PROJECT_ID` | deploy.yml | ID do projeto na Vercel |
+| `RAILWAY_TOKEN` | ci-cd.yml | Token de deploy no Railway |
+| `NETLIFY_AUTH_TOKEN` | deploy.yml | Token de deploy no Netlify |
+| `NETLIFY_SITE_ID` | deploy.yml | ID do site no Netlify |
+
+Configure em: GitHub → Settings → Secrets and variables → Actions
+
+### Deploy serverless (Vercel — `api/index.py`)
+
+- CORS, `/docs` e OpenAPI seguem `ENVIRONMENT` e `VERCEL` (alinhado a `backend/main.py`).
+- Rate limiting usa SlowAPI (`auth.limiter`); na Vercel o IP pode ser do edge — para limites rígidos, use rate limit na plataforma.
+
 ## Scripts disponíveis
 
 ### npm (raiz)

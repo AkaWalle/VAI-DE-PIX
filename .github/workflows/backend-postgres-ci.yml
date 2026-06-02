@@ -1,5 +1,9 @@
 # Backend CI com PostgreSQL (Linux only)
 # Banco limpo por execução; migrations + testes completos; nenhuma falha ignorada.
+#
+# CI_POSTGRES_PASSWORD deve ser definido em:
+# GitHub → Settings → Secrets → Actions → New repository secret
+# Valor sugerido para CI: string aleatória de 32+ chars (não usar senha de produção)
 
 name: Backend CI (PostgreSQL)
 
@@ -11,7 +15,9 @@ on:
 
 env:
   PYTHON_VERSION: "3.11"
-  DATABASE_URL: postgresql://vai_de_pix_user:vai_de_pix_pass@localhost:5432/vai_de_pix
+  POSTGRES_USER: vai_de_pix_user
+  POSTGRES_DB: vai_de_pix
+  DATABASE_URL: postgresql://vai_de_pix_user:${{ secrets.CI_POSTGRES_PASSWORD }}@localhost:5432/vai_de_pix
 
 jobs:
   backend-postgres:
@@ -22,9 +28,9 @@ jobs:
       postgres:
         image: postgres:15-alpine
         env:
-          POSTGRES_DB: vai_de_pix
-          POSTGRES_USER: vai_de_pix_user
-          POSTGRES_PASSWORD: vai_de_pix_pass
+          POSTGRES_DB: ${{ env.POSTGRES_DB }}
+          POSTGRES_USER: ${{ env.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
         ports:
           - 5432:5432
         options: >-
