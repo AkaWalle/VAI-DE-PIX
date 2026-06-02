@@ -13,10 +13,14 @@ export interface ParsedBankRow {
 
 export type BankReportType = "extract" | "card";
 
+/** Itaú CSV layouts exported from internet banking */
+export type ItauCsvVariant = "lancamentos_conta" | "extrato_conta_corrente";
+
 export interface ParseBankCsvResult {
   reportType: BankReportType;
   transactions: ParsedBankRow[];
   format: "itau" | "generic";
+  itauVariant?: ItauCsvVariant;
 }
 
 const SALDO_DO_DIA = "saldo do dia";
@@ -42,6 +46,53 @@ function splitCsvLine(line: string, delimiter: ";" | ","): string[] {
   return line.split(delimiter).map((cell) => cell.trim().replace(/^"|"$/g, ""));
 }
 
+function findCsvHeaderLineIndex(
+  lines: string[],
+  delimiter: ";" | ",",
+): number {
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const norm = normalizeHeader(line);
+
+    if (norm.includes("lancamentos da conta")) {
+      if (i + 1 < lines.length && lines[i + 1].includes(delimiter)) {
+        return i + 1;
+      }
+      continue;
+    }
+
+    if (norm.includes("extrato conta corrente")) {
+      for (let j = i + 1; j < lines.length; j++) {
+        if (!lines[j].includes(delimiter)) continue;
+        const headerNorm = normalizeHeader(lines[j]);
+        if (
+          headerNorm.includes("data") &&
+          headerNorm.includes("valor") &&
+          headerNorm.includes("historico")
+        ) {
+          return j;
+        }
+      }
+      continue;
+    }
+
+    if (!line.includes(delimiter)) continue;
+
+    if (
+      norm.includes("data") &&
+      norm.includes("historico") &&
+      (norm.includes("credito") ||
+        norm.includes("debito") ||
+        norm.includes("valor"))
+    ) {
+      return i;
+    }
+  }
+
+  const fallback = lines.findIndex((l) => l.includes(delimiter));
+  return fallback >= 0 ? fallback : 0;
+}
+
 function parseCsvRows(
   csvText: string,
   delimiter: ";" | ",",
@@ -55,29 +106,7 @@ function parseCsvRows(
     return { headers: [], rows: [] };
   }
 
-  let headerLineIndex = 0;
-  const firstNormalized = normalizeHeader(lines[0]);
-
-  if (
-    firstNormalized.includes("lancamentos da conta") ||
-    (delimiter === ";" &&
-      !lines[0].includes(";") &&
-      lines.length > 1 &&
-      lines[1].includes(";"))
-  ) {
-    headerLineIndex = firstNormalized.includes("lancamentos da conta") ? 1 : 0;
-    if (
-      headerLineIndex === 1 &&
-      lines.length > 2 &&
-      !normalizeHeader(lines[1]).includes("data")
-    ) {
-      headerLineIndex = lines.findIndex((line) =>
-        normalizeHeader(line).includes("data"),
-      );
-      if (headerLineIndex < 0) headerLineIndex = 1;
-    }
-  }
-
+  const headerLineIndex = findCsvHeaderLineIndex(lines, delimiter);
   const headerLine = lines[headerLineIndex];
   const headers = splitCsvLine(headerLine, delimiter);
   const dataLines = lines.slice(headerLineIndex + 1);
@@ -94,31 +123,55 @@ function parseCsvRows(
   return { headers, rows };
 }
 
-function isItauFormat(
+export function detectItauVariant(
   csvText: string,
   headers: string[],
   delimiter: ";" | ",",
-): boolean {
-  const firstLine = csvText.split(/\r?\n/)[0]?.trim() ?? "";
+): ItauCsvVariant | null {
+  const firstLine = normalizeHeader(csvText.split(/\r?\n/)[0]?.trim() ?? "");
   const normalizedHeaders = headers.map(normalizeHeader);
 
-  if (firstLine.toLowerCase().includes("lançamentos da conta")) {
-    return true;
+  if (firstLine.includes("lancamentos da conta")) {
+    return "lancamentos_conta";
   }
-  if (firstLine.toLowerCase().includes("lancamentos da conta")) {
-    return true;
+  if (firstLine.includes("extrato conta corrente")) {
+    return "extrato_conta_corrente";
   }
 
   if (delimiter !== ";") {
-    return false;
+    return null;
   }
 
   const hasHistorico = normalizedHeaders.some((h) => h.includes("historico"));
   const hasDocto = normalizedHeaders.some(
     (h) => h === "docto." || h === "docto" || h.startsWith("docto"),
   );
+  const hasCredito = normalizedHeaders.some((h) => h.includes("credito"));
+  const hasDebito = normalizedHeaders.some((h) => h.includes("debito"));
 
-  return hasHistorico && hasDocto;
+  if (hasHistorico && hasDocto && (hasCredito || hasDebito)) {
+    return "lancamentos_conta";
+  }
+
+  const hasDataLancamento = normalizedHeaders.some(
+    (h) => h.includes("data") && h.includes("lancamento"),
+  );
+  const hasDescricao = normalizedHeaders.some((h) => h.includes("descricao"));
+  const hasValor = normalizedHeaders.some((h) => h === "valor");
+
+  if (hasDataLancamento && hasHistorico && hasDescricao && hasValor) {
+    return "extrato_conta_corrente";
+  }
+
+  return null;
+}
+
+function isItauFormat(
+  csvText: string,
+  headers: string[],
+  delimiter: ";" | ",",
+): boolean {
+  return detectItauVariant(csvText, headers, delimiter) !== null;
 }
 
 function parseBrazilianAmount(value: string): number {
@@ -127,6 +180,28 @@ function parseBrazilianAmount(value: string): number {
   const normalized = trimmed.replace(/\./g, "").replace(",", ".");
   const parsed = parseFloat(normalized);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+/** Parses Valor column with optional sign (prefix -, suffix -, or parentheses). */
+function parseSignedBrazilianAmount(value: string): number {
+  let s = value.trim();
+  if (!s) return 0;
+
+  let negative = false;
+  if (s.startsWith("(") && s.endsWith(")")) {
+    negative = true;
+    s = s.slice(1, -1).trim();
+  } else if (s.startsWith("-")) {
+    negative = true;
+    s = s.slice(1).trim();
+  } else if (s.endsWith("-")) {
+    negative = true;
+    s = s.slice(0, -1).trim();
+  }
+
+  const abs = parseBrazilianAmount(s);
+  if (abs === 0) return 0;
+  return negative ? -abs : abs;
 }
 
 function parseDateToIso(dateStr: string): string | null {
@@ -171,7 +246,29 @@ function findColumnKey(
   return null;
 }
 
-function parseItauRows(rows: Record<string, string>[]): ParsedBankRow[] {
+function findValorColumnKey(row: Record<string, string>): string | null {
+  for (const key of Object.keys(row)) {
+    const normalized = normalizeHeader(key);
+    if (normalized === "valor") return key;
+  }
+  return findColumnKey(row, ["valor"]);
+}
+
+function isSaldoDoDiaText(...parts: string[]): boolean {
+  return parts.some((p) => p.trim().toLowerCase() === SALDO_DO_DIA);
+}
+
+function buildItauDescription(
+  historico: string,
+  descricao: string,
+): string {
+  const h = historico.trim();
+  const d = descricao.trim();
+  if (h && d && h !== d) return `${h} - ${d}`;
+  return d || h;
+}
+
+function parseItauLancamentosRows(rows: Record<string, string>[]): ParsedBankRow[] {
   const transactions: ParsedBankRow[] = [];
 
   for (const row of rows) {
@@ -220,6 +317,57 @@ function parseItauRows(rows: Record<string, string>[]): ParsedBankRow[] {
   }
 
   return transactions;
+}
+
+function parseItauExtratoContaCorrenteRows(
+  rows: Record<string, string>[],
+): ParsedBankRow[] {
+  const transactions: ParsedBankRow[] = [];
+
+  for (const row of rows) {
+    const dateKey =
+      findColumnKey(row, ["data lancamento"]) ?? findColumnKey(row, ["data"]);
+    const histKey = findColumnKey(row, ["historico"]);
+    const descKey = findColumnKey(row, ["descricao"]);
+    const valorKey = findValorColumnKey(row);
+
+    if (!dateKey || !valorKey) continue;
+
+    const historico = histKey ? (row[histKey] ?? "").trim() : "";
+    const descricao = descKey ? (row[descKey] ?? "").trim() : "";
+    if (isSaldoDoDiaText(historico, descricao)) continue;
+
+    const description = buildItauDescription(historico, descricao);
+    if (!description) continue;
+
+    const signed = parseSignedBrazilianAmount(row[valorKey] ?? "");
+    if (signed === 0) continue;
+
+    const type: "income" | "expense" = signed > 0 ? "income" : "expense";
+    const date =
+      parseDateToIso(row[dateKey] ?? "") ??
+      new Date().toISOString().split("T")[0];
+
+    transactions.push({
+      date,
+      description,
+      amount: signed,
+      type,
+      rawData: row,
+    });
+  }
+
+  return transactions;
+}
+
+function parseItauRows(
+  rows: Record<string, string>[],
+  variant: ItauCsvVariant,
+): ParsedBankRow[] {
+  if (variant === "extrato_conta_corrente") {
+    return parseItauExtratoContaCorrenteRows(rows);
+  }
+  return parseItauLancamentosRows(rows);
 }
 
 const fieldMappings = {
@@ -358,8 +506,9 @@ export function parseBankCsv(
     throw new Error("Nenhuma transação encontrada no arquivo");
   }
 
-  if (isItauFormat(csvText, headers, delimiter)) {
-    const transactions = parseItauRows(rows);
+  const itauVariant = detectItauVariant(csvText, headers, delimiter);
+  if (itauVariant) {
+    const transactions = parseItauRows(rows, itauVariant);
     if (transactions.length === 0) {
       throw new Error("Nenhuma transação válida encontrada no extrato Itaú");
     }
@@ -367,6 +516,7 @@ export function parseBankCsv(
       reportType: "extract",
       transactions,
       format: "itau",
+      itauVariant,
     };
   }
 
