@@ -22,6 +22,9 @@ if (sentryDsn && typeof sentryDsn === "string") {
     replaysSessionSampleRate: 0,
     sendDefaultPii: false,
   });
+  
+  // Expor Sentry globalmente para logger
+  (window as any).Sentry = Sentry;
 }
 
 // Error boundary para capturar erros globais

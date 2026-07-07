@@ -75,21 +75,42 @@ class Logger {
   }
 
   /**
-   * Envia logs para serviço de monitoramento (Sentry, DataDog, etc).
-   * Implementar quando houver integração com ferramenta de observabilidade.
+   * Envia logs para serviço de monitoramento (Sentry).
+   * Apenas em produção e apenas warn/error.
    */
   private sendToMonitoring(level: LogLevel, message: string, context?: LogContext): void {
-    // TODO: Integrar com Sentry ou outro serviço de monitoramento
-    // Exemplo com Sentry:
-    // import * as Sentry from '@sentry/react';
-    // Sentry.captureMessage(message, {
-    //   level: level as Sentry.SeverityLevel,
-    //   extra: context,
-    // });
+    // Sentry integration - apenas se estiver configurado
+    if (typeof window !== 'undefined' && (window as any).Sentry) {
+      const Sentry = (window as any).Sentry;
+      
+      if (level === 'error') {
+        // Se context.error é um Error, capturar como exception
+        if (context?.error && context.error instanceof Error) {
+          Sentry.captureException(context.error, {
+            level: 'error' as any,
+            extra: {
+              message,
+              ...context,
+            },
+          });
+        } else {
+          // Senão, capturar como message
+          Sentry.captureMessage(message, {
+            level: 'error' as any,
+            extra: context,
+          });
+        }
+      } else if (level === 'warning') {
+        Sentry.captureMessage(message, {
+          level: 'warning' as any,
+          extra: context,
+        });
+      }
+    }
     
-    // Por enquanto, apenas registrar que seria enviado
-    if (IS_DEV) {
-      console.log(`📊 [MONITORING] Would send to monitoring:`, { level, message, context });
+    // Log em dev (para debug)
+    if (IS_DEV && level !== 'debug') {
+      console.log(`📊 [MONITORING] Sent to Sentry:`, { level, message, context });
     }
   }
 
