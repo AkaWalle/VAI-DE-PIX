@@ -2,6 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
+import { visualizer } from "vite-bundle-visualizer";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -23,8 +24,15 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
-    mode === 'development' &&
-    componentTagger(),
+    mode === 'development' && componentTagger(),
+    // PERFORMANCE: Bundle analyzer (gera stats.html após build)
+    process.env.ANALYZE === 'true' && visualizer({
+      open: true,
+      filename: 'stats.html',
+      gzipSize: true,
+      brotliSize: true,
+      template: 'treemap', // 'treemap', 'sunburst', 'network'
+    }),
   ].filter(Boolean),
   resolve: {
     alias: {

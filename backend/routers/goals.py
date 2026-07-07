@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
@@ -51,11 +51,18 @@ class GoalResponse(BaseModel):
 
 @router.get("/", response_model=List[GoalResponse])
 async def get_goals(
+    skip: int = Query(0, ge=0, description="Registros a pular"),
+    limit: int = Query(100, ge=1, le=500, description="Máximo de registros"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get user's goals."""
-    goals = db.query(Goal).filter(Goal.user_id == current_user.id).all()
+    """Get user's goals with pagination."""
+    # PERFORMANCE: Paginação para evitar retornar milhares de registros
+    goals = db.query(Goal)\
+        .filter(Goal.user_id == current_user.id)\
+        .offset(skip)\
+        .limit(limit)\
+        .all()
     
     # Calculate progress percentage for each goal
     for goal in goals:

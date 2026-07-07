@@ -43,11 +43,14 @@ async def get_financial_summary(
     start_date = end_date - timedelta(days=months * 30)
     
     # Get transactions in period
-    transactions = db.query(Transaction).filter(
-        Transaction.user_id == current_user.id,
-        Transaction.date >= start_date,
-        Transaction.date <= end_date
-    ).all()
+    # PERFORMANCE: joinedload para evitar N+1 queries em category e account
+    transactions = db.query(Transaction)\
+        .options(joinedload(Transaction.category), joinedload(Transaction.account))\
+        .filter(
+            Transaction.user_id == current_user.id,
+            Transaction.date >= start_date,
+            Transaction.date <= end_date
+        ).all()
     
     # Calculate totals
     total_income = sum(t.amount for t in transactions if t.type == 'income')

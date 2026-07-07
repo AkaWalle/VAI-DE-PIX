@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from datetime import datetime, date
 from pydantic import BaseModel, model_validator
@@ -155,10 +155,13 @@ async def get_transaction(
     db: Session = Depends(get_db)
 ):
     """Get a specific transaction."""
-    transaction = db.query(Transaction).filter(
-        Transaction.id == transaction_id,
-        Transaction.user_id == current_user.id
-    ).first()
+    # PERFORMANCE: joinedload para evitar N+1 queries em category e account
+    transaction = db.query(Transaction)\
+        .options(joinedload(Transaction.category), joinedload(Transaction.account))\
+        .filter(
+            Transaction.id == transaction_id,
+            Transaction.user_id == current_user.id
+        ).first()
     
     if not transaction:
         raise HTTPException(
@@ -176,11 +179,14 @@ async def update_transaction(
     db: Session = Depends(get_db)
 ):
     """Update a transaction. Ledger: reversão + nova entrada (append-only) via TransactionService."""
-    db_transaction = db.query(Transaction).filter(
-        Transaction.id == transaction_id,
-        Transaction.user_id == current_user.id,
-        Transaction.deleted_at.is_(None),
-    ).first()
+    # PERFORMANCE: joinedload para evitar N+1 queries
+    db_transaction = db.query(Transaction)\
+        .options(joinedload(Transaction.category), joinedload(Transaction.account))\
+        .filter(
+            Transaction.id == transaction_id,
+            Transaction.user_id == current_user.id,
+            Transaction.deleted_at.is_(None),
+        ).first()
 
     if not db_transaction:
         raise HTTPException(
@@ -224,11 +230,14 @@ async def delete_transaction(
     db: Session = Depends(get_db)
 ):
     """Delete a transaction (hard). Ledger: reversão (append-only) via TransactionService."""
-    db_transaction = db.query(Transaction).filter(
-        Transaction.id == transaction_id,
-        Transaction.user_id == current_user.id,
-        Transaction.deleted_at.is_(None),
-    ).first()
+    # PERFORMANCE: joinedload para evitar N+1 queries
+    db_transaction = db.query(Transaction)\
+        .options(joinedload(Transaction.category), joinedload(Transaction.account))\
+        .filter(
+            Transaction.id == transaction_id,
+            Transaction.user_id == current_user.id,
+            Transaction.deleted_at.is_(None),
+        ).first()
 
     if not db_transaction:
         raise HTTPException(
