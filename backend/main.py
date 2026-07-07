@@ -97,6 +97,50 @@ app.add_middleware(
     expose_headers=["*"],
 )
 
+# Security Headers Middleware (OWASP Best Practices)
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    
+    # Aplicar headers de segurança em todos os ambientes
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    
+    # Headers específicos de produção
+    if is_production:
+        # HSTS: força HTTPS por 1 ano (incluindo subdomínios)
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
+        
+        # CSP: Content Security Policy básico (pode ser ajustado conforme necessário)
+        # Nota: unsafe-inline em style é necessário para alguns frameworks CSS
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+            "style-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data: https:; "
+            "font-src 'self' data:; "
+            "connect-src 'self'; "
+            "frame-ancestors 'none'; "
+            "base-uri 'self'; "
+            "form-action 'self';"
+        )
+        
+        # Permissions Policy: desabilita recursos não utilizados
+        response.headers["Permissions-Policy"] = (
+            "geolocation=(), "
+            "microphone=(), "
+            "camera=(), "
+            "payment=(), "
+            "usb=(), "
+            "magnetometer=(), "
+            "gyroscope=(), "
+            "accelerometer=()"
+        )
+    
+    return response
+
 # Security
 security = HTTPBearer()
 

@@ -304,12 +304,46 @@ async def update_profile(
     db: Session = Depends(get_db)
 ):
     update_data = user_update.model_dump(exclude_unset=True)
+    
+    # SEGURANÇA: Validar email único antes de atualizar
+    if "email" in update_data:
+        new_email = update_data["email"].lower()
+        
+        # Verificar se o email já está em uso por outro usuário
+        existing_user = db.query(User).filter(
+            User.email == new_email,
+            User.id != current_user.id
+        ).first()
+        
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Este email já está em uso por outra conta"
+            )
+        
+        # Normalizar email para lowercase
+        update_data["email"] = new_email
+        
+        # TODO: Implementar confirmação de email
+        # - Enviar email de verificação para o novo endereço
+        # - Manter email antigo até confirmação
+        # - Adicionar campo email_verified_at e pending_email
+    
+    # Aplicar atualizações
     for field, value in update_data.items():
         if hasattr(current_user, field) and field != "id":
             setattr(current_user, field, value)
     
     current_user.updated_at = datetime.now()
-    db.commit()
-    db.refresh(current_user)
+    
+    try:
+        db.commit()
+        db.refresh(current_user)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao atualizar perfil. Tente novamente."
+        )
     
     return UserResponse.model_validate(current_user)

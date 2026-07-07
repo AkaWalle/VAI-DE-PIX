@@ -177,6 +177,8 @@ export default function Auth() {
                       if (resetStatus !== "idle") setResetStatus("idle");
                     }}
                     disabled={isLoading}
+                    aria-invalid={!!error}
+                    aria-describedby={error ? "login-error" : undefined}
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -189,6 +191,8 @@ export default function Auth() {
                     value={loginForm.password}
                     onChange={(e) => setLoginForm(p => ({ ...p, password: e.target.value }))}
                     disabled={isLoading}
+                    aria-invalid={!!error}
+                    aria-describedby={error ? "login-error" : undefined}
                   />
                 </div>
                 <div className="flex justify-end">
@@ -266,12 +270,14 @@ export default function Auth() {
                       value={registerForm[field as keyof typeof registerForm]}
                       onChange={(e) => setRegisterForm(p => ({ ...p, [field]: e.target.value }))}
                       disabled={isLoading}
+                      aria-invalid={!!error}
+                      aria-describedby={error ? "register-error" : undefined}
                     />
                   </div>
                 ))}
                 {error && (
-                  <Alert className="rounded-[8px] border-rose-500/30 bg-rose-500/10">
-                    <AlertCircle className="h-4 w-4 text-rose-500" />
+                  <Alert id="register-error" role="alert" className="rounded-[8px] border-rose-500/30 bg-rose-500/10">
+                    <AlertCircle className="h-4 w-4 text-rose-500" aria-hidden="true" />
                     <AlertDescription className="text-rose-600">{error}</AlertDescription>
                   </Alert>
                 )}
