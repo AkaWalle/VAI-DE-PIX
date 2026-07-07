@@ -7,6 +7,11 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
+# Configurar logging estruturado ANTES de importar outros módulos
+from core.logger import setup_logging, get_logger
+setup_logging()
+logger = get_logger(__name__)
+
 # Sentry (opcional): só inicializa se SENTRY_DSN estiver definido; não envia dados sensíveis
 _sentry_dsn = os.getenv("SENTRY_DSN")
 if _sentry_dsn:

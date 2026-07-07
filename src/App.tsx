@@ -8,6 +8,7 @@ import { MainLayout } from "./layouts/main-layouts";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { PersistenceManager } from "./components/PersistenceManager";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { PageErrorBoundary } from "./components/PageErrorBoundary";
 import { useAuthStore } from "./stores/auth-store-index";
 import "./App.css";
 
@@ -76,17 +77,61 @@ const App = () => {
                     </ProtectedRoute>
                   }
                 >
-                  <Route index element={<Dashboard />} />
-                  <Route path="transactions" element={<Transactions />} />
-                  <Route path="goals" element={<Goals />} />
-                  <Route path="envelopes" element={<Envelopes />} />
-                  <Route path="shared-expenses" element={<SharedExpenses />} />
-                  <Route path="shared-expenses/pending" element={<SharedExpensePendingPage />} />
-                  <Route path="activity-feed" element={<ActivityFeedPage />} />
-                  <Route path="reports" element={<Reports />} />
-                  <Route path="trends" element={<Trends />} />
-                  <Route path="automations" element={<Automations />} />
-                  <Route path="settings" element={<Settings />} />
+                  <Route index element={
+                    <PageErrorBoundary pageName="Dashboard">
+                      <Dashboard />
+                    </PageErrorBoundary>
+                  } />
+                  <Route path="transactions" element={
+                    <PageErrorBoundary pageName="Transações">
+                      <Transactions />
+                    </PageErrorBoundary>
+                  } />
+                  <Route path="goals" element={
+                    <PageErrorBoundary pageName="Metas">
+                      <Goals />
+                    </PageErrorBoundary>
+                  } />
+                  <Route path="envelopes" element={
+                    <PageErrorBoundary pageName="Envelopes">
+                      <Envelopes />
+                    </PageErrorBoundary>
+                  } />
+                  <Route path="shared-expenses" element={
+                    <PageErrorBoundary pageName="Despesas Compartilhadas">
+                      <SharedExpenses />
+                    </PageErrorBoundary>
+                  } />
+                  <Route path="shared-expenses/pending" element={
+                    <PageErrorBoundary pageName="Despesas Pendentes">
+                      <SharedExpensePendingPage />
+                    </PageErrorBoundary>
+                  } />
+                  <Route path="activity-feed" element={
+                    <PageErrorBoundary pageName="Feed de Atividades">
+                      <ActivityFeedPage />
+                    </PageErrorBoundary>
+                  } />
+                  <Route path="reports" element={
+                    <PageErrorBoundary pageName="Relatórios">
+                      <Reports />
+                    </PageErrorBoundary>
+                  } />
+                  <Route path="trends" element={
+                    <PageErrorBoundary pageName="Tendências">
+                      <Trends />
+                    </PageErrorBoundary>
+                  } />
+                  <Route path="automations" element={
+                    <PageErrorBoundary pageName="Automações">
+                      <Automations />
+                    </PageErrorBoundary>
+                  } />
+                  <Route path="settings" element={
+                    <PageErrorBoundary pageName="Configurações">
+                      <Settings />
+                    </PageErrorBoundary>
+                  } />
                 </Route>
 
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

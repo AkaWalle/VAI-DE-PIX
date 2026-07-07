@@ -11,6 +11,7 @@ import {
   incrementRequestWithoutToken,
   exportAuthMetricsToBackend,
 } from "./metrics/auth-metrics";
+import { logger } from "./logger";
 
 export { tokenManager } from "./token-manager";
 
@@ -18,7 +19,7 @@ const HTTP_LOG_PREFIX = "[HTTP]";
 
 // Create axios instance with dynamic baseURL
 const initialBaseURL = typeof window !== 'undefined' ? getApiBaseURLDynamic() : 'http://localhost:8000/api';
-console.log('🚀 [HTTP Client] Inicializando com baseURL:', initialBaseURL);
+logger.info('HTTP Client Inicializando', { baseURL: initialBaseURL });
 
 /** Máximo 1 retry após refresh por request (evita loop) */
 const MAX_RETRY_AFTER_REFRESH = 1;
@@ -64,9 +65,7 @@ httpClient.interceptors.request.use(
     const token = getTokenForRequest();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-      if (typeof window !== "undefined" && import.meta.env.DEV) {
-        console.log(`${HTTP_LOG_PREFIX} TOKEN_INJECTED`, config.url ? String(config.url).slice(0, 60) : "");
-      }
+      logger.debug('TOKEN_INJECTED', { url: config.url ? String(config.url).slice(0, 60) : "" });
     } else if (!isPublicAuthUrl(config.url)) {
       incrementRequestWithoutToken();
     }
@@ -96,12 +95,10 @@ httpClient.interceptors.response.use(
         if (refreshed) {
           config.__retriedByRefresh = (config.__retriedByRefresh ?? 0) + 1;
           incrementRequestRetryAfterRefresh();
-          console.log(`${HTTP_LOG_PREFIX} REQUEST_RETRY_AFTER_REFRESH`, config.url ? String(config.url).slice(0, 60) : "");
+          logger.debug('REQUEST_RETRY_AFTER_REFRESH', { url: config.url ? String(config.url).slice(0, 60) : "" });
           return httpClient.request(config);
         }
-        if (typeof window !== "undefined") {
-          console.warn(`${HTTP_LOG_PREFIX} SYNC_FAIL_401 (refresh failed or no cookie)`);
-        }
+        logger.warn('SYNC_FAIL_401 (refresh failed or no cookie)', { url: config.url });
       }
     }
 
