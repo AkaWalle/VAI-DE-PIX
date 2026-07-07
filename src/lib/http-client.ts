@@ -11,6 +11,7 @@ import {
   incrementRequestWithoutToken,
   exportAuthMetricsToBackend,
 } from "./metrics/auth-metrics";
+import { logger } from "./logger";
 
 export { tokenManager } from "./token-manager";
 
@@ -18,7 +19,7 @@ const HTTP_LOG_PREFIX = "[HTTP]";
 
 // Create axios instance with dynamic baseURL
 const initialBaseURL = typeof window !== 'undefined' ? getApiBaseURLDynamic() : 'http://localhost:8000/api';
-console.log('🚀 [HTTP Client] Inicializando com baseURL:', initialBaseURL);
+logger.info('HTTP Client Inicializando', { baseURL: initialBaseURL });
 
 /** Máximo 1 retry após refresh por request (evita loop) */
 const MAX_RETRY_AFTER_REFRESH = 1;
@@ -58,18 +59,35 @@ function isPublicAuthUrl(url: string | undefined): boolean {
   return u.includes("/auth/login") || u.includes("/auth/register") || u.includes("/health");
 }
 
+// Helper: extrair token CSRF do cookie
+function getCsrfToken(): string | null {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie.match(/csrf_token=([^;]+)/);
+  if (!match) return null;
+  const parts = match[1].split('.');
+  return parts[0] || null; // Retorna apenas o token, não a assinatura
+}
+
 // Request interceptor — JWT sempre que existir; log TOKEN_INJECTED
 httpClient.interceptors.request.use(
   (config) => {
     const token = getTokenForRequest();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-      if (typeof window !== "undefined" && import.meta.env.DEV) {
-        console.log(`${HTTP_LOG_PREFIX} TOKEN_INJECTED`, config.url ? String(config.url).slice(0, 60) : "");
-      }
+      logger.debug('TOKEN_INJECTED', { url: config.url ? String(config.url).slice(0, 60) : "" });
     } else if (!isPublicAuthUrl(config.url)) {
       incrementRequestWithoutToken();
     }
+    
+    // Adicionar CSRF token em requisições que mudam estado
+    if (config.method && ['post', 'put', 'delete', 'patch'].includes(config.method.toLowerCase())) {
+      const csrfToken = getCsrfToken();
+      if (csrfToken) {
+        config.headers['X-CSRF-Token'] = csrfToken;
+        logger.debug('CSRF_TOKEN_INJECTED', { url: config.url ? String(config.url).slice(0, 60) : "" });
+      }
+    }
+    
     return config;
   },
   (error) => Promise.reject(error),
@@ -96,12 +114,10 @@ httpClient.interceptors.response.use(
         if (refreshed) {
           config.__retriedByRefresh = (config.__retriedByRefresh ?? 0) + 1;
           incrementRequestRetryAfterRefresh();
-          console.log(`${HTTP_LOG_PREFIX} REQUEST_RETRY_AFTER_REFRESH`, config.url ? String(config.url).slice(0, 60) : "");
+          logger.debug('REQUEST_RETRY_AFTER_REFRESH', { url: config.url ? String(config.url).slice(0, 60) : "" });
           return httpClient.request(config);
         }
-        if (typeof window !== "undefined") {
-          console.warn(`${HTTP_LOG_PREFIX} SYNC_FAIL_401 (refresh failed or no cookie)`);
-        }
+        logger.warn('SYNC_FAIL_401 (refresh failed or no cookie)', { url: config.url });
       }
     }
 

@@ -12,6 +12,10 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 
 def _safe_user_id(request: Request) -> str | None:
     """Extrai user_id do token JWT se disponível (não loga o token)."""
@@ -42,14 +46,28 @@ class StructuredLoggingMiddleware(BaseHTTPMiddleware):
         duration_ms = round((time.perf_counter() - start) * 1000, 2)
 
         user_id = _safe_user_id(request)
-        log_entry = {
+        
+        # Log usando structured logger
+        log_level = "ERROR" if response.status_code >= 500 else "WARNING" if response.status_code >= 400 else "INFO"
+        
+        extra_fields = {
             "request_id": request_id,
             "endpoint": f"{request.method} {request.url.path}",
             "status_code": response.status_code,
             "duration_ms": duration_ms,
+            "method": request.method,
+            "path": request.url.path,
         }
         if user_id is not None:
-            log_entry["user_id"] = user_id
-
-        print(json.dumps(log_entry, ensure_ascii=False))
+            extra_fields["user_id"] = user_id
+        
+        message = f"{request.method} {request.url.path} - {response.status_code} ({duration_ms}ms)"
+        
+        if log_level == "ERROR":
+            logger.error(message, extra=extra_fields)
+        elif log_level == "WARNING":
+            logger.warning(message, extra=extra_fields)
+        else:
+            logger.info(message, extra=extra_fields)
+        
         return response

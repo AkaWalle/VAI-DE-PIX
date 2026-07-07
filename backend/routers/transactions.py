@@ -11,6 +11,7 @@ from repositories.transaction_repository import TransactionRepository
 from services.transaction_service import TransactionService
 from middleware.idempotency import IdempotencyContext, get_idempotency_context_transactions
 from core.database_utils import atomic_transaction
+from core.csrf import csrf_protect
 from core.request_context import set_idempotency_key
 
 router = APIRouter()
@@ -173,7 +174,8 @@ async def update_transaction(
     transaction_id: str,
     transaction_update: TransactionUpdate,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _csrf: None = Depends(csrf_protect)
 ):
     """Update a transaction. Ledger: reversão + nova entrada (append-only) via TransactionService."""
     db_transaction = db.query(Transaction).filter(
@@ -221,7 +223,8 @@ async def update_transaction(
 async def delete_transaction(
     transaction_id: str,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _csrf: None = Depends(csrf_protect)
 ):
     """Delete a transaction (hard). Ledger: reversão (append-only) via TransactionService."""
     db_transaction = db.query(Transaction).filter(

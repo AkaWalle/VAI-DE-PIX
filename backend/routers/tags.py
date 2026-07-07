@@ -9,6 +9,7 @@ from models import Tag, User
 from auth_utils import get_current_user
 from core.security import validate_ownership
 from core.logging_config import get_logger
+from core.csrf import csrf_protect
 from repositories.tag_repository import TagRepository
 from schemas import TagCreate, TagUpdate, TagResponse
 
@@ -81,7 +82,8 @@ async def update_tag(
     tag_id: str,
     tag_update: TagUpdate,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _csrf: None = Depends(csrf_protect)
 ):
     """Update a tag."""
     tag_repo = TagRepository(db)
@@ -126,7 +128,8 @@ async def update_tag(
 async def delete_tag(
     tag_id: str,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _csrf: None = Depends(csrf_protect)
 ):
     """Delete a tag."""
     tag_repo = TagRepository(db)

@@ -28,6 +28,7 @@ from services.shared_expense_service import (
 from services.activity_feed_service import feed_item_to_dict
 from repositories.expense_share_repository import ExpenseShareRepository
 from models import User as UserModel
+from core.csrf import csrf_protect
 from realtime.feed_ws_manager import get_feed_ws_manager
 
 router = APIRouter()
@@ -102,6 +103,7 @@ async def patch_share_respond(
     body: ExpenseShareRespondSchema,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
+    _csrf: None = Depends(csrf_protect),
 ):
     """Aceita ou recusa um convite de despesa compartilhada. Body: { \"action\": \"accept\" | \"reject\" }."""
     action = body.action.strip().lower()
