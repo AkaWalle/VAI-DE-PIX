@@ -301,7 +301,8 @@ class UserUpdate(BaseModel):
 async def update_profile(
     user_update: UserUpdate,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _csrf: None = Depends(csrf_protect)
 ):
     update_data = user_update.model_dump(exclude_unset=True)
     for field, value in update_data.items():

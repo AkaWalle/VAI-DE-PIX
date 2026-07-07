@@ -8,6 +8,7 @@ from database import get_db
 from models import Envelope, User
 from auth_utils import get_current_user
 from core.database_utils import atomic_transaction
+from core.csrf import csrf_protect
 
 router = APIRouter()
 
@@ -81,7 +82,8 @@ async def update_envelope(
     envelope_id: str,
     envelope_update: EnvelopeUpdate,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _csrf: None = Depends(csrf_protect)
 ):
     """Update an envelope."""
     db_envelope = db.query(Envelope).filter(
@@ -108,7 +110,8 @@ async def update_envelope(
 async def delete_envelope(
     envelope_id: str,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _csrf: None = Depends(csrf_protect)
 ):
     """Delete an envelope."""
     db_envelope = db.query(Envelope).filter(

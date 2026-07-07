@@ -59,6 +59,15 @@ function isPublicAuthUrl(url: string | undefined): boolean {
   return u.includes("/auth/login") || u.includes("/auth/register") || u.includes("/health");
 }
 
+// Helper: extrair token CSRF do cookie
+function getCsrfToken(): string | null {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie.match(/csrf_token=([^;]+)/);
+  if (!match) return null;
+  const parts = match[1].split('.');
+  return parts[0] || null; // Retorna apenas o token, não a assinatura
+}
+
 // Request interceptor — JWT sempre que existir; log TOKEN_INJECTED
 httpClient.interceptors.request.use(
   (config) => {
@@ -69,6 +78,16 @@ httpClient.interceptors.request.use(
     } else if (!isPublicAuthUrl(config.url)) {
       incrementRequestWithoutToken();
     }
+    
+    // Adicionar CSRF token em requisições que mudam estado
+    if (config.method && ['post', 'put', 'delete', 'patch'].includes(config.method.toLowerCase())) {
+      const csrfToken = getCsrfToken();
+      if (csrfToken) {
+        config.headers['X-CSRF-Token'] = csrfToken;
+        logger.debug('CSRF_TOKEN_INJECTED', { url: config.url ? String(config.url).slice(0, 60) : "" });
+      }
+    }
+    
     return config;
   },
   (error) => Promise.reject(error),

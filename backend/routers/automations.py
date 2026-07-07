@@ -6,6 +6,7 @@ from datetime import datetime
 from database import get_db
 from models import AutomationRule, User
 from auth_utils import get_current_user
+from core.csrf import csrf_protect
 from schemas import AutomationRuleCreate, AutomationRuleUpdate, AutomationRuleResponse
 
 router = APIRouter()
@@ -65,7 +66,8 @@ async def update_automation_rule(
     rule_id: str,
     rule_update: AutomationRuleUpdate,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _csrf: None = Depends(csrf_protect)
 ):
     """Update an automation rule."""
     db_rule = db.query(AutomationRule).filter(
@@ -93,7 +95,8 @@ async def update_automation_rule(
 async def delete_automation_rule(
     rule_id: str,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _csrf: None = Depends(csrf_protect)
 ):
     """Delete an automation rule."""
     db_rule = db.query(AutomationRule).filter(

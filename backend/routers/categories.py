@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from database import get_db
 from models import Category, User
 from auth_utils import get_current_user
+from core.csrf import csrf_protect
 
 router = APIRouter()
 
@@ -70,7 +71,8 @@ async def update_category(
     category_id: str,
     category_update: CategoryUpdate,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _csrf: None = Depends(csrf_protect)
 ):
     """Update a category."""
     db_category = db.query(Category).filter(
@@ -97,7 +99,8 @@ async def update_category(
 async def delete_category(
     category_id: str,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _csrf: None = Depends(csrf_protect)
 ):
     """Delete a category."""
     db_category = db.query(Category).filter(

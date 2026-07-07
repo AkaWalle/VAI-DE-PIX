@@ -9,6 +9,7 @@ load_dotenv()
 
 # Configurar logging estruturado ANTES de importar outros módulos
 from core.logger import setup_logging, get_logger
+from core.csrf import csrf_middleware
 setup_logging()
 logger = get_logger(__name__)
 
@@ -93,6 +94,11 @@ else:
 
 app.add_middleware(StructuredLoggingMiddleware)
 app.add_middleware(RequestIDMiddleware)
+
+# CSRF middleware (adiciona cookie automaticamente para requests autenticados)
+from starlette.middleware.base import BaseHTTPMiddleware
+app.add_middleware(BaseHTTPMiddleware, dispatch=csrf_middleware)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,

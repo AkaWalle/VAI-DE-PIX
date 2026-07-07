@@ -8,6 +8,7 @@ from database import get_db
 from models import Goal, User
 from auth_utils import get_current_user
 from core.database_utils import atomic_transaction
+from core.csrf import csrf_protect
 from middleware.idempotency import IdempotencyContext, get_idempotency_context_goals
 from db.locks import lock_goal
 
@@ -145,7 +146,8 @@ async def update_goal(
     goal_id: str,
     goal_update: GoalUpdate,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _csrf: None = Depends(csrf_protect)
 ):
     """Update a goal."""
     db_goal = db.query(Goal).filter(
@@ -174,7 +176,8 @@ async def update_goal(
 async def delete_goal(
     goal_id: str,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _csrf: None = Depends(csrf_protect)
 ):
     """Delete a goal."""
     db_goal = db.query(Goal).filter(
