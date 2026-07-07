@@ -2,6 +2,7 @@ import * as Sentry from "@sentry/react";
 import { createRoot } from "react-dom/client";
 import { attachAuthDebugHooks } from "./lib/auth-debug";
 import { hydrateAuthMetricsFromStorage, startAuthMetricsExportSchedule } from "./lib/metrics/auth-metrics";
+import { logger } from "./lib/logger";
 import App from "./App.tsx";
 import "./index.css";
 
@@ -23,13 +24,17 @@ if (sentryDsn && typeof sentryDsn === "string") {
   });
 }
 
-// Error boundary para capturar erros
+// Error boundary para capturar erros globais
 window.addEventListener("error", (event) => {
-  console.error("❌ Erro capturado:", event.error);
+  logger.error("Erro global capturado", event.error, {
+    filename: event.filename,
+    lineno: event.lineno,
+    colno: event.colno,
+  });
 });
 
 window.addEventListener("unhandledrejection", (event) => {
-  console.error("❌ Promise rejeitada:", event.reason);
+  logger.error("Promise rejeitada sem handler", event.reason);
 });
 
 const rootElement = document.getElementById("root");
