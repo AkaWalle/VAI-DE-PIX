@@ -30,6 +30,16 @@ O deploy **DEVE** ser feito em 2 etapas obrigatórias:
 
 ## 🗄️ Etapa 1: Executar Script SQL no Banco
 
+### ⚡ PRIMEIRO: Verifique se Já Foi Aplicado
+
+Antes de executar o script de fix, verifique se ele já foi aplicado:
+
+1. **Acesse o SQL Editor** (veja instruções abaixo)
+2. **Execute o Quick Check:**
+   - Cole e execute: `backend/scripts/quick_check.sql`
+   - Se aparecer "✅✅✅ TUDO OK!" → **Pule para a Etapa 2** (código)
+   - Se aparecer "❌ PROBLEMA" → **Continue nesta etapa** (execute o fix)
+
 ### Como Acessar o Banco de Produção
 
 **Opção A: Via Interface Web do Provedor**
@@ -90,6 +100,16 @@ O script imprime mensagens como:
 ✓ Function delete_user_cascade created successfully
 ✓ Function delete_test_users created successfully
 ```
+
+**5. Confirmar com Quick Check**
+Execute novamente o `quick_check.sql` para confirmar:
+```sql
+-- Deve aparecer:
+✅✅✅ TUDO OK! Schema fix aplicado com sucesso!
+```
+
+**📖 Guia Completo de Verificação:**
+Ver `backend/scripts/HOW_TO_VERIFY.md` para instruções detalhadas
 
 ---
 
