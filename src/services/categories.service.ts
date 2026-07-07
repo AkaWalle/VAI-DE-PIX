@@ -1,6 +1,7 @@
 import type { AxiosError } from "axios";
 import { httpClient, apiHelpers } from "@/lib/http-client";
 import { API_ENDPOINTS } from "@/lib/api";
+import { logger } from "@/lib/logger";
 
 export interface Category {
   id: string;
@@ -28,17 +29,18 @@ export const categoriesService = {
       }
 
       const url = `${API_ENDPOINTS.categories.list}${params.toString() ? `?${params.toString()}` : ""}`;
-      console.log("🌐 GET categorias:", url);
+      logger.debug("GET categorias", { url });
       apiHelpers.logRequest("GET", url);
 
       const response = await httpClient.get<Category[]>(url);
-      console.log("📦 Resposta categorias:", response.data);
+      logger.debug("Resposta categorias", { count: response.data.length });
 
       return apiHelpers.handleResponse(response);
     } catch (error: unknown) {
       const err = error as AxiosError;
-      console.error("❌ Erro ao buscar categorias:", error);
-      console.error("❌ Detalhes:", err.response?.data ?? (err as Error).message);
+      logger.error("Erro ao buscar categorias", err, {
+        details: err.response?.data ?? (err as Error).message
+      });
       throw new Error(apiHelpers.handleError(err));
     }
   },
