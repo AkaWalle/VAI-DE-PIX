@@ -1,4 +1,5 @@
 import axios, { AxiosResponse, AxiosError } from "axios";
+import axiosRetry from "axios-retry";
 import { API_CONFIG, getApiBaseURLDynamic } from "./api";
 import { runRefreshWithLock, resetRefreshLock } from "./refresh-lock-manager";
 import { incrementSessionVersion } from "./refresh-internal";
@@ -28,6 +29,30 @@ export const httpClient = axios.create({
   timeout: API_CONFIG.timeout,
   headers: {
     "Content-Type": "application/json",
+  },
+});
+
+// PERFORMANCE: Configurar retry logic para falhas temporárias de rede
+axiosRetry(httpClient, {
+  retries: 3, // Tentar até 3 vezes
+  retryDelay: axiosRetry.exponentialDelay, // Delay exponencial: 1s, 2s, 4s
+  retryCondition: (error) => {
+    // Retentar APENAS em erros de rede ou 503 (service unavailable)
+    // NÃO retentar 401/403 (deixar para refresh interceptor abaixo)
+    const status = error.response?.status;
+    return (
+      axiosRetry.isNetworkError(error) ||
+      status === 503 ||
+      status === 504 // Gateway Timeout
+    );
+  },
+  onRetry: (retryCount, error, requestConfig) => {
+    if (import.meta.env.DEV) {
+      console.log(
+        `🔄 Retry ${retryCount}/3 - ${requestConfig.method?.toUpperCase()} ${requestConfig.url}`,
+        error.response?.status || error.code
+      );
+    }
   },
 });
 

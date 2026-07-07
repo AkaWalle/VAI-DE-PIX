@@ -1,6 +1,8 @@
 /**
- * Gerenciamento de access token (localStorage/sessionStorage).
- * Módulo isolado para uso por http-client e auth-runtime-guard sem dependência circular.
+ * Gerenciamento de access token (sessionStorage).
+ * SEGURANÇA: Migrado de localStorage para sessionStorage para reduzir janela de ataque XSS.
+ * SessionStorage é limpo ao fechar a aba, reduzindo exposição do token.
+ * Refresh tokens permanecem em HttpOnly cookies no backend.
  */
 
 const TOKEN_KEY = "vai-de-pix-token";
@@ -8,9 +10,11 @@ const TOKEN_KEY = "vai-de-pix-token";
 export function getTokenForRequest(): string | null {
   if (typeof window === "undefined") return null;
   return (
+    sessionStorage.getItem(TOKEN_KEY) ||
+    sessionStorage.getItem("token") ||
+    // Fallback para localStorage apenas para migração (será removido após login)
     localStorage.getItem(TOKEN_KEY) ||
     localStorage.getItem("token") ||
-    sessionStorage.getItem("token") ||
     null
   );
 }
@@ -18,25 +22,47 @@ export function getTokenForRequest(): string | null {
 /** Remove token de todos os storages (sem side effects como reset de lock). */
 export function clearAllTokensStoragesOnly(): void {
   if (typeof window === "undefined") return;
+  // Limpar ambos storages (sessão atual + migração)
+  sessionStorage.removeItem(TOKEN_KEY);
+  sessionStorage.removeItem("token");
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem("token");
-  sessionStorage.removeItem("token");
 }
 
 export const tokenManager = {
   get: (): string | null => {
-    return typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null;
+    if (typeof window === "undefined") return null;
+    // Priorizar sessionStorage
+    const sessionToken = sessionStorage.getItem(TOKEN_KEY);
+    if (sessionToken) return sessionToken;
+    
+    // Migração: se ainda existe em localStorage, mover para sessionStorage
+    const localToken = localStorage.getItem(TOKEN_KEY);
+    if (localToken) {
+      sessionStorage.setItem(TOKEN_KEY, localToken);
+      localStorage.removeItem(TOKEN_KEY);
+      return localToken;
+    }
+    
+    return null;
   },
 
   set: (token: string): void => {
     if (typeof window !== "undefined") {
-      localStorage.setItem(TOKEN_KEY, token);
+      // MUDANÇA: Armazenar em sessionStorage ao invés de localStorage
+      sessionStorage.setItem(TOKEN_KEY, token);
+      // Limpar localStorage se existir (migração)
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem("token");
     }
   },
 
   remove: (): void => {
     if (typeof window !== "undefined") {
+      sessionStorage.removeItem(TOKEN_KEY);
+      // Limpar localStorage também (para garantir migração completa)
       localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem("token");
     }
   },
 

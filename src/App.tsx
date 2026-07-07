@@ -42,10 +42,16 @@ const Auth = lazy(() => import("./pages/Auth"));
 
 // Componente de loading para lazy loaded routes
 const PageLoader = () => (
-  <div className="min-h-screen flex items-center justify-center bg-background">
+  <div 
+    className="min-h-screen flex items-center justify-center bg-background" 
+    role="status" 
+    aria-live="polite" 
+    aria-label="Carregando página"
+  >
     <div className="text-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" aria-hidden="true"></div>
       <p className="text-muted-foreground">Carregando...</p>
+      <span className="sr-only">Por favor aguarde, carregando conteúdo da página</span>
     </div>
   </div>
 );
@@ -61,6 +67,13 @@ const App = () => {
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            {/* Skip Link para acessibilidade - permite usuários de teclado pular navegação */}
+            <a
+              href="#main-content"
+              className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+            >
+              Pular para conteúdo principal
+            </a>
             <AuthBootstrap />
             <Suspense fallback={<PageLoader />}>
               <Routes>

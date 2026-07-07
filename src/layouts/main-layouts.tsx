@@ -65,7 +65,7 @@ export function MainLayout() {
         </header>
 
         {/* ── Page content ── */}
-        <main className="flex-1 p-4 sm:p-6 overflow-x-hidden pb-20 md:pb-6">
+        <main id="main-content" className="flex-1 p-4 sm:p-6 overflow-x-hidden pb-20 md:pb-6">
           <div className="w-full max-w-full">
             <Outlet />
           </div>
