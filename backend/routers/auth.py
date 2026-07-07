@@ -26,6 +26,7 @@ from auth_utils import (
     clear_refresh_cookie,
 )
 from core.default_categories import DEFAULT_CATEGORIES
+from core.csrf import csrf_protect
 
 router = APIRouter()
 
