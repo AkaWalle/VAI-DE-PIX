@@ -155,8 +155,8 @@ function UserAvatar() {
         .slice(0, 2)
     : "U";
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate("/auth", { replace: true });
   };
 

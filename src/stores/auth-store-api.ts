@@ -15,7 +15,7 @@ export interface AuthState {
 export interface AuthActions {
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   updateProfile: (updates: Partial<User>) => Promise<void>;
   checkAuth: () => Promise<void>;
   /** Roda 1x no app init: token? /me : limpa estado. Nunca confiar só no token. */
@@ -76,8 +76,8 @@ export const useAuthStore = create<AuthStore>()(
         }
       },
 
-      logout: () => {
-        authService.logout();
+      logout: async () => {
+        await authService.logout();
         // Clear all financial data so the next user starts with a clean store.
         useFinancialStore.getState().clearUserData();
         set({

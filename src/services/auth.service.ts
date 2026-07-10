@@ -101,12 +101,18 @@ export const authService = {
     }
   },
 
-  // Logout user — limpa todos os storages de token
-  logout(): void {
-    clearAllTokens();
+  // Logout user — revoga sessão no backend e limpa tokens locais
+  async logout(): Promise<void> {
+    try {
+      await httpClient.post(API_ENDPOINTS.auth.logout);
+    } catch (error) {
+      console.warn("Erro ao revogar sessão no backend:", error);
+    } finally {
+      clearAllTokens();
 
-    if (typeof window !== "undefined") {
-      window.location.reload();
+      if (typeof window !== "undefined") {
+        window.location.reload();
+      }
     }
   },
 

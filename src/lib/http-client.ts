@@ -30,6 +30,7 @@ export const httpClient = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
+  withCredentials: true,
 });
 
 // Atualizar baseURL dinamicamente em cada requisição
