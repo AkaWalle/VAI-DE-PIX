@@ -1,0 +1,1449 @@
+{
+  "email_used": "wallace.ventura@outlook.com",
+  "email_note": "Usuario informou outylook.com; conta valida e outlook.com",
+  "user": {
+    "id": "6bc374e0-79ec-43c1-a467-157c42065926",
+    "name": "Jose Wallace",
+    "email": "wallace.ventura@outlook.com",
+    "is_active": true,
+    "created_at": "2026-02-14T01:25:52.191205Z"
+  },
+  "summary": {
+    "total_checks": 80,
+    "ok": 57,
+    "fail": 23,
+    "get_latency_ms": {
+      "min": 150.3,
+      "p50": 160.4,
+      "p90": 174.5,
+      "p95": 176.2,
+      "max": 184.7,
+      "avg": 162.1,
+      "n": 21
+    },
+    "waterfall_reads_ms": 3642.6,
+    "entity_counts": {
+      "/accounts/": 4,
+      "/categories/": 15,
+      "/transactions/": 0,
+      "/transactions/?limit=100": 0,
+      "/goals/": 0,
+      "/envelopes/": 0,
+      "/automations/": 1,
+      "/notifications/": 6,
+      "/activity-feed/": 48
+    },
+    "created_resources": {
+      "envelope": "2b164199-32f2-44de-b007-9d8c01cdbc01",
+      "category": "f5df6d9c-14de-4caf-98cb-54253d981d97",
+      "account": "d40ede15-815c-4586-a906-b8f790fdda46",
+      "automation": "a86d8a74-e629-4a0b-9123-675fc7bb8e88"
+    },
+    "assets": [
+      {
+        "path": "/",
+        "ms": 48.9,
+        "size": 717,
+        "status": 200,
+        "cache": "HIT",
+        "cache_control": "public, max-age=0, must-revalidate",
+        "content_type": "text/html; charset=utf-8"
+      },
+      {
+        "path": "/assets/index-mupKXArt.js",
+        "ms": 50.3,
+        "size": 224688,
+        "status": 200,
+        "cache": "HIT",
+        "cache_control": "public, max-age=0, must-revalidate",
+        "content_type": "application/javascript; charset=utf-8"
+      },
+      {
+        "path": "/assets/vendor-ufAZRJWi.js",
+        "ms": 47.9,
+        "size": 161132,
+        "status": 200,
+        "cache": "HIT",
+        "cache_control": "public, max-age=0, must-revalidate",
+        "content_type": "application/javascript; charset=utf-8"
+      }
+    ]
+  },
+  "notes": [
+    {
+      "health": {
+        "status": "healthy",
+        "database": "connected"
+      }
+    },
+    {
+      "headers_HTML": {
+        "content-security-policy": null,
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": null,
+        "x-content-type-options": null,
+        "referrer-policy": null,
+        "permissions-policy": null,
+        "cross-origin-opener-policy": null,
+        "server": "Vercel",
+        "x-vercel-cache": "HIT"
+      }
+    },
+    {
+      "headers_API": {
+        "content-security-policy": null,
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": null,
+        "x-content-type-options": null,
+        "referrer-policy": null,
+        "permissions-policy": null,
+        "cross-origin-opener-policy": null,
+        "server": "Vercel",
+        "x-vercel-cache": "MISS"
+      }
+    },
+    {
+      "jwt": {
+        "keys": [
+          "sub",
+          "exp"
+        ],
+        "ttl_seconds": null,
+        "exp": 1783985913,
+        "has_iat": false,
+        "has_jti": false,
+        "alg_header_note": "HS256 from login response shape"
+      }
+    },
+    {
+      "user_profile": {
+        "id": "6bc374e0-79ec-43c1-a467-157c42065926",
+        "name": "Jose Wallace",
+        "email": "wallace.ventura@outlook.com",
+        "is_active": true,
+        "created_at": "2026-02-14T01:25:52.191205Z"
+      }
+    },
+    {
+      "sequential_reads_ms": 3642.6,
+      "n_endpoints": 23
+    },
+    {
+      "entity_counts": {
+        "/accounts/": 4,
+        "/categories/": 15,
+        "/transactions/": 0,
+        "/transactions/?limit=100": 0,
+        "/goals/": 0,
+        "/envelopes/": 0,
+        "/automations/": 1,
+        "/notifications/": 6,
+        "/activity-feed/": 48
+      }
+    },
+    {
+      "samples": {
+        "account": {
+          "id": "8bccdcaf-861d-4c7a-94c1-fe7ea5a7e7c7",
+          "name": "Dinheiro",
+          "type": "cash",
+          "balance": 0.0,
+          "created_at": "2026-02-14T01:25:52.654811Z"
+        },
+        "category": {
+          "id": "5e6ba6b1-56ea-4da5-b1a9-a84a40edb60c",
+          "name": "Sal\u00e1rio",
+          "type": "income",
+          "color": "#22c55e",
+          "icon": "\ud83d\udcb0",
+          "created_at": "2026-02-14T01:25:52.634087Z"
+        },
+        "transaction": null,
+        "goal": null,
+        "envelope": null
+      }
+    },
+    {
+      "feature_availability": {
+        "insights": 404,
+        "privacy_export": 404,
+        "privacy_size": 22,
+        "tags": 404,
+        "shared_expenses": 200,
+        "automations": 200,
+        "activity_feed": 200
+      }
+    }
+  ],
+  "results": [
+    {
+      "name": "GET /api/health",
+      "status": 200,
+      "ms": 161.4,
+      "ok": true,
+      "size": 43,
+      "note": "",
+      "body_preview": {
+        "status": "healthy",
+        "database": "connected"
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "login wrong password",
+      "status": 401,
+      "ms": 431.6,
+      "ok": false,
+      "size": 38,
+      "note": "",
+      "body_preview": {
+        "detail": "Email ou senha incorretos"
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "login typo domain outylook",
+      "status": 401,
+      "ms": 146.9,
+      "ok": false,
+      "size": 38,
+      "note": "email tipado pelo usuario",
+      "body_preview": {
+        "detail": "Email ou senha incorretos"
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "me without token",
+      "status": 403,
+      "ms": 151.7,
+      "ok": false,
+      "size": 30,
+      "note": "",
+      "body_preview": {
+        "detail": "Not authenticated"
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "transactions bad JWT",
+      "status": 401,
+      "ms": 142.7,
+      "ok": false,
+      "size": 43,
+      "note": "",
+      "body_preview": {
+        "detail": "Could not validate credentials"
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "login success",
+      "status": 200,
+      "ms": 550.5,
+      "ok": true,
+      "size": 367,
+      "note": "",
+      "body_preview": {
+        "access_token": "<redacted>",
+        "token_type": "bearer",
+        "user": "dict[5 keys]"
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "GET /auth/me",
+      "status": 200,
+      "ms": 176.2,
+      "ok": true,
+      "size": 165,
+      "note": "",
+      "body_preview": {
+        "id": "6bc374e0-79ec-43c1-a467-157c42065926",
+        "name": "Jose Wallace",
+        "email": "wallace.ventura@outlook.com",
+        "is_active": true,
+        "created_at": "2026-02-14T01:25:52.191205Z"
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "GET /accounts/",
+      "status": 200,
+      "ms": 153.0,
+      "ok": true,
+      "size": 568,
+      "note": "",
+      "body_preview": {
+        "type": "list",
+        "len": 4,
+        "sample_keys": [
+          "id",
+          "name",
+          "type",
+          "balance",
+          "created_at"
+        ]
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "GET /categories/",
+      "status": 200,
+      "ms": 161.2,
+      "ok": true,
+      "size": 2388,
+      "note": "",
+      "body_preview": {
+        "type": "list",
+        "len": 15,
+        "sample_keys": [
+          "id",
+          "name",
+          "type",
+          "color",
+          "icon",
+          "created_at"
+        ]
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "GET /transactions/",
+      "status": 200,
+      "ms": 160.4,
+      "ok": true,
+      "size": 2,
+      "note": "",
+      "body_preview": {
+        "type": "list",
+        "len": 0,
+        "sample_keys": null
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "GET /transactions/?limit=100",
+      "status": 200,
+      "ms": 154.4,
+      "ok": true,
+      "size": 2,
+      "note": "",
+      "body_preview": {
+        "type": "list",
+        "len": 0,
+        "sample_keys": null
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "GET /goals/",
+      "status": 200,
+      "ms": 163.1,
+      "ok": true,
+      "size": 2,
+      "note": "",
+      "body_preview": {
+        "type": "list",
+        "len": 0,
+        "sample_keys": null
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "GET /envelopes/",
+      "status": 200,
+      "ms": 153.2,
+      "ok": true,
+      "size": 2,
+      "note": "",
+      "body_preview": {
+        "type": "list",
+        "len": 0,
+        "sample_keys": null
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "GET /transactions/summary/monthly",
+      "status": 200,
+      "ms": 163.7,
+      "ok": true,
+      "size": 122,
+      "note": "",
+      "body_preview": {
+        "year": 2026,
+        "month": 7,
+        "total_transactions": 0,
+        "total_income": 0,
+        "total_expenses": 0,
+        "net_balance": 0,
+        "category_breakdown": "dict[0 keys]"
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "GET /reports/summary",
+      "status": 200,
+      "ms": 164.0,
+      "ok": true,
+      "size": 136,
+      "note": "",
+      "body_preview": {
+        "total_transactions": 0,
+        "total_income": 0.0,
+        "total_expenses": 0.0,
+        "net_balance": 0.0,
+        "period_start": "2026-01-14",
+        "period_end": "2026-07-13"
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "GET /reports/cashflow",
+      "status": 200,
+      "ms": 158.8,
+      "ok": true,
+      "size": 2,
+      "note": "",
+      "body_preview": {
+        "type": "list",
+        "len": 0,
+        "sample_keys": null
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "GET /reports/categories/summary",
+      "status": 200,
+      "ms": 158.5,
+      "ok": true,
+      "size": 2,
+      "note": "",
+      "body_preview": {
+        "type": "list",
+        "len": 0,
+        "sample_keys": null
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "GET /reports/export",
+      "status": 200,
+      "ms": 167.5,
+      "ok": true,
+      "size": 2403,
+      "note": "",
+      "body_preview": {
+        "export_date": "2026-07-13T23:08:35.934976",
+        "user": "dict[2 keys]",
+        "period": "dict[3 keys]",
+        "data": "dict[5 keys]"
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "GET /notifications/",
+      "status": 200,
+      "ms": 170.8,
+      "ok": true,
+      "size": 2436,
+      "note": "",
+      "body_preview": {
+        "type": "list",
+        "len": 6,
+        "sample_keys": [
+          "id",
+          "type",
+          "title",
+          "body",
+          "read_at",
+          "created_at",
+          "metadata"
+        ]
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "GET /notifications/unread-count",
+      "status": 200,
+      "ms": 164.0,
+      "ok": true,
+      "size": 11,
+      "note": "",
+      "body_preview": {
+        "count": 0
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "GET /notifications/unread-insight-count",
+      "status": 200,
+      "ms": 153.1,
+      "ok": true,
+      "size": 11,
+      "note": "",
+      "body_preview": {
+        "count": 0
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "GET /insights/",
+      "status": 404,
+      "ms": 141.1,
+      "ok": false,
+      "size": 22,
+      "note": "",
+      "body_preview": {
+        "detail": "Not Found"
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "GET /insights/preferences",
+      "status": 404,
+      "ms": 147.0,
+      "ok": false,
+      "size": 22,
+      "note": "",
+      "body_preview": {
+        "detail": "Not Found"
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "GET /privacy/export",
+      "status": 404,
+      "ms": 137.1,
+      "ok": false,
+      "size": 22,
+      "note": "",
+      "body_preview": {
+        "detail": "Not Found"
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "GET /shared-expenses/read-model",
+      "status": 200,
+      "ms": 184.7,
+      "ok": true,
+      "size": 8620,
+      "note": "",
+      "body_preview": {
+        "expenses": "list[14]",
+        "totals": "dict[5 keys]",
+        "last_updated": "2026-03-09T04:23:47.856419Z"
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "GET /shared-expenses/pending",
+      "status": 200,
+      "ms": 157.0,
+      "ok": true,
+      "size": 2,
+      "note": "",
+      "body_preview": {
+        "type": "list",
+        "len": 0,
+        "sample_keys": null
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "GET /activity-feed/",
+      "status": 200,
+      "ms": 174.5,
+      "ok": true,
+      "size": 25339,
+      "note": "",
+      "body_preview": {
+        "type": "list",
+        "len": 48,
+        "sample_keys": [
+          "id",
+          "user_id",
+          "type",
+          "title",
+          "description",
+          "entity_type",
+          "entity_id",
+          "metadata",
+          "is_read",
+          "created_at"
+        ]
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "GET /activity-feed/unread-count",
+      "status": 200,
+      "ms": 150.3,
+      "ok": true,
+      "size": 11,
+      "note": "",
+      "body_preview": {
+        "count": 7
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "GET /automations/",
+      "status": 200,
+      "ms": 158.7,
+      "ok": true,
+      "size": 580,
+      "note": "",
+      "body_preview": {
+        "type": "list",
+        "len": 1,
+        "sample_keys": [
+          "name",
+          "description",
+          "type",
+          "is_active",
+          "conditions",
+          "actions",
+          "id",
+          "last_run",
+          "next_run",
+          "created_at",
+          "updated_at"
+        ]
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "GET /tags/",
+      "status": 404,
+      "ms": 141.6,
+      "ok": false,
+      "size": 22,
+      "note": "",
+      "body_preview": {
+        "detail": "Not Found"
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "POST /transactions/ create",
+      "status": 500,
+      "ms": 30169.4,
+      "ok": false,
+      "size": 21,
+      "note": "",
+      "body_preview": "Internal Server Error",
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "POST /goals/ create",
+      "status": 500,
+      "ms": 30173.2,
+      "ok": false,
+      "size": 21,
+      "note": "",
+      "body_preview": "Internal Server Error",
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "POST /envelopes/ create",
+      "status": 200,
+      "ms": 193.2,
+      "ok": true,
+      "size": 220,
+      "note": "",
+      "body_preview": {
+        "id": "2b164199-32f2-44de-b007-9d8c01cdbc01",
+        "name": "[AUDIT] temp envelope",
+        "balance": 0.0,
+        "target_amount": 50.0,
+        "color": "#128C7E",
+        "description": "audit",
+        "progress_percentage": 0.0,
+        "created_at": "2026-07-13T23:09:38.308526Z"
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "POST /envelopes/add-value",
+      "status": 422,
+      "ms": 166.9,
+      "ok": false,
+      "size": 142,
+      "note": "",
+      "body_preview": {
+        "detail": "list[1]"
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "POST /envelopes/withdraw-value",
+      "status": 422,
+      "ms": 160.8,
+      "ok": false,
+      "size": 142,
+      "note": "",
+      "body_preview": {
+        "detail": "list[1]"
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "POST /categories/ create",
+      "status": 200,
+      "ms": 171.6,
+      "ok": true,
+      "size": 156,
+      "note": "",
+      "body_preview": {
+        "id": "f5df6d9c-14de-4caf-98cb-54253d981d97",
+        "name": "Audit76cb",
+        "type": "expense",
+        "color": "#112233",
+        "icon": "\ud83d\udd0e",
+        "created_at": "2026-07-13T23:09:38.824629Z"
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "POST /accounts/ create",
+      "status": 200,
+      "ms": 171.8,
+      "ok": true,
+      "size": 138,
+      "note": "",
+      "body_preview": {
+        "id": "d40ede15-815c-4586-a906-b8f790fdda46",
+        "name": "AuditAcc80e7",
+        "type": "cash",
+        "balance": 0.0,
+        "created_at": "2026-07-13T23:09:38.992794Z"
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "POST /automations/ create",
+      "status": 200,
+      "ms": 170.8,
+      "ok": true,
+      "size": 278,
+      "note": "",
+      "body_preview": {
+        "name": "[AUDIT] rule",
+        "description": "temp",
+        "type": "budget_alert",
+        "is_active": false,
+        "conditions": "dict[1 keys]",
+        "actions": "dict[1 keys]",
+        "id": "a86d8a74-e629-4a0b-9123-675fc7bb8e88",
+        "last_run": null,
+        "next_run": null,
+        "created_at": "2026-07-13T23:09:39.164667Z",
+        "updated_at": null
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "GET /automations/{id}",
+      "status": 200,
+      "ms": 156.7,
+      "ok": true,
+      "size": 278,
+      "note": "",
+      "body_preview": {
+        "name": "[AUDIT] rule",
+        "description": "temp",
+        "type": "budget_alert",
+        "is_active": false,
+        "conditions": "dict[1 keys]",
+        "actions": "dict[1 keys]",
+        "id": "a86d8a74-e629-4a0b-9123-675fc7bb8e88",
+        "last_run": null,
+        "next_run": null,
+        "created_at": "2026-07-13T23:09:39.164667Z",
+        "updated_at": null
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "PUT /automations/{id}",
+      "status": 200,
+      "ms": 176.4,
+      "ok": true,
+      "size": 307,
+      "note": "",
+      "body_preview": {
+        "name": "[AUDIT] rule off",
+        "description": "temp",
+        "type": "budget_alert",
+        "is_active": false,
+        "conditions": "dict[1 keys]",
+        "actions": "dict[1 keys]",
+        "id": "a86d8a74-e629-4a0b-9123-675fc7bb8e88",
+        "last_run": null,
+        "next_run": null,
+        "created_at": "2026-07-13T23:09:39.164667Z",
+        "updated_at": "2026-07-13T23:09:39.513974Z"
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "POST /tags/ create",
+      "status": 404,
+      "ms": 141.2,
+      "ok": false,
+      "size": 22,
+      "note": "",
+      "body_preview": {
+        "detail": "Not Found"
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "POST /shared-expenses/ invite missing user",
+      "status": 400,
+      "ms": 172.1,
+      "ok": false,
+      "size": 60,
+      "note": "",
+      "body_preview": {
+        "detail": "Usu\u00e1rio com este e-mail n\u00e3o est\u00e1 cadastrado."
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "POST /shared-expenses/ invite self",
+      "status": 400,
+      "ms": 150.4,
+      "ok": false,
+      "size": 66,
+      "note": "",
+      "body_preview": {
+        "detail": "N\u00e3o \u00e9 poss\u00edvel convidar a si mesmo para a despesa."
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "POST notifications mark-all-read",
+      "status": 200,
+      "ms": 166.0,
+      "ok": true,
+      "size": 12,
+      "note": "",
+      "body_preview": {
+        "marked": 0
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "PATCH activity-feed read-all",
+      "status": 200,
+      "ms": 182.9,
+      "ok": true,
+      "size": 12,
+      "note": "",
+      "body_preview": {
+        "marked": 7
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "PUT /auth/me",
+      "status": 200,
+      "ms": 304.1,
+      "ok": true,
+      "size": 165,
+      "note": "",
+      "body_preview": {
+        "id": "6bc374e0-79ec-43c1-a467-157c42065926",
+        "name": "Jose Wallace",
+        "email": "wallace.ventura@outlook.com",
+        "is_active": true,
+        "created_at": "2026-02-14T01:25:52.191205Z"
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "GET insights preferences status",
+      "status": 404,
+      "ms": 147.0,
+      "ok": false,
+      "size": 22,
+      "note": "skip patch; endpoint unavailable or empty",
+      "body_preview": {
+        "detail": "Not Found"
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "unauth POST txn",
+      "status": 403,
+      "ms": 130.6,
+      "ok": false,
+      "size": 30,
+      "note": "",
+      "body_preview": {
+        "detail": "Not authenticated"
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "unauth GET privacy",
+      "status": 404,
+      "ms": 135.5,
+      "ok": false,
+      "size": 22,
+      "note": "",
+      "body_preview": {
+        "detail": "Not Found"
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "unauth GET insights",
+      "status": 404,
+      "ms": 132.7,
+      "ok": false,
+      "size": 22,
+      "note": "",
+      "body_preview": {
+        "detail": "Not Found"
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "seed self",
+      "status": 403,
+      "ms": 161.6,
+      "ok": false,
+      "size": 46,
+      "note": "",
+      "body_preview": {
+        "detail": "Acesso restrito a administradores"
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "seed other",
+      "status": 403,
+      "ms": 153.5,
+      "ok": false,
+      "size": 46,
+      "note": "",
+      "body_preview": {
+        "detail": "Acesso restrito a administradores"
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "CORS evil",
+      "status": 200,
+      "ms": 144.8,
+      "ok": true,
+      "size": 165,
+      "note": "ACAO=None",
+      "body_preview": {
+        "id": "6bc374e0-79ec-43c1-a467-157c42065926",
+        "name": "Jose Wallace",
+        "email": "wallace.ventura@outlook.com",
+        "is_active": true,
+        "created_at": "2026-02-14T01:25:52.191205Z"
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "CORS own",
+      "status": 200,
+      "ms": 155.0,
+      "ok": true,
+      "size": 165,
+      "note": "ACAO=None",
+      "body_preview": {
+        "id": "6bc374e0-79ec-43c1-a467-157c42065926",
+        "name": "Jose Wallace",
+        "email": "wallace.ventura@outlook.com",
+        "is_active": true,
+        "created_at": "2026-02-14T01:25:52.191205Z"
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "CORS localhost",
+      "status": 200,
+      "ms": 151.5,
+      "ok": true,
+      "size": 165,
+      "note": "ACAO=http://localhost:5000",
+      "body_preview": {
+        "id": "6bc374e0-79ec-43c1-a467-157c42065926",
+        "name": "Jose Wallace",
+        "email": "wallace.ventura@outlook.com",
+        "is_active": true,
+        "created_at": "2026-02-14T01:25:52.191205Z"
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "access-control-allow-origin": "http://localhost:5000"
+      }
+    },
+    {
+      "name": "CORS preflight evil",
+      "status": 200,
+      "ms": 126.7,
+      "ok": true,
+      "size": 0,
+      "note": "ACAO=None status=200",
+      "body_preview": null,
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "rate limit 7 bad logins",
+      "status": 401,
+      "ms": 435.3,
+      "ok": true,
+      "size": 0,
+      "note": "[401, 401, 401, 401, 401, 401, 401]",
+      "body_preview": {
+        "type": "list",
+        "len": 7,
+        "sample_keys": [
+          "status",
+          "ms",
+          "retry_after"
+        ]
+      }
+    },
+    {
+      "name": "empty bearer",
+      "status": 403,
+      "ms": 133.6,
+      "ok": false,
+      "size": 30,
+      "note": "",
+      "body_preview": {
+        "detail": "Not authenticated"
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "POST category without X-CSRF-Token",
+      "status": 200,
+      "ms": 180.9,
+      "ok": true,
+      "size": 152,
+      "note": "",
+      "body_preview": {
+        "id": "f8068220-8e75-4e8f-9d6a-47364d4f20c1",
+        "name": "Csrf58b1",
+        "type": "expense",
+        "color": "#abcdef",
+        "icon": "x",
+        "created_at": "2026-07-13T23:09:45.274698Z"
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "POST /auth/refresh",
+      "status": 400,
+      "ms": 142.3,
+      "ok": false,
+      "size": 69,
+      "note": "",
+      "body_preview": {
+        "detail": "Refresh token n\u00e3o est\u00e1 habilitado (USE_REFRESH_TOKENS)"
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "POST /auth/logout",
+      "status": 200,
+      "ms": 142.1,
+      "ok": true,
+      "size": 42,
+      "note": "",
+      "body_preview": {
+        "message": "Logout realizado com sucesso"
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "me after logout with access token",
+      "status": 200,
+      "ms": 151.6,
+      "ok": true,
+      "size": 165,
+      "note": "stateless JWT may remain valid until exp",
+      "body_preview": {
+        "id": "6bc374e0-79ec-43c1-a467-157c42065926",
+        "name": "Jose Wallace",
+        "email": "wallace.ventura@outlook.com",
+        "is_active": true,
+        "created_at": "2026-02-14T01:25:52.191205Z"
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "re-login cleanup",
+      "status": 200,
+      "ms": 431.9,
+      "ok": true,
+      "size": 367,
+      "note": "",
+      "body_preview": {
+        "access_token": "<redacted>",
+        "token_type": "bearer",
+        "user": "dict[5 keys]"
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "cleanup DELETE envelope",
+      "status": 200,
+      "ms": 158.6,
+      "ok": true,
+      "size": 43,
+      "note": "",
+      "body_preview": {
+        "message": "Caixinha removida com sucesso"
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "cleanup DELETE category",
+      "status": 200,
+      "ms": 159.6,
+      "ok": true,
+      "size": 44,
+      "note": "",
+      "body_preview": {
+        "message": "Categoria removida com sucesso"
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "cleanup DELETE account",
+      "status": 200,
+      "ms": 193.6,
+      "ok": true,
+      "size": 40,
+      "note": "",
+      "body_preview": {
+        "message": "Conta removida com sucesso"
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "cleanup DELETE automation",
+      "status": 200,
+      "ms": 174.9,
+      "ok": true,
+      "size": 55,
+      "note": "",
+      "body_preview": {
+        "message": "Regra de automa\u00e7\u00e3o removida com sucesso"
+      },
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      }
+    },
+    {
+      "name": "ASSET /",
+      "status": 200,
+      "ms": 48.9,
+      "ok": true,
+      "size": 717,
+      "note": "",
+      "body_preview": "<!doctype html>\n<html lang=\"pt-BR\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <link rel=\"icon\" type=\"image/svg+xml\" href=\"/vite.svg\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-s",
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "access-control-allow-origin": "*"
+      }
+    },
+    {
+      "name": "ASSET /assets/index-mupKXArt.js",
+      "status": 200,
+      "ms": 50.3,
+      "ok": true,
+      "size": 224688,
+      "note": "",
+      "body_preview": "const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=[\"assets/dashboard-y0EOFLaI.js\",\"assets/ui-BJbKejX9.js\",\"assets/vendor-ufAZRJWi.js\",\"assets/format-BBOL5cAq.js\",\"assets/insights.service-DXe9N1D",
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "access-control-allow-origin": "*"
+      }
+    },
+    {
+      "name": "ASSET /assets/vendor-ufAZRJWi.js",
+      "status": 200,
+      "ms": 47.9,
+      "ok": true,
+      "size": 161132,
+      "note": "",
+      "body_preview": "function e(e,t){for(var n=0;n<t.length;n++){const r=t[n];if(\"string\"!=typeof r&&!Array.isArray(r))for(const t in r)if(\"default\"!==t&&!(t in e)){const n=Object.getOwnPropertyDescriptor(r,t);n&&Object.d",
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "access-control-allow-origin": "*"
+      }
+    },
+    {
+      "name": "SPA /auth",
+      "status": 200,
+      "ms": 46.7,
+      "ok": true,
+      "size": 717,
+      "note": "spa_fallback=False",
+      "body_preview": "<!doctype html>\n<html lang=\"pt-BR\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <link rel=\"icon\" type=\"image/svg+xml\" href=\"/vite.svg\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-s",
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "access-control-allow-origin": "*"
+      }
+    },
+    {
+      "name": "SPA /transactions",
+      "status": 200,
+      "ms": 47.5,
+      "ok": true,
+      "size": 717,
+      "note": "spa_fallback=False",
+      "body_preview": "<!doctype html>\n<html lang=\"pt-BR\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <link rel=\"icon\" type=\"image/svg+xml\" href=\"/vite.svg\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-s",
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "access-control-allow-origin": "*"
+      }
+    },
+    {
+      "name": "SPA /goals",
+      "status": 200,
+      "ms": 45.1,
+      "ok": true,
+      "size": 717,
+      "note": "spa_fallback=False",
+      "body_preview": "<!doctype html>\n<html lang=\"pt-BR\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <link rel=\"icon\" type=\"image/svg+xml\" href=\"/vite.svg\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-s",
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "access-control-allow-origin": "*"
+      }
+    },
+    {
+      "name": "SPA /envelopes",
+      "status": 200,
+      "ms": 51.2,
+      "ok": true,
+      "size": 717,
+      "note": "spa_fallback=False",
+      "body_preview": "<!doctype html>\n<html lang=\"pt-BR\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <link rel=\"icon\" type=\"image/svg+xml\" href=\"/vite.svg\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-s",
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "access-control-allow-origin": "*"
+      }
+    },
+    {
+      "name": "SPA /shared-expenses",
+      "status": 200,
+      "ms": 49.1,
+      "ok": true,
+      "size": 717,
+      "note": "spa_fallback=False",
+      "body_preview": "<!doctype html>\n<html lang=\"pt-BR\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <link rel=\"icon\" type=\"image/svg+xml\" href=\"/vite.svg\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-s",
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "access-control-allow-origin": "*"
+      }
+    },
+    {
+      "name": "SPA /reports",
+      "status": 200,
+      "ms": 50.6,
+      "ok": true,
+      "size": 717,
+      "note": "spa_fallback=False",
+      "body_preview": "<!doctype html>\n<html lang=\"pt-BR\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <link rel=\"icon\" type=\"image/svg+xml\" href=\"/vite.svg\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-s",
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "access-control-allow-origin": "*"
+      }
+    },
+    {
+      "name": "SPA /trends",
+      "status": 200,
+      "ms": 46.3,
+      "ok": true,
+      "size": 717,
+      "note": "spa_fallback=False",
+      "body_preview": "<!doctype html>\n<html lang=\"pt-BR\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <link rel=\"icon\" type=\"image/svg+xml\" href=\"/vite.svg\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-s",
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "access-control-allow-origin": "*"
+      }
+    },
+    {
+      "name": "SPA /automations",
+      "status": 200,
+      "ms": 53.6,
+      "ok": true,
+      "size": 717,
+      "note": "spa_fallback=False",
+      "body_preview": "<!doctype html>\n<html lang=\"pt-BR\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <link rel=\"icon\" type=\"image/svg+xml\" href=\"/vite.svg\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-s",
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "access-control-allow-origin": "*"
+      }
+    },
+    {
+      "name": "SPA /settings",
+      "status": 200,
+      "ms": 48.1,
+      "ok": true,
+      "size": 717,
+      "note": "spa_fallback=False",
+      "body_preview": "<!doctype html>\n<html lang=\"pt-BR\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <link rel=\"icon\" type=\"image/svg+xml\" href=\"/vite.svg\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-s",
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "access-control-allow-origin": "*"
+      }
+    },
+    {
+      "name": "SPA /activity-feed",
+      "status": 200,
+      "ms": 77.0,
+      "ok": true,
+      "size": 717,
+      "note": "spa_fallback=False",
+      "body_preview": "<!doctype html>\n<html lang=\"pt-BR\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <link rel=\"icon\" type=\"image/svg+xml\" href=\"/vite.svg\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-s",
+      "resp_headers": {
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "access-control-allow-origin": "*"
+      }
+    }
+  ]
+}
