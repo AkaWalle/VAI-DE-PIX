@@ -31,13 +31,13 @@ if _sentry_dsn:
 
 from fastapi import FastAPI, Depends, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from sqlalchemy.orm import Session
 import uvicorn
-from datetime import datetime
 
 from database import get_db, engine
 from sqlalchemy import text
@@ -47,14 +47,20 @@ from core.recurring_job import start_scheduler
 from core.request_logging import StructuredLoggingMiddleware
 from core.request_id_middleware import RequestIDMiddleware
 from core.prometheus_metrics import get_metrics_content, get_metrics_content_type
+from core.response_headers import (
+    ApiResponseHeadersMiddleware,
+    CORS_ALLOW_HEADERS,
+    CORS_ALLOW_METHODS,
+    CORS_EXPOSE_HEADERS,
+    cors_allow_origins,
+    is_deployed_production,
+)
 
 # Load environment variables
 load_dotenv()
 
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development").lower()
-is_production = (
-    ENVIRONMENT == "production" or os.getenv("VERCEL") == "1"
-)
+is_production = is_deployed_production()
 
 # Rate limiter (mesma instância do router de auth)
 limiter = auth.limiter
@@ -72,25 +78,7 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# CORS configuration - Configuração baseada em ambiente
-frontend_url = os.getenv("FRONTEND_URL")
-
-# Origens permitidas baseadas no ambiente
-if is_production:
-    # In production, restrict to the known frontend origin only
-    allowed_origins = ["https://vai-de-pix.vercel.app"]
-else:
-    # Em desenvolvimento, permitir localhost e rede local
-    allowed_origins = [
-        frontend_url or "http://localhost:5000",
-        "http://localhost:3000",
-        "http://localhost:5000",
-        "http://localhost:8080",
-        "http://localhost:8081",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:5000",
-        "http://127.0.0.1:8000",
-    ]
+allowed_origins = cors_allow_origins()
 
 app.add_middleware(StructuredLoggingMiddleware)
 app.add_middleware(RequestIDMiddleware)
@@ -103,10 +91,12 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allow_headers=["*"],
-    expose_headers=["*"],
+    allow_methods=list(CORS_ALLOW_METHODS),
+    allow_headers=list(CORS_ALLOW_HEADERS),
+    expose_headers=list(CORS_EXPOSE_HEADERS),
 )
+# Último adicionado = primeiro a ver o request e último a tocar a resposta.
+app.add_middleware(ApiResponseHeadersMiddleware)
 
 # Security
 security = HTTPBearer()
@@ -142,14 +132,15 @@ async def api_root():
         "docs": "/docs"
     }
 
-def _check_database() -> str:
-    """Verifica conexão com o banco. Retorna 'connected' ou 'error: <msg curta>' (sem dados sensíveis)."""
+def _database_is_ready() -> bool:
+    """True se o banco responde a SELECT 1. Falha vai só para o log."""
     try:
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
-        return "connected"
-    except Exception as e:
-        return f"error: {type(e).__name__}"
+        return True
+    except Exception:
+        logger.exception("ready check failed")
+        return False
 
 
 if not is_production:
@@ -166,14 +157,27 @@ if not is_production:
 @app.get("/health")
 @app.get("/api/health")
 async def health_check():
-    """Status da API e verificação de conexão com o banco. Usado por load balancers e monitoramento."""
-    db_status = _check_database()
-    status = "healthy" if db_status == "connected" else "degraded"
-    return {
-        "status": status,
-        "timestamp": datetime.now().isoformat(),
-        "database": db_status,
-    }
+    """Liveness: o processo responde. Não abre o banco e não entra em cache."""
+    return JSONResponse(
+        content={"status": "ok"},
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+@app.get("/ready")
+@app.get("/api/ready")
+async def ready_check():
+    """Readiness: o banco responde. Corpo sem tipo de exceção nem DSN."""
+    if _database_is_ready():
+        return JSONResponse(
+            content={"status": "ready"},
+            headers={"Cache-Control": "no-store"},
+        )
+    return JSONResponse(
+        status_code=503,
+        content={"status": "not_ready"},
+        headers={"Cache-Control": "no-store"},
+    )
 
 # Iniciar scheduler de automações (transações recorrentes + alertas de orçamento)
 @app.on_event("startup")

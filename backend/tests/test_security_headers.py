@@ -1,76 +1,50 @@
 """
-Testes para os security headers implementados na Sprint 1.
+Headers da API conforme backend/core/response_headers.py.
 """
-import pytest
 from fastapi.testclient import TestClient
+
 from main import app
 
 client = TestClient(app)
 
+REQUIRED = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+}
+
 
 def test_security_headers_present():
-    """Deve retornar security headers em todas as requisições"""
     response = client.get("/health")
-    
-    # Headers que devem estar presentes em TODOS os ambientes
-    assert "X-Content-Type-Options" in response.headers
-    assert response.headers["X-Content-Type-Options"] == "nosniff"
-    
-    assert "X-Frame-Options" in response.headers
-    assert response.headers["X-Frame-Options"] == "DENY"
-    
-    assert "Referrer-Policy" in response.headers
-    assert response.headers["Referrer-Policy"] == "strict-origin-when-cross-origin"
-    
-    assert "X-XSS-Protection" in response.headers
-    assert response.headers["X-XSS-Protection"] == "1; mode=block"
-
-
-def test_csp_header_structure():
-    """CSP header deve ter estrutura correta (apenas em produção)"""
-    response = client.get("/health")
-    
-    # Em produção, CSP deve estar presente
-    # Em dev, pode ou não estar (dependendo da configuração)
-    if "Content-Security-Policy" in response.headers:
-        csp = response.headers["Content-Security-Policy"]
-        
-        # Verificar diretivas essenciais
-        assert "default-src" in csp
-        assert "script-src" in csp
-        assert "style-src" in csp
-        assert "img-src" in csp
-
-
-def test_permissions_policy_header():
-    """Permissions-Policy deve restringir recursos sensíveis"""
-    response = client.get("/health")
-    
-    if "Permissions-Policy" in response.headers:
-        pp = response.headers["Permissions-Policy"]
-        
-        # Verificar restrições importantes
-        assert "geolocation=()" in pp or "geolocation" in pp
-        assert "camera=()" in pp or "camera" in pp
-        assert "microphone=()" in pp or "microphone" in pp
+    for name, value in REQUIRED.items():
+        assert response.headers[name] == value
+    assert "default-src 'none'" in response.headers["Content-Security-Policy"]
+    assert response.headers["Cache-Control"] == "no-store"
+    assert "Cross-Origin-Embedder-Policy" not in response.headers
 
 
 def test_headers_on_api_endpoints():
-    """Security headers devem estar presentes em endpoints da API"""
-    # Testar endpoint público
-    response = client.post("/api/auth/login", json={
-        "email": "test@test.com",
-        "password": "wrongpass"
-    })
-    
-    assert "X-Content-Type-Options" in response.headers
-    assert "X-Frame-Options" in response.headers
-    assert "Referrer-Policy" in response.headers
+    response = client.get("/api")
+    for name, value in REQUIRED.items():
+        assert response.headers[name] == value
 
 
 def test_headers_on_404():
-    """Security headers devem estar presentes mesmo em 404"""
     response = client.get("/this-does-not-exist")
-    
-    assert "X-Content-Type-Options" in response.headers
     assert response.headers["X-Content-Type-Options"] == "nosniff"
+
+
+def test_cors_preflight_allows_idempotency_key():
+    response = client.options(
+        "/api/transactions",
+        headers={
+            "Origin": "http://localhost:5000",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "Authorization,Content-Type,Idempotency-Key",
+        },
+    )
+    assert response.status_code in (200, 204)
+    allow = response.headers.get("access-control-allow-headers", "").lower()
+    assert "idempotency-key" in allow
+    expose = response.headers.get("access-control-expose-headers", "")
+    assert "*" not in expose.split(",")

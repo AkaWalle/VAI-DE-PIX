@@ -89,13 +89,13 @@ describe('🚀 TESTES DE PRODUÇÃO - API VAI DE PIX', () => {
   });
 
   describe('✅ Health Check', () => {
-    it('GET /api/health → deve retornar 200 + status healthy', async () => {
+    it('GET /api/health → deve retornar 200 + status ok', async () => {
       const { response, data, time } = await apiRequest('/health');
 
       expect(response.status).toBe(200);
       expectValidJSON(data);
-      expect(data.status).toBe('healthy');
-      expect(data.database).toBe('connected');
+      expect(data.status).toBe('ok');
+      expect(data.database).toBeUndefined();
       expectFastResponse(time);
 
       console.log(`✅ Health: ${time}ms`);

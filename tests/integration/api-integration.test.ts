@@ -12,10 +12,7 @@ const server = setupServer(
     return res(
       ctx.status(200),
       ctx.json({
-        status: 'healthy',
-        database: 'connected',
-        timestamp: new Date().toISOString(),
-        environment: 'test'
+        status: 'ok',
       })
     );
   }),
@@ -44,8 +41,8 @@ describe('API Integration', () => {
     const data = await response.json();
     
     expect(response.status).toBe(200);
-    expect(data.status).toBe('healthy');
-    expect(data.database).toBe('connected');
+    expect(data.status).toBe('ok');
+    expect(data.database).toBeUndefined();
   });
 
   it('deve registrar usuário com sucesso', async () => {

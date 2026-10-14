@@ -24,8 +24,8 @@ class TestProductionAPI:
         response = requests.get(f"{production_url}/api/health", timeout=10)
         assert response.status_code == 200
         data = response.json()
-        assert data["status"] in ["healthy", "degraded"]
-        assert "database" in data
+        assert data["status"] == "ok"
+        assert "database" not in data
     
     def test_production_cors_from_vercel(self, production_url):
         """Testa que CORS funciona do Vercel para Railway"""

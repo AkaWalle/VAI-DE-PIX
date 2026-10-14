@@ -29,10 +29,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy.orm import Session
 import uvicorn
-from datetime import datetime, timedelta
 import os
 from pathlib import Path
 
@@ -43,10 +42,18 @@ from core.request_logging import StructuredLoggingMiddleware
 from core.request_id_middleware import RequestIDMiddleware
 from auth_utils import verify_token
 from core.recurring_job import start_scheduler
+from core.response_headers import (
+    ApiResponseHeadersMiddleware,
+    CORS_ALLOW_HEADERS,
+    CORS_ALLOW_METHODS,
+    CORS_EXPOSE_HEADERS,
+    cors_allow_origins,
+    is_deployed_production,
+)
 
 # Tabelas devem ser gerenciadas via Alembic (alembic upgrade head)
 
-_is_production_env = os.getenv("ENVIRONMENT", "development").lower() == "production"
+_is_production_env = is_deployed_production()
 
 app = FastAPI(
     title="VAI DE PIX API",
@@ -64,31 +71,17 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(StructuredLoggingMiddleware)
 # X-Request-ID: gera ou propaga; contextvar para correlação em logs
 app.add_middleware(RequestIDMiddleware)
-# CORS — origens permitidas por ambiente
-_frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5000")
-_is_production = os.getenv("ENVIRONMENT", "development").lower() == "production"
-
-if _is_production:
-    _allowed_origins = [
-        "https://vai-de-pix.vercel.app",
-        _frontend_url,
-    ]
-    _allowed_origins = list({o for o in _allowed_origins if o})
-else:
-    _allowed_origins = [
-        _frontend_url,
-        "http://localhost:5000",
-        "http://localhost:3000",
-        "http://127.0.0.1:5000",
-    ]
+_allowed_origins = cors_allow_origins()
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=list(CORS_ALLOW_METHODS),
+    allow_headers=list(CORS_ALLOW_HEADERS),
+    expose_headers=list(CORS_EXPOSE_HEADERS),
 )
+app.add_middleware(ApiResponseHeadersMiddleware)
 
 # Middleware para garantir que rotas da API não sejam interceptadas pela rota catch-all
 class APIRouteProtectionMiddleware(BaseHTTPMiddleware):
@@ -220,27 +213,40 @@ async def api_root():
         "docs": "/docs"
     }
 
-def _check_database() -> str:
-    """Verifica conexão com o banco. Retorna 'connected' ou 'error: <msg curta>' (sem dados sensíveis)."""
+def _database_is_ready() -> bool:
     try:
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
-        return "connected"
-    except Exception as e:
-        return f"error: {type(e).__name__}"
+        return True
+    except Exception:
+        print("ready check failed")
+        return False
 
 
 @app.get("/health")
 @app.get("/api/health")
 async def health_check():
-    """Status da API e verificação de conexão com o banco."""
-    db_status = _check_database()
-    status = "healthy" if db_status == "connected" else "degraded"
-    return {
-        "status": status,
-        "timestamp": datetime.now().isoformat(),
-        "database": db_status,
-    }
+    """Liveness: o processo responde. Não abre o banco."""
+    return JSONResponse(
+        content={"status": "ok"},
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+@app.get("/ready")
+@app.get("/api/ready")
+async def ready_check():
+    """Readiness: o banco responde. Sem detalhe interno no JSON."""
+    if _database_is_ready():
+        return JSONResponse(
+            content={"status": "ready"},
+            headers={"Cache-Control": "no-store"},
+        )
+    return JSONResponse(
+        status_code=503,
+        content={"status": "not_ready"},
+        headers={"Cache-Control": "no-store"},
+    )
 
 # Protected route example
 @app.get("/api/protected")
