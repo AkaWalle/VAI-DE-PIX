@@ -1,88 +1,80 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* VAI DE PIX — Design System (Paleta Verde/Pix) */
+/* VAI DE PIX — neon identity. Spec: docs/superpowers/specs/2026-03-23-visual-redesign-neon-identity.md */
 
 @layer base {
-  /* ── TEMA CLARO (padrão) ── */
+  /* Dark is the product default. Light exists as an explicit toggle. */
   :root {
-    /* Base */
-    --background: 30 20% 90%;         /* #ece5dd */
-    --foreground: 0 0% 10%;           /* #1a1a1a */
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
 
-    --card: 0 0% 100%;                /* #ffffff */
-    --card-foreground: 0 0% 10%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 10%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
 
-    /* Primary — ação principal (teal) */
-    --primary: 173 77% 31%;           /* #128c7e */
-    --primary-foreground: 0 0% 100%;
+    --primary: 75 100% 50%;
+    --primary-foreground: 0 0% 4%;
 
-    /* Secondary */
-    --secondary: 30 25% 95%;          /* #f7f3ef */
-    --secondary-foreground: 220 9% 46%;  /* #6b7280 */
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
 
-    --muted: 30 25% 95%;
-    --muted-foreground: 220 9% 46%;   /* #6b7280 */
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 75%;
 
-    /* Accent/Highlight */
-    --accent: 96 78% 87%;             /* #dcf8c6 */
-    --accent-foreground: 173 86% 20%; /* #075e54 */
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
 
-    /* Status */
-    --destructive: 0 72% 38%;         /* #991b1b — ratio 5.9:1 on white ✓ WCAG AA */
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
 
-    --success: 145 64% 29%;           /* #1a7a3f — ratio 4.7:1 on white ✓ WCAG AA */
-    --success-foreground: 0 0% 100%;
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 98%;
 
-    --warning: 38 92% 40%;            /* #d97706 — ratio 4.8:1 on white ✓ WCAG AA */
-    --warning-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 26 83.3% 14.1%;
 
-    /* Financial — dark enough for WCAG AA (4.5:1) on white/card bg */
-    --income: 145 64% 29%;            /* #1a7a3f — ratio 4.7:1 on white ✓ */
-    --income-foreground: 0 0% 100%;
-    --expense: 0 72% 38%;             /* #b91c1c — ratio 5.7:1 on white ✓ */
-    --expense-foreground: 0 0% 100%;
+    --income: 75 100% 50%;
+    --income-foreground: 0 0% 4%;
+    --expense: 0 84.2% 60.2%;
+    --expense-foreground: 0 0% 98%;
 
-    /* UI */
-    --border: 220 13% 82%;            /* #c8cdd6 — more visible in light mode */
-    --input: 0 0% 100%;
-    --ring: 173 77% 31%;              /* #128c7e */
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 75 100% 50%;
 
-    /* Radius */
-    --radius: 0.75rem;
+    --radius: 0.5rem;
 
-    /* Sidebar */
-    --sidebar-background: 173 86% 20%;  /* #075e54 */
-    --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 142 70% 49%;     /* #25d366 */
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 142 70% 49%;      /* #25d366 — item ativo (mais visível) */
-    --sidebar-accent-foreground: 0 0% 10%;  /* #1a1a1a — melhor contraste */
-    --sidebar-border: 173 85% 14%;
-    --sidebar-ring: 142 70% 49%;
+    --sidebar-background: 240 10% 3.9%;
+    --sidebar-foreground: 240 5% 75%;
+    --sidebar-primary: 75 100% 50%;
+    --sidebar-primary-foreground: 0 0% 4%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 75 100% 50%;
 
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, #128c7e, #075e54);
-    --gradient-income: linear-gradient(135deg, #25d366, #128c7e);
-    --gradient-expense: linear-gradient(135deg, #ef4444, #f87171);
-    --gradient-card: linear-gradient(145deg, #ffffff, #f7f3ef);
+    --gradient-primary: linear-gradient(180deg, hsl(75 100% 50%), hsl(75 100% 42%));
+    --gradient-income: linear-gradient(180deg, hsl(75 100% 50%), hsl(75 90% 40%));
+    --gradient-expense: linear-gradient(180deg, hsl(0 84.2% 60.2%), hsl(0 72% 42%));
+    --gradient-card: linear-gradient(145deg, hsl(240 10% 3.9%), hsl(240 3.7% 15.9%));
 
-    /* Shadows */
-    --shadow-sm: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.05);
-    --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.05);
-    --shadow-lg: 0 10px 15px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.05);
-    --shadow-financial: 0 4px 24px -4px rgba(18,140,126,0.2);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 12px -2px hsl(240 10% 3.9% / 0.8);
+    --shadow-lg: 0 10px 30px -15px hsl(0 0% 0% / 0.6);
+    --shadow-financial: 0 0 20px rgba(200, 255, 0, 0.08);
     --shadow-card: var(--shadow-md);
-    --shadow-glow: 0 0 20px rgba(37,211,102,0.25);
-    --shadow-income-glow: 0 0 16px rgba(37,211,102,0.2);
-    --shadow-expense-glow: 0 0 16px rgba(239,68,68,0.2);
+    --shadow-glow: 0 0 24px rgba(200, 255, 0, 0.12);
+    --shadow-income-glow: 0 0 16px rgba(200, 255, 0, 0.1);
+    --shadow-expense-glow: 0 0 16px rgba(239, 68, 68, 0.2);
+
+    --neon-green: #c8ff00;
+    --neon-green-subtle: rgba(200, 255, 0, 0.08);
+    --neon-green-border: rgba(200, 255, 0, 0.15);
+    --neon-green-glow: rgba(200, 255, 0, 0.04);
 
     /* Radius tokens */
     --radius-sm: 8px;
@@ -96,72 +88,57 @@
     --transition-spring: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
-  /* ── TEMA ESCURO ── */
   .dark {
-    --background: 176 35% 8%;         /* #0d1b1a */
-    --foreground: 0 0% 94%;           /* #f0f0f0 */
+    --neon-green: #c8ff00;
+    --neon-green-subtle: rgba(200, 255, 0, 0.08);
+    --neon-green-border: rgba(200, 255, 0, 0.15);
+    --neon-green-glow: rgba(200, 255, 0, 0.04);
+  }
 
-    --card: 171 28% 14%;              /* #1a2e2b */
-    --card-foreground: 0 0% 94%;
+  /* Light is opt-in. Income uses a darker green so small text stays WCAG AA on paper. */
+  .light {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
 
-    --popover: 171 28% 14%;
-    --popover-foreground: 0 0% 94%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
 
-    --primary: 142 70% 49%;           /* #25d366 */
-    --primary-foreground: 0 0% 100%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
 
-    --secondary: 172 26% 11%;         /* #152422 */
-    --secondary-foreground: 218 11% 65%;  /* #9ca3af */
+    --primary: 75 100% 42%;
+    --primary-foreground: 0 0% 4%;
 
-    --muted: 172 26% 11%;
-    --muted-foreground: 218 11% 65%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
 
-    --accent: 169 56% 12%;            /* #0d2e28 */
-    --accent-foreground: 142 70% 49%; /* #25d366 */
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 36%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
 
-    --success: 142 70% 49%;
-    --success-foreground: 0 0% 100%;
-
-    --warning: 38 92% 65%;            /* #fbbf24 — ratio 5.1:1 on dark bg ✓ WCAG AA */
-    --warning-foreground: 0 0% 10%;
-
-    --income: 142 70% 49%;
+    --income: 145 64% 29%;
     --income-foreground: 0 0% 100%;
-    --expense: 0 84% 60%;
+    --expense: 0 72% 38%;
     --expense-foreground: 0 0% 100%;
 
-    --border: 172 24% 23%;            /* #2d4a46 */
-    --input: 172 26% 11%;
-    --ring: 142 70% 49%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 75 100% 42%;
 
-    /* Sidebar */
-    --sidebar-background: 171 51% 8%; /* #0a1f1c */
-    --sidebar-foreground: 214 32% 91%;/* #e2e8f0 */
-    --sidebar-primary: 142 70% 49%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 171 40% 17%;    /* #1a3d38 */
-    --sidebar-accent-foreground: 214 32% 91%;
-    --sidebar-border: 172 30% 13%;
-    --sidebar-ring: 142 70% 49%;
+    --sidebar-background: 240 10% 3.9%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 75 100% 50%;
+    --sidebar-primary-foreground: 0 0% 4%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 75 100% 50%;
 
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, #25d366, #128c7e);
-    --gradient-income: linear-gradient(135deg, #25d366, #128c7e);
-    --gradient-expense: linear-gradient(135deg, #ef4444, #f87171);
-    --gradient-card: linear-gradient(145deg, #1a2e2b, #152422);
-
-    /* Shadows */
-    --shadow-sm: 0 1px 3px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.15);
-    --shadow-md: 0 4px 6px rgba(0,0,0,0.25), 0 2px 4px rgba(0,0,0,0.15);
-    --shadow-lg: 0 10px 15px rgba(0,0,0,0.3), 0 4px 6px rgba(0,0,0,0.2);
-    --shadow-financial: 0 4px 24px -4px rgba(37,211,102,0.15);
-    --shadow-card: var(--shadow-md);
-    --shadow-glow: 0 0 20px rgba(37,211,102,0.25);
-    --shadow-income-glow: 0 0 16px rgba(37,211,102,0.2);
-    --shadow-expense-glow: 0 0 16px rgba(239,68,68,0.2);
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(240 4.8% 95.9%));
+    --shadow-card: 0 4px 12px -2px hsl(240 10% 3.9% / 0.1);
+    --shadow-glow: 0 0 20px rgba(200, 255, 0, 0.18);
   }
 }
 
@@ -176,8 +153,7 @@
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
-    font-family: 'Inter', system-ui, sans-serif;
+    @apply bg-background text-foreground font-sans antialiased;
     font-feature-settings: "rlig" 1, "calt" 1, "cv11" 1;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
@@ -188,6 +164,20 @@
 
   *:focus-visible {
     @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 
   * {
@@ -222,27 +212,27 @@
   /* ── Stat Cards ── */
   .stat-card-income {
     @apply relative overflow-hidden rounded-2xl;
-    border: 1px solid rgba(37,211,102,0.2);
-    background: linear-gradient(145deg, rgba(37,211,102,0.08), rgba(37,211,102,0.03));
+    border: 1px solid var(--neon-green-border);
+    background: var(--neon-green-subtle);
   }
 
   .stat-card-expense {
     @apply relative overflow-hidden rounded-2xl;
-    border: 1px solid rgba(239,68,68,0.2);
-    background: linear-gradient(145deg, rgba(239,68,68,0.08), rgba(239,68,68,0.03));
+    border: 1px solid hsl(var(--expense) / 0.25);
+    background: hsl(var(--expense) / 0.08);
   }
 
   .stat-card-balance {
     @apply relative overflow-hidden rounded-2xl;
-    border: 1px solid rgba(18,140,126,0.2);
-    background: linear-gradient(145deg, rgba(18,140,126,0.08), rgba(18,140,126,0.03));
+    border: 1px solid var(--neon-green-border);
+    background: var(--neon-green-glow);
   }
 
   /* ── Financial Status ── */
   .status-positive {
-    @apply rounded-full px-2 py-0.5 text-xs font-semibold;
-    color: #075e54;
-    background: #dcf8c6;
+    @apply rounded-full px-2 py-0.5 text-xs font-semibold font-mono uppercase tracking-wider;
+    color: hsl(var(--income));
+    background: var(--neon-green-subtle);
   }
 
   .status-negative {
@@ -259,13 +249,13 @@
 
   /* ── Currency ── */
   .currency-positive {
-    color: #25d366;
-    @apply font-semibold tabular-nums;
+    color: hsl(var(--income));
+    @apply font-serif italic font-normal tabular-nums;
   }
 
   .currency-negative {
-    color: #ef4444;
-    @apply font-semibold tabular-nums;
+    color: hsl(var(--expense));
+    @apply font-serif italic font-normal tabular-nums;
   }
 
   .currency-neutral {
@@ -274,9 +264,9 @@
 
   /* ── Sidebar Active Item ── */
   .nav-item-active {
-    background: hsl(var(--sidebar-accent));
-    border-left: 3px solid #25d366;
-    @apply text-white;
+    background: var(--neon-green-subtle);
+    border-left: 3px solid hsl(var(--primary));
+    @apply text-primary;
   }
 
   /* ── Animated Number ── */

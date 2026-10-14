@@ -42,6 +42,7 @@ import {
   Lightbulb,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 export default function Settings() {
   const { user, updateProfile } = useAuthStore();
@@ -247,12 +248,11 @@ export default function Settings() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Configurações</h1>
-        <p className="text-muted-foreground">
-          Gerencie suas preferências e configurações do sistema
-        </p>
-      </div>
+      <PageHeader
+        kicker="Sistema"
+        title="Configurações"
+        description="Gerencie suas preferências e configurações do sistema"
+      />
 
       {/* Profile Settings */}
       <Card className="bg-gradient-card shadow-card-custom">

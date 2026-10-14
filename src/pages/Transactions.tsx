@@ -15,6 +15,7 @@ import { TransactionForm } from "@/components/forms/TransactionForm";
 import { BankImportDialog } from "@/components/forms/BankImportDialog";
 import { transactionsService } from "@/services/transactions.service";
 import { formatCurrency, formatDate } from "@/utils/format";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useToast } from "@/hooks/use-toast";
 import {
   Plus,
@@ -311,14 +312,12 @@ export default function Transactions() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Transações</h1>
-          <p className="text-muted-foreground">
-            Gerencie suas receitas e despesas
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 min-w-0">
+      <PageHeader
+        kicker="Movimento"
+        title="Transações"
+        description="Gerencie suas receitas e despesas"
+      >
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
           <BankImportDialog
             trigger={
               <ActionButton variant="outline" size="sm" icon={Download}>
@@ -435,7 +434,7 @@ export default function Transactions() {
 
           <TransactionForm />
         </div>
-      </div>
+      </PageHeader>
 
       {/* Filters */}
       <Card className="bg-gradient-card shadow-card-custom">
@@ -609,12 +608,12 @@ export default function Transactions() {
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="bg-gradient-income/10 border-income/20">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-income">
+            <CardTitle className="font-mono text-[10px] uppercase tracking-[0.2em] text-income">
               Total Receitas
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="font-serif text-2xl italic text-income">
               {formatCurrency(
                 filteredTransactions
                   .filter((t) => t.type === "income")
@@ -630,12 +629,12 @@ export default function Transactions() {
 
         <Card className="bg-gradient-expense/10 border-expense/20">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-expense">
+            <CardTitle className="font-mono text-[10px] uppercase tracking-[0.2em] text-expense">
               Total Despesas
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="font-serif text-2xl italic text-expense">
               {formatCurrency(
                 filteredTransactions
                   .filter((t) => t.type === "expense")
@@ -651,12 +650,12 @@ export default function Transactions() {
 
         <Card className="bg-gradient-primary/10 border-primary/20">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-primary">
+            <CardTitle className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary">
               Saldo Líquido
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="font-serif text-2xl italic text-foreground">
               {formatCurrency(
                 filteredTransactions.reduce((sum, t) => sum + t.amount, 0),
               )}
@@ -772,9 +771,9 @@ export default function Transactions() {
                       </TableCell>
                       <TableCell data-label="Valor" className="tx-cell-value text-right">
                         <span
-                          className={`font-semibold ${
+                          className={`font-serif italic ${
                             transaction.type === "income"
-                              ? "text-success"
+                              ? "text-income"
                               : "text-expense"
                           }`}
                         >

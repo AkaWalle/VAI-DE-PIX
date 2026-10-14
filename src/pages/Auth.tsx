@@ -5,24 +5,19 @@ import { hasSessionToken } from "@/lib/auth-session";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Check, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-/* ── Pix diamond logo ── */
-function PixLogo({ size = 28 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 28 28" fill="none" aria-hidden="true">
-      <path d="M14 1L27 14L14 27L1 14Z" fill="#25d366" />
-      <path d="M14 7.5L20.5 14L14 20.5L7.5 14Z" fill="#128c7e" />
-    </svg>
-  );
-}
+import { Logo } from "@/components/Logo";
 
 const BULLETS = [
   "Receitas e despesas organizadas",
   "Metas e caixinhas financeiras",
-  "Relatórios detalhados",
+  "Saldo derivado do ledger, sem atalho",
 ];
+
+const fieldClass =
+  "h-11 rounded-[10px] border-white/10 bg-white/[0.04] text-foreground placeholder:text-muted-foreground/40 " +
+  "focus-visible:border-primary/40 focus-visible:ring-[3px] focus-visible:ring-primary/20";
 
 export default function Auth() {
   const { login, register, isLoading, user } = useAuthStore();
@@ -36,7 +31,12 @@ export default function Auth() {
 
   const [tab, setTab] = useState<"login" | "register">("login");
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
-  const [registerForm, setRegisterForm] = useState({ name: "", email: "", password: "", confirmPassword: "" });
+  const [registerForm, setRegisterForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
   const [error, setError] = useState("");
   const [resetStatus, setResetStatus] = useState<"idle" | "sent" | "no-email">("idle");
   const emailInputRef = useRef<HTMLInputElement>(null);
@@ -44,7 +44,10 @@ export default function Auth() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    if (!loginForm.email || !loginForm.password) { setError("Preencha todos os campos"); return; }
+    if (!loginForm.email || !loginForm.password) {
+      setError("Preencha todos os campos");
+      return;
+    }
     try {
       await login(loginForm.email, loginForm.password);
       toast({ title: "Bem-vindo de volta!" });
@@ -57,11 +60,23 @@ export default function Auth() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    if (!registerForm.name || !registerForm.email || !registerForm.password || !registerForm.confirmPassword) {
-      setError("Preencha todos os campos"); return;
+    if (
+      !registerForm.name ||
+      !registerForm.email ||
+      !registerForm.password ||
+      !registerForm.confirmPassword
+    ) {
+      setError("Preencha todos os campos");
+      return;
     }
-    if (registerForm.password !== registerForm.confirmPassword) { setError("As senhas não coincidem"); return; }
-    if (registerForm.password.length < 6) { setError("Senha mínima de 6 caracteres"); return; }
+    if (registerForm.password !== registerForm.confirmPassword) {
+      setError("As senhas não coincidem");
+      return;
+    }
+    if (registerForm.password.length < 6) {
+      setError("Senha mínima de 6 caracteres");
+      return;
+    }
     try {
       await register(registerForm.name, registerForm.email, registerForm.password);
       toast({ title: "Conta criada!", description: "Bem-vindo ao VAI DE PIX." });
@@ -71,123 +86,109 @@ export default function Auth() {
     }
   };
 
-  /* Shared input style */
-  const inputClass =
-    "h-[42px] border border-[#e5e7eb] bg-white text-[#1a1a1a] placeholder:text-[#9ca3af] " +
-    "rounded-[8px] px-[14px] focus-visible:border-[#128c7e] focus-visible:ring-[3px] focus-visible:ring-[rgba(18,140,126,0.15)] " +
-    "transition-all duration-150";
-
   return (
-    <div className="flex min-h-screen">
-      {/* ── Left — Branding ── */}
-      <div
-        className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12"
-        style={{ background: "#075e54" }}
-      >
-        <div className="flex flex-col h-full justify-between">
-          {/* Logo */}
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#128c7e] shadow-lg">
-              <PixLogo size={28} />
-            </div>
-            <span className="text-[18px] font-bold tracking-tight text-white">VAI DE PIX</span>
-          </div>
-
-          {/* Hero */}
-          <div className="space-y-8">
-            <p className="text-[22px] font-light leading-snug text-white max-w-xs">
-              Controle total das suas finanças, de forma simples.
-            </p>
-            <ul className="space-y-3">
-              {BULLETS.map((text) => (
-                <li key={text} className="flex items-center gap-2.5">
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#25d366]/20">
-                    <Check className="h-3 w-3 text-[#25d366]" />
-                  </span>
-                  <span className="text-sm text-[#dcf8c6]">{text}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Footer */}
-          <p className="text-xs text-white/40">
-            © {new Date().getFullYear()} VAI DE PIX · v1.0
-          </p>
+    <div className="flex min-h-screen bg-background">
+      <div className="relative hidden flex-col justify-between overflow-hidden border-r border-white/5 p-12 lg:flex lg:w-1/2">
+        <div
+          className="pointer-events-none absolute left-0 top-0 h-80 w-80 rounded-full"
+          style={{
+            background: "radial-gradient(circle, var(--neon-green-glow) 0%, transparent 70%)",
+          }}
+        />
+        <Logo size="lg" />
+        <div className="relative z-10 max-w-sm space-y-8">
+          <h1 className="font-serif text-4xl font-light italic leading-tight tracking-tight text-foreground">
+            Controle total das suas finanças, de forma simples.
+          </h1>
+          <ul className="space-y-3">
+            {BULLETS.map((text) => (
+              <li key={text} className="flex items-start gap-2.5">
+                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
+                  {text}
+                </span>
+              </li>
+            ))}
+          </ul>
         </div>
+        <p className="relative z-10 font-mono text-[9px] uppercase tracking-[0.12em] text-muted-foreground/50">
+          © {new Date().getFullYear()} vai de pix
+        </p>
       </div>
 
-      {/* ── Right — Formulário ── */}
-      <div
-        className="flex flex-1 items-center justify-center p-8"
-        style={{ background: "#ece5dd" }}
-      >
-        <div
-          className="w-full max-w-[400px] animate-fade-in-up rounded-[16px] p-10"
-          style={{
-            background: "#ffffff",
-            boxShadow: "0 10px 15px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.05)",
-          }}
-        >
-          {/* Mobile logo */}
-          <div className="flex lg:hidden items-center gap-2 mb-6">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#128c7e]">
-              <PixLogo size={20} />
-            </div>
-            <span className="text-base font-bold text-[#1a1a1a]">VAI DE PIX</span>
+      <div className="flex flex-1 items-start justify-center p-6 pt-12 sm:p-8 lg:items-center lg:pt-8">
+        <div className="w-full max-w-[400px] animate-fade-in-up">
+          <div className="mb-6 lg:hidden">
+            <Logo size="md" />
           </div>
 
-          {/* Tabs */}
-          <div className="mb-6 border-b border-[#e5e7eb] flex gap-6">
+          <div className="mb-7 flex rounded-xl border border-white/10 bg-white/[0.04] p-0.5">
             {(["login", "register"] as const).map((t) => (
               <button
                 key={t}
-                onClick={() => { setTab(t); setError(""); }}
+                type="button"
+                onClick={() => {
+                  setTab(t);
+                  setError("");
+                }}
                 className={[
-                  "pb-3 text-sm font-medium transition-colors duration-150",
+                  "flex-1 rounded-[10px] py-2.5 font-mono text-[10px] uppercase tracking-[0.1em] transition-colors",
                   tab === t
-                    ? "text-[#128c7e] border-b-2 border-[#128c7e] -mb-px"
-                    : "text-[#6b7280] hover:text-[#1a1a1a]",
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground",
                 ].join(" ")}
               >
-                {t === "login" ? "Entrar" : "Criar Conta"}
+                {t === "login" ? "Entrar" : "Criar conta"}
               </button>
             ))}
           </div>
 
-          {/* ── Login ── */}
           {tab === "login" && (
             <>
-              <div className="space-y-1 mb-6">
-                <h1 className="text-xl font-bold text-[#1a1a1a]">Bem-vindo de volta</h1>
-                <p className="text-sm text-[#6b7280]">Entre com suas credenciais para continuar</p>
+              <div className="mb-6 space-y-1">
+                <h2 className="font-serif text-2xl italic text-foreground">Bem-vindo de volta</h2>
+                <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
+                  Entre com suas credenciais
+                </p>
               </div>
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor="login-email" className="text-[13px] font-medium text-[#1a1a1a]">Email</Label>
+                  <Label
+                    htmlFor="login-email"
+                    className="font-mono text-[10px] uppercase tracking-[0.1em] text-muted-foreground"
+                  >
+                    Email
+                  </Label>
                   <Input
                     id="login-email"
                     ref={emailInputRef}
                     type="email"
+                    autoComplete="email"
                     placeholder="seu@email.com"
-                    className={inputClass}
+                    className={fieldClass}
                     value={loginForm.email}
                     onChange={(e) => {
-                      setLoginForm(p => ({ ...p, email: e.target.value }));
+                      setLoginForm((p) => ({ ...p, email: e.target.value }));
                       if (resetStatus !== "idle") setResetStatus("idle");
                     }}
                     disabled={isLoading}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="login-password" className="text-[13px] font-medium text-[#1a1a1a]">Senha</Label>
+                  <Label
+                    htmlFor="login-password"
+                    className="font-mono text-[10px] uppercase tracking-[0.1em] text-muted-foreground"
+                  >
+                    Senha
+                  </Label>
                   <Input
                     id="login-password"
                     type="password"
+                    autoComplete="current-password"
                     placeholder="••••••••"
-                    className={inputClass}
+                    className={fieldClass}
                     value={loginForm.password}
-                    onChange={(e) => setLoginForm(p => ({ ...p, password: e.target.value }))}
+                    onChange={(e) => setLoginForm((p) => ({ ...p, password: e.target.value }))}
                     disabled={isLoading}
                   />
                 </div>
@@ -202,87 +203,137 @@ export default function Auth() {
                       }
                       setResetStatus("sent");
                     }}
-                    className="text-[13px] text-[#128c7e] hover:text-[#075e54] hover:underline transition-colors"
+                    className="font-mono text-[10px] uppercase tracking-[0.08em] text-primary/80 transition-opacity hover:text-primary"
                   >
                     Esqueceu a senha?
                   </button>
                 </div>
                 {resetStatus === "no-email" && (
-                  <Alert className="rounded-[8px] border-amber-400/30 bg-amber-400/10">
-                    <AlertCircle className="h-4 w-4 text-amber-600" />
-                    <AlertDescription className="text-amber-700">
+                  <Alert className="rounded-[8px] border-warning/30 bg-warning/10">
+                    <AlertCircle className="h-4 w-4 text-warning" />
+                    <AlertDescription className="text-warning">
                       Digite seu email acima para receber o link de recuperação.
                     </AlertDescription>
                   </Alert>
                 )}
                 {resetStatus === "sent" && (
-                  <Alert className="rounded-[8px] border-emerald-500/30 bg-emerald-500/10">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                    <AlertDescription className="text-emerald-700">
-                      Se <strong>{loginForm.email}</strong> tiver uma conta, o link de recuperação será enviado em breve. Verifique sua caixa de entrada.
+                  <Alert className="rounded-[8px] border-primary/30 bg-primary/10">
+                    <CheckCircle2 className="h-4 w-4 text-primary" />
+                    <AlertDescription className="text-foreground">
+                      Se <strong>{loginForm.email}</strong> tiver uma conta, o link de recuperação
+                      será enviado em breve. Verifique sua caixa de entrada.
                     </AlertDescription>
                   </Alert>
                 )}
                 {error && (
-                  <Alert className="rounded-[8px] border-rose-500/30 bg-rose-500/10">
-                    <AlertCircle className="h-4 w-4 text-rose-500" />
-                    <AlertDescription className="text-rose-600">{error}</AlertDescription>
+                  <Alert className="rounded-[8px] border-expense/30 bg-expense/10">
+                    <AlertCircle className="h-4 w-4 text-expense" />
+                    <AlertDescription className="text-expense">{error}</AlertDescription>
                   </Alert>
                 )}
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="mt-2 h-[42px] w-full rounded-[8px] bg-[#128c7e] text-sm font-semibold text-white transition-colors duration-150 hover:bg-[#075e54] disabled:opacity-60 flex items-center justify-center gap-2"
+                  className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-[10px] bg-primary text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
                 >
-                  {isLoading
-                    ? <><Loader2 className="h-4 w-4 animate-spin" />Entrando...</>
-                    : "Entrar"}
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Entrando...
+                    </>
+                  ) : (
+                    "Entrar"
+                  )}
                 </button>
               </form>
             </>
           )}
 
-          {/* ── Criar Conta ── */}
           {tab === "register" && (
             <>
-              <div className="space-y-1 mb-6">
-                <h1 className="text-xl font-bold text-[#1a1a1a]">Criar nova conta</h1>
-                <p className="text-sm text-[#6b7280]">Preencha os dados para começar</p>
+              <div className="mb-6 space-y-1">
+                <h2 className="font-serif text-2xl italic text-foreground">Criar nova conta</h2>
+                <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
+                  Preencha os dados para começar
+                </p>
               </div>
               <form onSubmit={handleRegister} className="space-y-4">
-                {[
-                  { id: "name",         label: "Nome completo",   type: "text",     placeholder: "Seu nome",      field: "name" },
-                  { id: "reg-email",    label: "Email",           type: "email",    placeholder: "seu@email.com", field: "email" },
-                  { id: "reg-password", label: "Senha",           type: "password", placeholder: "••••••••",       field: "password" },
-                  { id: "reg-confirm",  label: "Confirmar senha", type: "password", placeholder: "••••••••",       field: "confirmPassword" },
-                ].map(({ id, label, type, placeholder, field }) => (
+                {(
+                  [
+                    {
+                      id: "name",
+                      label: "Nome completo",
+                      type: "text",
+                      placeholder: "Seu nome",
+                      field: "name",
+                      autoComplete: "name",
+                    },
+                    {
+                      id: "reg-email",
+                      label: "Email",
+                      type: "email",
+                      placeholder: "seu@email.com",
+                      field: "email",
+                      autoComplete: "email",
+                    },
+                    {
+                      id: "reg-password",
+                      label: "Senha",
+                      type: "password",
+                      placeholder: "••••••••",
+                      field: "password",
+                      autoComplete: "new-password",
+                    },
+                    {
+                      id: "reg-confirm",
+                      label: "Confirmar senha",
+                      type: "password",
+                      placeholder: "••••••••",
+                      field: "confirmPassword",
+                      autoComplete: "new-password",
+                    },
+                  ] as const
+                ).map(({ id, label, type, placeholder, field, autoComplete }) => (
                   <div key={id} className="space-y-1.5">
-                    <Label htmlFor={id} className="text-[13px] font-medium text-[#1a1a1a]">{label}</Label>
+                    <Label
+                      htmlFor={id}
+                      className="font-mono text-[10px] uppercase tracking-[0.1em] text-muted-foreground"
+                    >
+                      {label}
+                    </Label>
                     <Input
                       id={id}
                       type={type}
+                      autoComplete={autoComplete}
                       placeholder={placeholder}
-                      className={inputClass}
-                      value={registerForm[field as keyof typeof registerForm]}
-                      onChange={(e) => setRegisterForm(p => ({ ...p, [field]: e.target.value }))}
+                      className={fieldClass}
+                      value={registerForm[field]}
+                      onChange={(e) =>
+                        setRegisterForm((p) => ({ ...p, [field]: e.target.value }))
+                      }
                       disabled={isLoading}
                     />
                   </div>
                 ))}
                 {error && (
-                  <Alert className="rounded-[8px] border-rose-500/30 bg-rose-500/10">
-                    <AlertCircle className="h-4 w-4 text-rose-500" />
-                    <AlertDescription className="text-rose-600">{error}</AlertDescription>
+                  <Alert className="rounded-[8px] border-expense/30 bg-expense/10">
+                    <AlertCircle className="h-4 w-4 text-expense" />
+                    <AlertDescription className="text-expense">{error}</AlertDescription>
                   </Alert>
                 )}
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="mt-2 h-[42px] w-full rounded-[8px] bg-[#128c7e] text-sm font-semibold text-white transition-colors duration-150 hover:bg-[#075e54] disabled:opacity-60 flex items-center justify-center gap-2"
+                  className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-[10px] bg-primary text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
                 >
-                  {isLoading
-                    ? <><Loader2 className="h-4 w-4 animate-spin" />Criando...</>
-                    : "Criar Conta"}
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Criando...
+                    </>
+                  ) : (
+                    "Criar Conta"
+                  )}
                 </button>
               </form>
             </>

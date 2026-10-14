@@ -6,6 +6,7 @@ import { GoalForm } from "@/components/forms/GoalForm";
 import { AddGoalValueForm } from "@/components/forms/AddGoalValueForm";
 import { formatCurrency, formatDate } from "@/utils/format";
 import { useToast } from "@/hooks/use-toast";
+import { PageHeader } from "@/components/layout/PageHeader";
 import {
   Plus, Target, TrendingUp, AlertTriangle, CheckCircle,
   Clock, Trash2, Calendar,
@@ -14,9 +15,9 @@ import {
 function StatCard({ label, value, sub, colorClass }: { label: string; value: string | number; sub: string; colorClass: string }) {
   return (
     <div className={`rounded-2xl border p-5 ${colorClass}`}>
-      <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground mb-1">{label}</p>
-      <p className="text-3xl font-bold text-foreground">{value}</p>
-      <p className="text-xs text-muted-foreground mt-1">{sub}</p>
+      <p className="mb-1 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{label}</p>
+      <p className="font-serif text-3xl italic text-foreground">{value}</p>
+      <p className="mt-1 text-xs text-muted-foreground">{sub}</p>
     </div>
   );
 }
@@ -37,7 +38,7 @@ export default function Goals() {
 
   const statusConfig: Record<string, { icon: React.ElementType; color: string; bg: string; border: string; label: string }> = {
     achieved: { icon: CheckCircle, color: "text-emerald-400", bg: "bg-emerald-500/8",  border: "border-emerald-500/20", label: "Atingida"   },
-    on_track: { icon: TrendingUp,  color: "text-[#128c7e]",   bg: "bg-[rgba(18,140,126,0.08)]", border: "border-[rgba(18,140,126,0.2)]", label: "No ritmo"   },
+    on_track: { icon: TrendingUp,  color: "text-primary",   bg: "bg-primary/10", border: "border-primary/20", label: "No ritmo"   },
     at_risk:  { icon: AlertTriangle,color: "text-amber-400",  bg: "bg-amber-500/8",    border: "border-amber-500/20",   label: "Em risco"   },
     overdue:  { icon: Clock,       color: "text-rose-400",    bg: "bg-rose-500/8",     border: "border-rose-500/20",    label: "Atrasada"   },
   };
@@ -52,20 +53,19 @@ export default function Goals() {
   return (
     <div className="space-y-7 animate-fade-in">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-widest text-[#128c7e] mb-1">Objetivos</p>
-          <h1 className="text-2xl font-bold text-foreground">Metas Financeiras</h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">Acompanhe seus objetivos financeiros</p>
-        </div>
+      <PageHeader
+        kicker="Objetivos"
+        title="Metas Financeiras"
+        description="Acompanhe seus objetivos financeiros"
+      >
         <GoalForm />
-      </div>
+      </PageHeader>
 
       {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Total de Metas"      value={goals.length} sub="Objetivos cadastrados"   colorClass="border-white/8 bg-white/3" />
         <StatCard label="Atingidas"           value={achieved}     sub="Concluídas"               colorClass="border-emerald-500/20 bg-emerald-500/8" />
-        <StatCard label="No Ritmo"            value={onTrack}      sub="Progredindo bem"          colorClass="border-[rgba(18,140,126,0.2)] bg-[rgba(18,140,126,0.06)]" />
+        <StatCard label="No Ritmo"            value={onTrack}      sub="Progredindo bem"          colorClass="border-primary/20 bg-primary/10" />
         <StatCard label="Atenção"             value={atRisk}       sub="Em risco ou atrasadas"    colorClass="border-amber-500/20 bg-amber-500/8" />
       </div>
 
@@ -119,7 +119,7 @@ export default function Goals() {
                   </div>
                   <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/5">
                     <div
-                      className={`h-full rounded-full transition-all duration-700 ${pct >= 100 ? "bg-[#25d366]" : pct >= 60 ? "bg-[#128c7e]" : "bg-[#f59e0b]"}`}
+                      className={`h-full rounded-full transition-all duration-700 ${pct >= 100 ? "bg-primary" : pct >= 60 ? "bg-primary/70" : "bg-warning"}`}
                       style={{ width: `${pct}%` }}
                     />
                   </div>
@@ -129,7 +129,7 @@ export default function Goals() {
                 <div className="space-y-1.5 border-t border-white/5 pt-4 mb-4">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Acumulado</span>
-                    <span className="font-semibold text-foreground tabular-nums">{formatCurrency(goal.currentAmount)}</span>
+                    <span className="font-serif italic tabular-nums text-primary">{formatCurrency(goal.currentAmount)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Meta</span>

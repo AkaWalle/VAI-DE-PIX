@@ -1,12 +1,5 @@
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
-  Share2,
-  Clock,
-  TrendingUp,
-  Zap,
-  Activity,
-  Settings,
-  ChevronDown,
   Plus,
   Sun,
   Moon,
@@ -25,37 +18,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { NotificationBell } from "@/components/NotificationBell";
+import { Logo } from "@/components/Logo";
 
-/* ─────────────────────────────────────────────
-   Pix diamond logo SVG
-───────────────────────────────────────────── */
-function PixLogo({ size = 18 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="M10 1L19 10L10 19L1 10Z" fill="#25d366" />
-      <path d="M10 5.5L14.5 10L10 14.5L5.5 10Z" fill="#128c7e" />
-    </svg>
-  );
-}
-
-/* ─────────────────────────────────────────────
-   Nav data
-───────────────────────────────────────────── */
+/* Telas de hábito. Relatórios, compartilhadas, feed e automações ficam fora do menu até a API entrar no main.py. */
 const PRIMARY_NAV = [
-  { title: "Dashboard",  url: "/",             exact: true  },
-  { title: "Transações", url: "/transactions", exact: false },
-  { title: "Metas",      url: "/goals",        exact: false },
-  { title: "Caixinhas",  url: "/envelopes",    exact: false },
-  { title: "Relatórios", url: "/reports",      exact: false },
-] as const;
-
-const MORE_NAV = [
-  { title: "Compartilhadas", url: "/shared-expenses",         icon: Share2    },
-  { title: "Pendências",     url: "/shared-expenses/pending", icon: Clock     },
-  { title: "Tendências",     url: "/trends",                  icon: TrendingUp },
-  { title: "Automações",     url: "/automations",             icon: Zap       },
-  { title: "Feed",           url: "/activity-feed",           icon: Activity  },
-  { title: "Configurações",  url: "/settings",                icon: Settings  },
+  { title: "Dashboard",      url: "/",             exact: true  },
+  { title: "Transações",     url: "/transactions", exact: false },
+  { title: "Metas",          url: "/goals",        exact: false },
+  { title: "Caixinhas",      url: "/envelopes",    exact: false },
+  { title: "Configurações",  url: "/settings",     exact: false },
 ] as const;
 
 /* ─────────────────────────────────────────────
@@ -83,59 +54,6 @@ function ThemeToggle() {
       <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
       <span className="sr-only">Alternar tema</span>
     </button>
-  );
-}
-
-/* ─────────────────────────────────────────────
-   "Mais" dropdown
-───────────────────────────────────────────── */
-function MoreDropdown() {
-  const { pathname } = useLocation();
-  const isMoreActive = MORE_NAV.some((item) => pathIsActive(pathname, item.url, false));
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button
-          className={cn(
-            "flex h-full shrink-0 items-center gap-1 border-b-2 px-3 text-[14px] transition-colors focus:outline-none",
-            isMoreActive
-              ? "border-[#25d366] font-semibold text-white"
-              : "border-transparent font-medium text-white/75 hover:text-white",
-          )}
-        >
-          Mais
-          <ChevronDown className="h-3.5 w-3.5 opacity-70" />
-        </button>
-      </DropdownMenuTrigger>
-
-      <DropdownMenuContent
-        align="start"
-        sideOffset={0}
-        className="w-52 rounded-[8px] border-border bg-card p-1 shadow-lg"
-      >
-        {MORE_NAV.map((item) => {
-          const Icon = item.icon;
-          const active = pathIsActive(pathname, item.url, false);
-          return (
-            <DropdownMenuItem key={item.url} asChild>
-              <NavLink
-                to={item.url}
-                className={cn(
-                  "flex w-full cursor-pointer items-center gap-2.5 rounded-[6px] px-3 py-2 text-sm transition-colors",
-                  active
-                    ? "font-medium text-[#128c7e] dark:text-[#25d366]"
-                    : "text-foreground hover:bg-secondary",
-                )}
-              >
-                <Icon className="h-4 w-4 shrink-0 opacity-70" />
-                {item.title}
-              </NavLink>
-            </DropdownMenuItem>
-          );
-        })}
-      </DropdownMenuContent>
-    </DropdownMenu>
   );
 }
 
@@ -212,10 +130,7 @@ export function TopBar({ onNewTransaction }: TopBarProps) {
         // Only visible on desktop
         "sticky top-0 z-50 hidden md:flex",
         "h-[60px] w-full items-center",
-        // Light theme: dark green brand color
-        "bg-[#075e54] border-b border-black/10",
-        // Dark theme: very dark teal
-        "dark:bg-[#0a1f1c] dark:border-white/10",
+        "border-b border-sidebar-border bg-sidebar",
       )}
     >
       {/* ── Left: Logo ──────────────────────── */}
@@ -223,12 +138,7 @@ export function TopBar({ onNewTransaction }: TopBarProps) {
         to="/"
         className="flex shrink-0 items-center gap-2.5 pl-6 pr-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
       >
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#128c7e] shadow-md">
-          <PixLogo size={18} />
-        </div>
-        <span className="whitespace-nowrap text-[15px] font-bold tracking-tight text-white">
-          VAI DE PIX
-        </span>
+        <Logo size="sm" className="whitespace-nowrap" />
       </NavLink>
 
       {/* ── Center: Nav links ───────────────── */}
@@ -241,9 +151,9 @@ export function TopBar({ onNewTransaction }: TopBarProps) {
               to={item.url}
               end={item.exact}
               className={cn(
-                "flex shrink-0 items-center border-b-2 px-3 text-[14px] transition-colors",
+                "flex shrink-0 items-center border-b-2 px-3 font-mono text-[11px] uppercase tracking-[0.12em] transition-colors",
                 active
-                  ? "border-[#25d366] font-semibold text-white"
+                  ? "border-primary font-medium text-primary"
                   : "border-transparent font-medium text-white/75 hover:text-white",
               )}
             >
@@ -251,8 +161,6 @@ export function TopBar({ onNewTransaction }: TopBarProps) {
             </NavLink>
           );
         })}
-
-        <MoreDropdown />
       </nav>
 
       {/* ── Right: Actions ──────────────────── */}
@@ -260,7 +168,7 @@ export function TopBar({ onNewTransaction }: TopBarProps) {
         {/* + Nova Transação */}
         <button
           onClick={onNewTransaction}
-          className="flex items-center gap-1.5 rounded-[8px] bg-[#25d366] px-4 py-2 text-[13px] font-semibold text-white shadow-sm transition-all hover:bg-[#1db954] active:scale-95"
+          className="flex items-center gap-1.5 rounded-[8px] bg-primary px-4 py-2 text-[13px] font-semibold text-primary-foreground shadow-glow transition-opacity hover:opacity-90 active:scale-95"
         >
           <Plus className="h-[15px] w-[15px]" />
           Nova Transação

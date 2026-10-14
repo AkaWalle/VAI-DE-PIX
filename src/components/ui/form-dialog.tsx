@@ -60,7 +60,7 @@ export function FormDialog({
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="bg-primary hover:bg-[#075e54] text-white rounded-[8px] px-6"
+                className="bg-primary hover:opacity-90 text-primary-foreground rounded-[8px] px-6"
                 aria-label={`${submitLabel} - ${title.toLowerCase()}`}
               >
                 {isLoading ? (

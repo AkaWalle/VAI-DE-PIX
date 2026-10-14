@@ -7,12 +7,6 @@ import {
   Target,
   MoreHorizontal,
   Wallet,
-  Share2,
-  Clock,
-  Activity,
-  FileText,
-  TrendingUp,
-  Zap,
   Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -28,14 +22,8 @@ interface MobileNavProps {
 }
 
 const MORE_ITEMS = [
-  { title: "Caixinhas",       url: "/envelopes",               icon: Wallet },
-  { title: "Compartilhadas",  url: "/shared-expenses",         icon: Share2 },
-  { title: "Pendências",      url: "/shared-expenses/pending", icon: Clock },
-  { title: "Feed",            url: "/activity-feed",           icon: Activity },
-  { title: "Relatórios",      url: "/reports",                 icon: FileText },
-  { title: "Tendências",      url: "/trends",                  icon: TrendingUp },
-  { title: "Automações",      url: "/automations",             icon: Zap },
-  { title: "Configurações",   url: "/settings",                icon: Settings },
+  { title: "Caixinhas",     url: "/envelopes", icon: Wallet },
+  { title: "Configurações", url: "/settings",  icon: Settings },
 ];
 
 export function MobileNav({ onNewTransaction }: MobileNavProps) {
@@ -62,7 +50,7 @@ export function MobileNav({ onNewTransaction }: MobileNavProps) {
           className={({ isActive: a }) =>
             cn(
               "flex flex-1 flex-col items-center justify-center gap-0.5 h-full transition-colors",
-              a ? "text-[#128c7e] dark:text-[#25d366]" : "text-muted-foreground",
+              a ? "text-primary" : "text-muted-foreground",
             )
           }
         >
@@ -76,7 +64,7 @@ export function MobileNav({ onNewTransaction }: MobileNavProps) {
           className={({ isActive: a }) =>
             cn(
               "flex flex-1 flex-col items-center justify-center gap-0.5 h-full transition-colors",
-              a ? "text-[#128c7e] dark:text-[#25d366]" : "text-muted-foreground",
+              a ? "text-primary" : "text-muted-foreground",
             )
           }
         >
@@ -89,7 +77,7 @@ export function MobileNav({ onNewTransaction }: MobileNavProps) {
           <button
             onClick={onNewTransaction}
             aria-label="Nova Transação"
-            className="flex h-14 w-14 items-center justify-center rounded-full bg-[#128c7e] dark:bg-[#25d366] text-white shadow-[0_4px_16px_rgba(18,140,126,0.45)] dark:shadow-[0_4px_16px_rgba(37,211,102,0.35)] active:scale-95 transition-transform"
+            className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-glow active:scale-95 transition-transform"
           >
             <Plus className="h-6 w-6" />
           </button>
@@ -101,7 +89,7 @@ export function MobileNav({ onNewTransaction }: MobileNavProps) {
           className={({ isActive: a }) =>
             cn(
               "flex flex-1 flex-col items-center justify-center gap-0.5 h-full transition-colors",
-              a ? "text-[#128c7e] dark:text-[#25d366]" : "text-muted-foreground",
+              a ? "text-primary" : "text-muted-foreground",
             )
           }
         >
@@ -114,7 +102,7 @@ export function MobileNav({ onNewTransaction }: MobileNavProps) {
           onClick={() => setSheetOpen(true)}
           className={cn(
             "flex flex-1 flex-col items-center justify-center gap-0.5 h-full transition-colors",
-            isMoreActive ? "text-[#128c7e] dark:text-[#25d366]" : "text-muted-foreground",
+            isMoreActive ? "text-primary" : "text-muted-foreground",
           )}
         >
           <MoreHorizontal className="h-5 w-5" />
@@ -146,8 +134,8 @@ export function MobileNav({ onNewTransaction }: MobileNavProps) {
                   className={cn(
                     "flex flex-col items-center justify-center gap-1.5 rounded-[12px] p-3 transition-colors",
                     active
-                      ? "bg-[rgba(18,140,126,0.12)] dark:bg-[rgba(37,211,102,0.12)] text-[#128c7e] dark:text-[#25d366]"
-                      : "text-muted-foreground hover:bg-secondary",
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:bg-secondary",
                   )}
                 >
                   <Icon className="h-5 w-5" />
