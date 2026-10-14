@@ -2,7 +2,6 @@
 Configuração para testes E2E com Playwright
 """
 import pytest
-from playwright.sync_api import Page, Browser, BrowserContext
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -26,9 +25,12 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engin
 
 @pytest.fixture(scope="session")
 def browser():
-    """Fixture para o navegador Playwright."""
-    from playwright.sync_api import sync_playwright
-    
+    """Fixture para o navegador Playwright (opcional; API E2E não depende disso)."""
+    try:
+        from playwright.sync_api import sync_playwright
+    except ImportError:
+        pytest.skip("playwright não instalado neste ambiente")
+
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         yield browser
@@ -36,7 +38,7 @@ def browser():
 
 
 @pytest.fixture
-def page(browser: Browser):
+def page(browser):
     """Fixture para uma nova página do navegador."""
     context = browser.new_context()
     page = context.new_page()
@@ -96,14 +98,14 @@ def test_accounts(db, test_user):
     account1 = Account(
         id=str(uuid.uuid4()),
         name="Conta Teste 1",
-        account_type="checking",
+        type="checking",
         balance=1000.0,
         user_id=test_user.id
     )
     account2 = Account(
         id=str(uuid.uuid4()),
         name="Conta Teste 2",
-        account_type="savings",
+        type="savings",
         balance=500.0,
         user_id=test_user.id
     )

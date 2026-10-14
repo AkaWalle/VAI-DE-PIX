@@ -2,7 +2,6 @@
 Testes E2E de autenticação
 """
 import pytest
-from playwright.sync_api import Page
 from fastapi.testclient import TestClient
 import uuid
 
@@ -35,12 +34,12 @@ def test_register_creates_default_data(api_client: TestClient, db):
     assert accounts_response.status_code == 200
     accounts = accounts_response.json()
     
-    # Deve ter pelo menos 3 contas padrão
-    assert len(accounts) >= 3
+    assert len(accounts) >= 4
     account_names = [acc["name"] for acc in accounts]
-    assert "Carteira" in account_names
     assert "Conta Corrente" in account_names
-    assert "Nubank" in account_names
+    assert "Poupança" in account_names
+    assert "Cartão de Crédito" in account_names
+    assert "Dinheiro" in account_names
     
     # Verificar que categorias padrão foram criadas
     categories_response = api_client.get("/api/categories", headers=headers)

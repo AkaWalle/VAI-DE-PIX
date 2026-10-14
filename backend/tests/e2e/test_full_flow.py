@@ -1,21 +1,22 @@
 """
 Teste E2E completo do fluxo principal
 Cobre: registro → criar conta → lançar transação → verificar saldo → exportar CSV → soft delete
+
+Fixtures `client` e `db` vêm de tests/conftest.py via injeção do pytest.
+Não importar fixtures de conftest: isso quebra a coleta (ModuleNotFoundError).
 """
-import pytest
-from fastapi.testclient import TestClient
-from conftest import client, db
-from models import Transaction
 from datetime import datetime
+
+from models import Transaction
 
 
 class TestFullUserFlow:
     """Teste completo do fluxo do usuário"""
     
-    def test_complete_user_journey(self, client, db):
+    def test_complete_user_journey(self, api_client, db):
         """Testa jornada completa do usuário"""
         # 1. Registrar usuário
-        register_response = client.post(
+        register_response = api_client.post(
             "/api/auth/register",
             json={
                 "name": "Usuário E2E",
@@ -29,23 +30,23 @@ class TestFullUserFlow:
         headers = {"Authorization": f"Bearer {token}"}
         
         # 2. Verificar que categorias e contas padrão foram criadas
-        categories_response = client.get("/api/categories", headers=headers)
+        categories_response = api_client.get("/api/categories", headers=headers)
         assert categories_response.status_code == 200
         categories = categories_response.json()
         assert len(categories) > 0
         
-        accounts_response = client.get("/api/accounts", headers=headers)
+        accounts_response = api_client.get("/api/accounts", headers=headers)
         assert accounts_response.status_code == 200
         accounts = accounts_response.json()
         assert len(accounts) > 0
         
         # 3. Criar uma nova conta
-        new_account_response = client.post(
+        new_account_response = api_client.post(
             "/api/accounts",
             headers=headers,
             json={
                 "name": "Conta Poupança",
-                "account_type": "savings",
+                "type": "savings",
                 "balance": 0.0
             }
         )
@@ -60,7 +61,7 @@ class TestFullUserFlow:
         assert income_category is not None
         
         # 5. Criar transação de receita
-        transaction_response = client.post(
+        transaction_response = api_client.post(
             "/api/transactions",
             headers=headers,
             json={
@@ -76,12 +77,9 @@ class TestFullUserFlow:
         transaction_id = transaction_response.json()["id"]
         
         # 6. Verificar que saldo da conta foi atualizado
-        account_check = client.get(
-            f"/api/accounts/{new_account_id}",
-            headers=headers
-        )
-        assert account_check.status_code == 200
-        account_data = account_check.json()
+        listed = api_client.get("/api/accounts", headers=headers)
+        assert listed.status_code == 200
+        account_data = next(a for a in listed.json() if a["id"] == new_account_id)
         assert account_data["balance"] == 5000.0
         
         # 7. Criar transação de despesa
@@ -91,7 +89,7 @@ class TestFullUserFlow:
         )
         assert expense_category is not None
         
-        expense_response = client.post(
+        expense_response = api_client.post(
             "/api/transactions",
             headers=headers,
             json={
@@ -106,16 +104,13 @@ class TestFullUserFlow:
         assert expense_response.status_code == 200
         
         # 8. Verificar saldo após despesa
-        account_check = client.get(
-            f"/api/accounts/{new_account_id}",
-            headers=headers
-        )
-        assert account_check.status_code == 200
-        account_data = account_check.json()
+        listed = api_client.get("/api/accounts", headers=headers)
+        assert listed.status_code == 200
+        account_data = next(a for a in listed.json() if a["id"] == new_account_id)
         assert account_data["balance"] == 4700.0  # 5000 - 300
         
         # 9. Listar transações
-        transactions_response = client.get("/api/transactions", headers=headers)
+        transactions_response = api_client.get("/api/transactions", headers=headers)
         assert transactions_response.status_code == 200
         transactions = transactions_response.json()
         assert len(transactions) >= 2
@@ -124,7 +119,7 @@ class TestFullUserFlow:
         # Nota: Implementar endpoint de export se não existir
         
         # 11. Soft delete de transação
-        delete_response = client.delete(
+        delete_response = api_client.delete(
             f"/api/transactions/{transaction_id}",
             headers=headers
         )
@@ -138,11 +133,8 @@ class TestFullUserFlow:
         # (ajustar conforme modelo real)
         
         # 13. Verificar que saldo foi revertido após soft delete
-        account_check = client.get(
-            f"/api/accounts/{new_account_id}",
-            headers=headers
-        )
-        assert account_check.status_code == 200
+        listed = api_client.get("/api/accounts", headers=headers)
+        assert listed.status_code == 200
         # Saldo deve ter sido revertido (depende da implementação)
         
         # 14. Restaurar transação (se houver endpoint)

@@ -178,13 +178,23 @@ class TestAuthorization:
         db.commit()
         db.refresh(other_account)
         
-        # Tentar acessar conta do outro usuário
-        response = client.get(
+        # GET /api/accounts/{id} não existe (router só lista em GET /).
+        # Isolamento: a lista do usuário autenticado não pode vazar a conta alheia.
+        listed = client.get("/api/accounts", headers=auth_headers)
+        assert listed.status_code == status.HTTP_200_OK
+        listed_ids = {item["id"] for item in listed.json()}
+        assert other_account.id not in listed_ids
+
+        # Mutação no id alheio: 404 (ownership) ou 403 (CSRF sem cookie)
+        mutate = client.put(
             f"/api/accounts/{other_account.id}",
-            headers=auth_headers
+            headers=auth_headers,
+            json={"name": "Hijacked"},
         )
-        # Deve retornar 404 (não encontrada para este usuário) ou 403
-        assert response.status_code in [status.HTTP_404_NOT_FOUND, status.HTTP_403_FORBIDDEN]
+        assert mutate.status_code in [
+            status.HTTP_404_NOT_FOUND,
+            status.HTTP_403_FORBIDDEN,
+        ]
     
     def test_user_cannot_update_other_user_transaction(self, client, db, test_user, auth_headers):
         """Testa que usuário não pode atualizar transação de outro usuário."""
