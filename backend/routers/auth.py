@@ -24,9 +24,12 @@ from auth_utils import (
     verify_refresh_token,
     revoke_session,
     clear_refresh_cookie,
+    find_session_by_refresh_hash,
+    revoke_family,
 )
 from core.default_categories import DEFAULT_CATEGORIES
 from core.csrf import csrf_protect
+from core.response_headers import is_deployed_production
 
 router = APIRouter()
 
@@ -45,7 +48,7 @@ def _set_refresh_cookie(response: Response, token: str) -> None:
         value=token,
         max_age=_refresh_cookie_max_age(),
         httponly=True,
-        secure=os.getenv("ENVIRONMENT", "").lower() == "production",
+        secure=is_deployed_production(),
         samesite="lax",
         path="/",
     )
@@ -236,8 +239,8 @@ async def refresh_access_token(
 ):
     """
     Renova o access token usando o refresh token no cookie HttpOnly.
-    Requer USE_REFRESH_TOKENS=1. Retorna novo access token; o refresh token no cookie
-    pode ser mantido (rotação opcional não implementada aqui).
+    Rotação: a sessão atual é revogada e uma nova da mesma family_id é emitida.
+    Reuso de um token já revogado mata a família inteira (OWASP A07:2021).
     """
     if not USE_REFRESH_TOKENS:
         raise HTTPException(
@@ -247,6 +250,9 @@ async def refresh_access_token(
     refresh_value = request.cookies.get(REFRESH_TOKEN_COOKIE_NAME)
     session = verify_refresh_token(refresh_value, db) if refresh_value else None
     if not session:
+        stolen = find_session_by_refresh_hash(refresh_value, db) if refresh_value else None
+        if stolen and stolen.family_id:
+            revoke_family(stolen.family_id, db)
         clear_refresh_cookie(response)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -261,6 +267,16 @@ async def refresh_access_token(
             detail="Usuário inativo ou não encontrado",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    family_id = session.family_id
+    revoke_session(session.id, db)
+    refresh_raw, _new_session = create_refresh_token(
+        user.id,
+        db,
+        device=session.device,
+        ip=request.client.host if request.client else None,
+        family_id=family_id,
+    )
+    _set_refresh_cookie(response, refresh_raw)
     access_token = create_access_token(data={"sub": user.email})
     return {
         "access_token": access_token,

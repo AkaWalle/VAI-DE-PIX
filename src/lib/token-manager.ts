@@ -1,43 +1,42 @@
 /**
- * Gerenciamento de access token (localStorage/sessionStorage).
- * Módulo isolado para uso por http-client e auth-runtime-guard sem dependência circular.
+ * Access token só em memória (OWASP Top 10 A07:2021 Identification and Authentication Failures).
+ * XSS no SPA não persiste o JWT. Refresh permanece em cookie HttpOnly.
+ * Módulo isolado para http-client e auth-runtime-guard sem dependência circular.
  */
 
-const TOKEN_KEY = "vai-de-pix-token";
+const LEGACY_TOKEN_KEYS = ["vai-de-pix-token", "token"] as const;
 
-export function getTokenForRequest(): string | null {
-  if (typeof window === "undefined") return null;
-  return (
-    localStorage.getItem(TOKEN_KEY) ||
-    localStorage.getItem("token") ||
-    sessionStorage.getItem("token") ||
-    null
-  );
+let accessToken: string | null = null;
+
+function purgeLegacyStorages(): void {
+  if (typeof window === "undefined") return;
+  for (const key of LEGACY_TOKEN_KEYS) {
+    localStorage.removeItem(key);
+    sessionStorage.removeItem(key);
+  }
 }
 
-/** Remove token de todos os storages (sem side effects como reset de lock). */
+export function getTokenForRequest(): string | null {
+  return accessToken;
+}
+
+/** Zera a variável e remove leftovers de storage (sem side effects de lock). */
 export function clearAllTokensStoragesOnly(): void {
-  if (typeof window === "undefined") return;
-  localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem("token");
-  sessionStorage.removeItem("token");
+  accessToken = null;
+  purgeLegacyStorages();
 }
 
 export const tokenManager = {
-  get: (): string | null => {
-    return typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null;
-  },
+  get: (): string | null => accessToken,
 
   set: (token: string): void => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem(TOKEN_KEY, token);
-    }
+    accessToken = token;
+    purgeLegacyStorages();
   },
 
   remove: (): void => {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem(TOKEN_KEY);
-    }
+    accessToken = null;
+    purgeLegacyStorages();
   },
 
   isValid: (): boolean => {

@@ -27,6 +27,7 @@ const MAX_RETRY_AFTER_REFRESH = 1;
 export const httpClient = axios.create({
   baseURL: initialBaseURL,
   timeout: API_CONFIG.timeout,
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },

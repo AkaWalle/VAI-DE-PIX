@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from typing import Optional, Tuple
+import uuid
 from jose import jwt, JWTError
 import bcrypt
 from fastapi import Depends, HTTPException, status
@@ -74,16 +75,19 @@ def create_refresh_token(
     db: Session,
     device: Optional[str] = None,
     ip: Optional[str] = None,
+    family_id: Optional[str] = None,
 ) -> Tuple[str, UserSession]:
     """
     Gera um refresh token aleatório, persiste o hash na sessão e retorna (token_em_claro, session).
-    O token em claro deve ser enviado ao cliente uma única vez (cookie HttpOnly).
+    family_id agrupa rotações da mesma sessão de login. Reuso de um token
+    revogado da família invalida a família inteira.
     """
     raw_token = secrets.token_urlsafe(32)
     token_hash = _hash_refresh_token(raw_token)
     expires_at = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     session = UserSession(
         user_id=user_id,
+        family_id=family_id or str(uuid.uuid4()),
         refresh_token_hash=token_hash,
         device=device,
         ip=ip,
@@ -93,6 +97,31 @@ def create_refresh_token(
     db.commit()
     db.refresh(session)
     return raw_token, session
+
+
+def find_session_by_refresh_hash(token: str, db: Session) -> Optional[UserSession]:
+    """Localiza sessão pelo hash, inclusive revogada (detecção de reuso)."""
+    if not token:
+        return None
+    token_hash = _hash_refresh_token(token)
+    return (
+        db.query(UserSession)
+        .filter(UserSession.refresh_token_hash == token_hash)
+        .first()
+    )
+
+
+def revoke_family(family_id: str, db: Session) -> int:
+    """Revoga todas as sessões da família. Retorna quantidade marcada."""
+    if not family_id:
+        return 0
+    count = (
+        db.query(UserSession)
+        .filter(UserSession.family_id == family_id, UserSession.revoked_at.is_(None))
+        .update({UserSession.revoked_at: datetime.utcnow()}, synchronize_session=False)
+    )
+    db.commit()
+    return count
 
 
 def verify_refresh_token(token: str, db: Session) -> Optional[UserSession]:
