@@ -7,6 +7,7 @@ import { EnvelopeForm } from "@/components/forms/EnvelopeForm";
 import { EnvelopeValueForm } from "@/components/forms/EnvelopeValueForm";
 import { formatCurrency } from "@/utils/format";
 import { useToast } from "@/hooks/use-toast";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Plus, Wallet, ArrowLeftRight, TrendingUp, Trash2, AlertTriangle, RefreshCw } from "lucide-react";
 
 export default function Envelopes() {
@@ -140,8 +141,8 @@ export default function Envelopes() {
       <div className="space-y-7 animate-fade-in">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-xs font-medium uppercase tracking-widest text-[#128c7e] mb-1">Orçamento</p>
-            <h1 className="text-2xl font-bold text-foreground">Caixinhas</h1>
+            <p className="mb-1 font-mono text-[10px] uppercase tracking-[0.2em] text-primary">Orçamento</p>
+            <h1 className="font-serif text-2xl text-foreground">Caixinhas</h1>
           </div>
         </div>
         <div className="grid gap-4 sm:grid-cols-3">
@@ -171,8 +172,8 @@ export default function Envelopes() {
     return (
       <div className="space-y-7 animate-fade-in">
         <div>
-          <p className="text-xs font-medium uppercase tracking-widest text-[#128c7e] mb-1">Orçamento</p>
-          <h1 className="text-2xl font-bold text-foreground">Caixinhas</h1>
+          <p className="mb-1 font-mono text-[10px] uppercase tracking-[0.2em] text-primary">Orçamento</p>
+          <h1 className="font-serif text-2xl text-foreground">Caixinhas</h1>
         </div>
         <div className="flex flex-col items-center justify-center rounded-2xl border border-rose-500/20 bg-rose-500/5 py-16 px-8 text-center">
           <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-500/10">
@@ -191,34 +192,31 @@ export default function Envelopes() {
   return (
     <div className="space-y-7 animate-fade-in">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-widest text-[#128c7e] mb-1">Orçamento</p>
-          <h1 className="text-2xl font-bold text-foreground">Caixinhas</h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">Envelopes para organizar seu orçamento</p>
-        </div>
-        <div className="flex gap-2">
-          <EnvelopeForm />
-        </div>
-      </div>
+      <PageHeader
+        kicker="Orçamento"
+        title="Caixinhas"
+        description="Envelopes para organizar seu orçamento"
+      >
+        <EnvelopeForm />
+      </PageHeader>
 
       {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="rounded-2xl border border-white/8 bg-white/3 p-5">
-          <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground mb-1">Total Alocado</p>
-          <p className="text-3xl font-bold text-[#128c7e] tabular-nums">{formatCurrency(totalBalance)}</p>
+          <p className="mb-1 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Total Alocado</p>
+          <p className="font-serif text-3xl italic tabular-nums text-primary">{formatCurrency(totalBalance)}</p>
           <p className="text-xs text-muted-foreground mt-1">{envelopes.length} caixinha{envelopes.length !== 1 ? "s" : ""} ativa{envelopes.length !== 1 ? "s" : ""}</p>
         </div>
-        <div className="rounded-2xl border border-[rgba(18,140,126,0.2)] bg-[rgba(18,140,126,0.06)] p-5">
-          <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground mb-1">Meta Total</p>
-          <p className="text-3xl font-bold text-[#128c7e] tabular-nums">{formatCurrency(totalTarget)}</p>
+        <div className="rounded-2xl border border-primary/20 bg-primary/10 p-5">
+          <p className="mb-1 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Meta Total</p>
+          <p className="font-serif text-3xl italic tabular-nums text-primary">{formatCurrency(totalTarget)}</p>
           <p className="text-xs text-muted-foreground mt-1">Objetivo das caixinhas</p>
         </div>
         <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/8 p-5">
-          <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground mb-1">Progresso Geral</p>
-          <p className="text-3xl font-bold text-emerald-400 tabular-nums">{overallPct.toFixed(1)}%</p>
+          <p className="mb-1 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Progresso Geral</p>
+          <p className="font-serif text-3xl italic tabular-nums text-primary">{overallPct.toFixed(1)}%</p>
           <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-white/5">
-            <div className="h-full rounded-full bg-emerald-400 transition-all duration-700" style={{ width: `${Math.min(overallPct, 100)}%` }} />
+            <div className="h-full rounded-full bg-primary transition-all duration-700" style={{ width: `${Math.min(overallPct, 100)}%` }} />
           </div>
         </div>
       </div>
@@ -246,7 +244,7 @@ export default function Envelopes() {
               :                    "Precisa de Mais";
             const statusColor = !env.targetAmount ? "text-muted-foreground border-white/10"
               : isOver || pct >= 100 ? "text-emerald-400 border-emerald-500/30"
-              : pct >= 75            ? "text-[#128c7e] border-[rgba(18,140,126,0.3)]"
+              : pct >= 75            ? "text-primary border-primary/30"
               : pct >= 50            ? "text-amber-400 border-amber-500/30"
               :                       "text-rose-400 border-rose-500/30";
 
@@ -266,7 +264,7 @@ export default function Envelopes() {
 
                 {/* Balance */}
                 <div className="text-center mb-4">
-                  <p className="text-3xl font-bold text-foreground tabular-nums">{formatCurrency(env.balance)}</p>
+                  <p className="font-serif text-3xl italic tabular-nums text-foreground">{formatCurrency(env.balance)}</p>
                   {env.targetAmount && (
                     <p className="text-xs text-muted-foreground mt-1">de {formatCurrency(env.targetAmount)}</p>
                   )}
@@ -281,7 +279,7 @@ export default function Envelopes() {
                     </div>
                     <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/5">
                       <div
-                        className={`h-full rounded-full transition-all duration-700 ${isOver ? "bg-[#f59e0b]" : pct >= 100 ? "bg-[#25d366]" : "bg-[#128c7e]"}`}
+                        className={`h-full rounded-full transition-all duration-700 ${isOver ? "bg-warning" : pct >= 100 ? "bg-primary" : "bg-primary/70"}`}
                         style={{ width: `${Math.min(pct, 100)}%` }}
                       />
                     </div>
@@ -325,8 +323,8 @@ export default function Envelopes() {
       {envelopes.length > 1 && (
         <div className="rounded-2xl border border-white/8 bg-card p-5">
           <div className="flex items-center gap-2.5 mb-4">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[rgba(18,140,126,0.12)]">
-              <ArrowLeftRight className="h-4 w-4 text-[#128c7e]" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10">
+              <ArrowLeftRight className="h-4 w-4 text-primary" />
             </div>
             <div>
               <h2 className="text-sm font-semibold text-foreground">Transferência entre Caixinhas</h2>
@@ -377,7 +375,7 @@ export default function Envelopes() {
             />
             <ActionButton
               icon={ArrowLeftRight}
-              className="bg-primary hover:bg-[#075e54] text-white"
+              className="bg-primary text-primary-foreground hover:opacity-90"
               loading={isTransferring}
               loadingText="Transferindo..."
               onClick={handleTransfer}

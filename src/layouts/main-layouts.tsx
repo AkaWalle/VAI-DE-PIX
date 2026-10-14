@@ -6,17 +6,8 @@ import { MobileNav } from "@/components/mobile-nav";
 import { TopBar } from "@/components/top-bar";
 import { TransactionForm } from "@/components/forms/TransactionForm";
 import { NotificationBell } from "@/components/NotificationBell";
+import { Logo } from "@/components/Logo";
 import { Moon, Sun } from "lucide-react";
-
-/* ── Pix logo (used in mobile header) ── */
-function PixLogo({ size = 16 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="M10 1L19 10L10 19L1 10Z" fill="#25d366" />
-      <path d="M10 5.5L14.5 10L10 14.5L5.5 10Z" fill="#128c7e" />
-    </svg>
-  );
-}
 
 /* ── Theme toggle (used in mobile header — always white icons) ── */
 function ThemeToggle() {
@@ -45,14 +36,8 @@ export function MainLayout() {
         <TopBar onNewTransaction={() => setTxOpen(true)} />
 
         {/* ── Mobile header (< md) — always visible on both themes ── */}
-        <header className="sticky top-0 z-40 flex md:hidden h-14 items-center px-4 bg-[#075e54] dark:bg-[#0a1f1c] border-b border-black/10 dark:border-white/10 shadow-sm">
-          {/* Logo */}
-          <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#128c7e]">
-              <PixLogo size={16} />
-            </div>
-            <span className="text-sm font-bold text-white tracking-tight">VAI DE PIX</span>
-          </div>
+        <header className="sticky top-0 z-40 flex md:hidden h-14 items-center px-4 bg-sidebar border-b border-sidebar-border">
+          <Logo size="sm" />
 
           {/* Spacer */}
           <div className="flex-1" />

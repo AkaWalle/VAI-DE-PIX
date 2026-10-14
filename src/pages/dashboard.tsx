@@ -35,7 +35,7 @@ import {
   Cell,
 } from "recharts";
 
-const PIE_COLORS = ["#25d366", "#34b7f1", "#128c7e", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
+const PIE_COLORS = ["#c8ff00", "#a3a3a3", "#525252", "#f59e0b", "#ef4444", "#737373", "#d4d4d4"];
 
 /* ── Stat Card ── */
 function StatCard({
@@ -55,24 +55,24 @@ function StatCard({
 }) {
   const styles = {
     balance: {
-      wrap: "border-[rgba(18,140,126,0.2)] bg-gradient-to-br from-[rgba(18,140,126,0.08)] to-[rgba(18,140,126,0.02)]",
-      icon: "bg-[rgba(18,140,126,0.12)] text-[#128c7e]",
+      wrap: "border-primary/20 bg-primary/5",
+      icon: "bg-primary/10 text-primary",
       val:  "text-foreground",
     },
     income: {
-      wrap: "border-[rgba(37,211,102,0.2)] bg-gradient-to-br from-[rgba(37,211,102,0.08)] to-[rgba(37,211,102,0.02)]",
-      icon: "bg-[rgba(220,248,198,0.6)] text-[#25d366]",
-      val:  "text-[#25d366]",
+      wrap: "border-primary/20 bg-primary/10",
+      icon: "bg-primary/10 text-primary",
+      val:  "text-income",
     },
     expense: {
-      wrap: "border-[rgba(239,68,68,0.2)] bg-gradient-to-br from-[rgba(239,68,68,0.08)] to-[rgba(239,68,68,0.02)]",
-      icon: "bg-[rgba(239,68,68,0.12)] text-[#ef4444]",
-      val:  "text-[#ef4444]",
+      wrap: "border-expense/25 bg-expense/10",
+      icon: "bg-expense/10 text-expense",
+      val:  "text-expense",
     },
     savings: {
-      wrap: "border-[rgba(52,183,241,0.2)] bg-gradient-to-br from-[rgba(52,183,241,0.08)] to-[rgba(52,183,241,0.02)]",
-      icon: "bg-[rgba(52,183,241,0.12)] text-[#34b7f1]",
-      val:  "text-[#34b7f1]",
+      wrap: "border-primary/20 bg-primary/10",
+      icon: "bg-primary/10 text-primary",
+      val:  "text-primary",
     },
   }[variant];
 
@@ -83,11 +83,11 @@ function StatCard({
     >
       <div className="flex items-start justify-between">
         <div className="min-w-0 flex-1">
-          <p className="mb-1 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+          <p className="mb-1 font-mono text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
             {title}
           </p>
           <p
-            className={`stat-card-value-responsive tabular text-[20px] sm:text-[28px] font-bold tracking-tight leading-tight ${styles.val}`}
+            className={`stat-card-value-responsive tabular font-serif italic text-[20px] sm:text-[28px] font-normal tracking-tight leading-tight ${styles.val}`}
           >
             {value}
           </p>
@@ -105,11 +105,11 @@ function StatCard({
 function SectionTitle({ icon: Icon, title, sub }: { icon: React.ElementType; title: string; sub?: string }) {
   return (
     <div className="flex items-center gap-2.5 mb-4">
-      <div className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-[rgba(18,140,126,0.12)]">
-        <Icon className="h-4 w-4 text-[#128c7e]" />
+      <div className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-primary/10">
+        <Icon className="h-4 w-4 text-primary" />
       </div>
       <div>
-        <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+        <h2 className="font-serif text-sm text-foreground">{title}</h2>
         {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
       </div>
     </div>
@@ -227,16 +227,16 @@ export default function Dashboard() {
       {/* ── Page Header ── */}
       <div className="flex items-end justify-between">
         <div>
-          <p className="text-xs font-medium uppercase tracking-widest text-[#128c7e] mb-1">
+          <p className="mb-1 font-mono text-[10px] uppercase tracking-[0.2em] text-primary">
             {greeting}
           </p>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Visão Geral</h1>
+          <h1 className="font-serif text-2xl tracking-tight text-foreground">Visão Geral</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">
             {new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}
           </p>
         </div>
         {unreadCount > 0 && (
-          <div className="flex items-center gap-2 rounded-[8px] border border-[rgba(18,140,126,0.2)] bg-[rgba(18,140,126,0.08)] px-3 py-2 text-xs font-medium text-[#128c7e]">
+          <div className="flex items-center gap-2 rounded-[8px] border border-primary/20 bg-primary/10 px-3 py-2 font-mono text-[10px] uppercase tracking-wide text-primary">
             <Sparkles className="h-3.5 w-3.5" />
             {unreadCount} insight{unreadCount > 1 ? "s" : ""} novo{unreadCount > 1 ? "s" : ""}
           </div>
@@ -260,8 +260,8 @@ export default function Dashboard() {
             <AreaChart data={cashflowData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="gradIncome" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%"  stopColor="#25d366" stopOpacity={0.2} />
-                  <stop offset="95%" stopColor="#25d366" stopOpacity={0} />
+                  <stop offset="5%"  stopColor="#c8ff00" stopOpacity={0.2} />
+                  <stop offset="95%" stopColor="#c8ff00" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="gradExpense" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%"  stopColor="#ef4444" stopOpacity={0.12} />
@@ -297,11 +297,11 @@ export default function Dashboard() {
               <Area
                 type="monotone"
                 dataKey="income"
-                stroke="#25d366"
+                stroke="#c8ff00"
                 strokeWidth={2}
                 fill="url(#gradIncome)"
                 dot={false}
-                activeDot={{ r: 4, fill: "#25d366", strokeWidth: 0 }}
+                activeDot={{ r: 4, fill: "#c8ff00", strokeWidth: 0 }}
               />
               <Area
                 type="monotone"
@@ -316,7 +316,7 @@ export default function Dashboard() {
           </ResponsiveContainer>
           <div className="mt-2 flex items-center gap-5 px-1">
             <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <span className="h-2 w-2 rounded-full bg-[#25d366]" /> Receita
+              <span className="h-2 w-2 rounded-full bg-primary" /> Receita
             </span>
             <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <span className="h-2 w-2 rounded-full bg-[#ef4444]" /> Despesa
@@ -399,7 +399,7 @@ export default function Dashboard() {
                     <span className="text-sm font-medium text-foreground truncate pr-4">{goal.name}</span>
                     <span className={`flex items-center gap-1 text-xs font-medium shrink-0 ${
                       goal.status === "achieved" || goal.status === "on_track"
-                        ? "text-[#25d366]"
+                        ? "text-primary"
                         : goal.status === "at_risk"
                           ? "text-[#f59e0b]"
                           : "text-[#ef4444]"
@@ -416,7 +416,7 @@ export default function Dashboard() {
                       className="h-full rounded-full transition-all duration-700"
                       style={{
                         width: `${goal.pct}%`,
-                        background: goal.pct >= 100 ? "#25d366" : goal.pct >= 60 ? "#128c7e" : "#f59e0b",
+                        background: goal.pct >= 100 ? "#c8ff00" : goal.pct >= 60 ? "hsla(75,100%,50%,0.7)" : "#f59e0b",
                       }}
                     />
                   </div>
@@ -456,7 +456,7 @@ export default function Dashboard() {
                         {cat?.name} · {new Date(tx.date).toLocaleDateString("pt-BR")}
                       </p>
                     </div>
-                    <span className={`shrink-0 text-xs font-semibold tabular-nums ${isIncome ? "text-[#25d366]" : "text-[#ef4444]"}`}>
+                    <span className={`shrink-0 font-serif italic text-xs tabular-nums ${isIncome ? "text-income" : "text-expense"}`}>
                       {isIncome ? "+" : "-"}{formatCurrency(Math.abs(tx.amount), { showSign: false })}
                     </span>
                   </div>
@@ -482,7 +482,7 @@ export default function Dashboard() {
                   <div key={item.category_id} className="rounded-[8px] border border-border bg-secondary p-3">
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-sm font-medium text-foreground">{item.category_name}</span>
-                      <span className={`text-xs font-semibold ${item.variation_pct > 0 ? "text-[#ef4444]" : item.variation_pct < 0 ? "text-[#25d366]" : "text-muted-foreground"}`}>
+                      <span className={`font-mono text-xs ${item.variation_pct > 0 ? "text-expense" : item.variation_pct < 0 ? "text-income" : "text-muted-foreground"}`}>
                         {item.variation_pct > 0 ? "+" : ""}{item.variation_pct.toFixed(1)}%
                       </span>
                     </div>
@@ -502,7 +502,7 @@ export default function Dashboard() {
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-sm font-medium text-foreground truncate pr-2">{item.goal_name}</span>
                       {idx === 0 && (
-                        <span className="shrink-0 rounded-full bg-[rgba(18,140,126,0.12)] px-2 py-0.5 text-[10px] font-medium text-[#128c7e]">
+                        <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide text-primary">
                           Maior impacto
                         </span>
                       )}
