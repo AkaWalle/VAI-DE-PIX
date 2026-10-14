@@ -1,16 +1,16 @@
 # Security Headers - VAI DE PIX
 
-**Data:** 07/07/2026  
-**Versão:** 1.0  
-**Implementação:** Sprint 1 + Sprint 4
+**Data:** 2026-10-14  
+**Versão:** 1.1  
+**Implementação:** `backend/core/response_headers.py` montado em `api/index.py`, `backend/main.py` e `backend/production_server.py`. Documento HTML via `vercel.json`.
 
 ---
 
 ## 📊 Resumo
 
-O sistema VAI DE PIX implementa security headers completos seguindo as melhores práticas do OWASP e configurações modernas de segurança web.
+A versão 1.0 deste arquivo marcava o `SecurityHeadersMiddleware` como produção-ready. Esse middleware **não estava montado** na função da Vercel. A política vigente está em `core/response_headers.py` (headers curtos, sem COEP). Ver [SDR-FRONTEIRA.md](../SDR-FRONTEIRA.md).
 
-**Status:** ✅ **PRODUÇÃO-READY**
+**Status:** onda 1 — headers na função publicada. CSP do documento na Vercel. Sem `script-src 'unsafe-inline'`.
 
 ---
 
