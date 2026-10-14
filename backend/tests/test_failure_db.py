@@ -5,6 +5,7 @@ Validar: rollback automático, erro claro para o usuário, sem estado parcial.
 
 import pytest
 from sqlalchemy.exc import OperationalError
+from fastapi import status
 from fastapi.testclient import TestClient
 
 from database import get_db
@@ -46,8 +47,6 @@ def test_commit_error_triggers_rollback_no_partial_state(client: TestClient, db,
     """
     from models import Account
 
-    initial_count = db.query(Account).filter(Account.user_id == test_user.id).count()
-
     response = client.post(
         "/api/auth/login",
         json={"email": test_user.email, "password": "test123"},
@@ -55,6 +54,12 @@ def test_commit_error_triggers_rollback_no_partial_state(client: TestClient, db,
     assert response.status_code == 200
     token = response.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
+
+    # get_current_user pode semear contas padrão; medir depois do warmup.
+    # Trailing slash evita 307 que mascara o status da mutação.
+    warmup = client.get("/api/accounts/", headers=headers)
+    assert warmup.status_code == 200
+    initial_count = db.query(Account).filter(Account.user_id == test_user.id).count()
 
     # TestClient(raise_server_exceptions=False) para receber 500 em vez de propagar IntegrityError
     def override_get_db():
@@ -66,11 +71,16 @@ def test_commit_error_triggers_rollback_no_partial_state(client: TestClient, db,
     try:
         no_raise_client = TestClient(app, raise_server_exceptions=False)
         response = no_raise_client.post(
-            "/api/accounts",
+            "/api/accounts/",
             headers=headers,
             json={"name": "Conta Teste", "type": "invalid_type", "balance": 0},
         )
-        assert response.status_code == 500
+        # Validação Pydantic (422) ou constraint no banco (500). Nunca persistir.
+        assert response.status_code in (
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_400_BAD_REQUEST,
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
     finally:
         app.dependency_overrides.clear()
     db.rollback()

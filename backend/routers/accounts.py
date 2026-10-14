@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Literal, Optional
 from datetime import datetime
 from pydantic import BaseModel
+
+AccountType = Literal["checking", "savings", "investment", "credit", "cash"]
 
 from database import get_db
 from models import Account, User
@@ -14,13 +16,13 @@ router = APIRouter()
 
 class AccountCreate(BaseModel):
     name: str
-    type: str  # checking, savings, investment, credit, cash
+    type: AccountType
     balance: float = 0.0
 
 class AccountUpdate(BaseModel):
-    name: str = None
-    type: str = None
-    balance: float = None
+    name: Optional[str] = None
+    type: Optional[AccountType] = None
+    balance: Optional[float] = None
 
 class AccountResponse(BaseModel):
     id: str

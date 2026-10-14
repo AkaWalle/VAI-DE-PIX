@@ -37,12 +37,15 @@ def postgres_engine():
     url = _get_postgres_url()
     if url is None:
         pytest.skip("Testes avançados requerem PostgreSQL (DATABASE_URL com postgresql://)")
-    return create_engine(
+    engine = create_engine(
         url,
         pool_pre_ping=True,
         pool_size=10,
         max_overflow=20,
     )
+    # CI/CD sobe Postgres sem alembic neste job; create_all evita UndefinedTable.
+    Base.metadata.create_all(bind=engine)
+    return engine
 
 
 @pytest.fixture(scope="function")

@@ -4,7 +4,7 @@ O arquivo original foi referenciado por 20260707_add_cascade_delete.py
 mas nunca entrou no repositorio. Esta revisao restaura o no pai da cadeia
 Alembic para alembic upgrade head funcionar em banco vazio (CI).
 
-Revision ID: 20260707_add_composite_index_insights
+Revision ID: 20260707_insights_idx
 Revises: add_activity_feed
 Create Date: 2026-07-07 16:00:00.000000
 
@@ -15,7 +15,7 @@ from alembic import op
 import sqlalchemy as sa
 
 
-revision: str = "20260707_add_composite_index_insights"
+revision: str = "20260707_insights_idx"
 down_revision: Union[str, Sequence[str], None] = "add_activity_feed"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
