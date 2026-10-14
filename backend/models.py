@@ -444,6 +444,7 @@ class UserSession(Base):
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    family_id = Column(String, nullable=False, index=True, default=lambda: str(uuid.uuid4()))
     refresh_token_hash = Column(String(64), nullable=False, unique=True, index=True)  # SHA-256 hex
     device = Column(String(200), nullable=True)
     ip = Column(String(45), nullable=True)  # IPv6 max
@@ -455,6 +456,7 @@ class UserSession(Base):
 
     __table_args__ = (
         Index("idx_user_sessions_user_expires", "user_id", "expires_at"),
+        Index("idx_user_sessions_family", "family_id"),
     )
 
 

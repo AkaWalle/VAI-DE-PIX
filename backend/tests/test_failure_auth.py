@@ -53,6 +53,41 @@ def test_refresh_with_revoked_session_returns_error(client: TestClient, test_use
     assert "detail" in data
 
 
+def test_refresh_reuse_revokes_family(client: TestClient, test_user: User, db, monkeypatch):
+    """Reuso de refresh já rotacionado revoga a família (OWASP A07:2021)."""
+    import auth_utils
+    import routers.auth as auth_router
+    from auth_utils import (
+        create_refresh_token,
+        revoke_session,
+        REFRESH_TOKEN_COOKIE_NAME,
+    )
+    from models import UserSession as UserSessionModel
+
+    monkeypatch.setattr(auth_utils, "USE_REFRESH_TOKENS", True)
+    monkeypatch.setattr(auth_router, "USE_REFRESH_TOKENS", True)
+
+    raw_old, session = create_refresh_token(test_user.id, db)
+    family_id = session.family_id
+    revoke_session(session.id, db)
+    create_refresh_token(test_user.id, db, family_id=family_id)
+
+    response = client.post(
+        "/api/auth/refresh",
+        cookies={REFRESH_TOKEN_COOKIE_NAME: raw_old},
+    )
+    assert response.status_code == 401
+    active = (
+        db.query(UserSessionModel)
+        .filter(
+            UserSessionModel.family_id == family_id,
+            UserSessionModel.revoked_at.is_(None),
+        )
+        .count()
+    )
+    assert active == 0
+
+
 def test_inactive_user_token_returns_401(client: TestClient, test_user: User, db):
     """Token de usuário inativo (ex.: conta excluída) deve retornar 401."""
     test_user.is_active = False
