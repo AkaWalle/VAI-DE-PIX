@@ -18,22 +18,25 @@ class TestHealthCheck:
         assert response.status_code == 200
     
     def test_health_check_has_required_fields(self):
-        """Testa que health check retorna campos obrigatórios"""
+        """Liveness não revela banco nem timestamp."""
         response = client.get("/api/health")
         data = response.json()
-        
-        assert "status" in data
-        assert "timestamp" in data
-        assert "database" in data
-    
-    def test_health_check_database_connected(self):
-        """Testa que health check indica conexão com banco"""
-        response = client.get("/api/health")
+        assert data == {"status": "ok"}
+        assert "database" not in data
+        assert response.headers.get("Cache-Control") == "no-store"
+
+    def test_ready_does_not_leak_exception(self):
+        response = client.get("/api/ready")
+        assert response.status_code in (200, 503)
         data = response.json()
-        
-        # Deve estar healthy ou degraded (mas não error crítico)
-        assert data["status"] in ["healthy", "degraded"]
-        assert data["database"] in ["connected", "error: ..."]
+        assert data["status"] in ("ready", "not_ready")
+        assert "error" not in data
+        assert "database" not in data
+        assert response.headers.get("Cache-Control") == "no-store"
+
+    def test_debug_db_is_absent_on_main_app(self):
+        response = client.get("/debug/db")
+        assert response.status_code == 404
     
     def test_health_check_cors_headers(self):
         """Testa que health check permite CORS"""

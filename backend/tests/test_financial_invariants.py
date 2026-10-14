@@ -150,7 +150,10 @@ class TestTransferSameAccountRejected:
                 db=db,
             )
         assert exc_info.value.status_code == 400
-        assert "mesma conta" in (exc_info.value.detail or "").lower()
+        detail = exc_info.value.detail
+        if isinstance(detail, dict):
+            detail = " ".join(str(v) for v in detail.values())
+        assert "mesma conta" in (detail or "").lower()
 
 
 class TestSoftDeleteReversalInvariant:

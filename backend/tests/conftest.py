@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 from database import Base, get_db
 from models import User, Account, Category, Transaction, Notification, LedgerEntry
 from auth_utils import get_password_hash
-from main import app
+from main import app, limiter as auth_rate_limiter
 
 # Banco de dados em memória para testes (SQLite)
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
@@ -37,12 +37,15 @@ def postgres_engine():
     url = _get_postgres_url()
     if url is None:
         pytest.skip("Testes avançados requerem PostgreSQL (DATABASE_URL com postgresql://)")
-    return create_engine(
+    engine = create_engine(
         url,
         pool_pre_ping=True,
         pool_size=10,
         max_overflow=20,
     )
+    # CI/CD sobe Postgres sem alembic neste job; create_all evita UndefinedTable.
+    Base.metadata.create_all(bind=engine)
+    return engine
 
 
 @pytest.fixture(scope="function")
@@ -62,6 +65,41 @@ def postgres_db(postgres_engine, postgres_session_factory):
         yield session
     finally:
         session.close()
+
+
+@pytest.fixture(autouse=True)
+def _disable_csrf_unless_marked(request):
+    """
+    CSRF double-submit quebra POST/PUT/DELETE da suíte (cookie + header).
+    Testes marcados com @pytest.mark.csrf mantêm a proteção ligada.
+    """
+    if request.node.get_closest_marker("csrf"):
+        yield
+        return
+    previous = os.environ.get("DISABLE_CSRF_FOR_TESTS")
+    os.environ["DISABLE_CSRF_FOR_TESTS"] = "1"
+    try:
+        yield
+    finally:
+        if previous is None:
+            os.environ.pop("DISABLE_CSRF_FOR_TESTS", None)
+        else:
+            os.environ["DISABLE_CSRF_FOR_TESTS"] = previous
+
+
+@pytest.fixture(autouse=True)
+def _disable_auth_rate_limiter():
+    """
+    SlowAPI identifica todos os TestClient pelo mesmo IP (`testclient`).
+    Login (5/min) e register (3/min) esgotam o limite no meio da suíte.
+    Produção continua limitada; testes de 429 devem reativar o limiter.
+    """
+    previous = auth_rate_limiter.enabled
+    auth_rate_limiter.enabled = False
+    try:
+        yield
+    finally:
+        auth_rate_limiter.enabled = previous
 
 
 @pytest.fixture(scope="function")

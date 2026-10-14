@@ -1,7 +1,7 @@
 """add cascade delete to foreign keys
 
 Revision ID: 20260707_cascade
-Revises: 20260707_add_composite_index_insights
+Revises: 20260707_insights_idx
 Create Date: 2026-07-07 17:07:00.000000
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '20260707_cascade'
-down_revision = '20260707_add_composite_index_insights'
+down_revision = '20260707_insights_idx'
 branch_labels = None
 depends_on = None
 

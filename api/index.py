@@ -117,7 +117,7 @@ try:
     print("3.1 — FastAPI importado")
     from fastapi.middleware.cors import CORSMiddleware
     print("3.2 — CORSMiddleware importado")
-    from fastapi.responses import Response
+    from fastapi.responses import JSONResponse, Response
     print("3.3 — Response importado")
     from starlette.middleware.base import BaseHTTPMiddleware
     print("3.4 — BaseHTTPMiddleware importado")
@@ -150,6 +150,14 @@ try:
     from routers import transactions, goals, envelopes, categories, accounts, reports, automations, notifications, shared_expenses, activity_feed, activity_feed_ws, users
     from auth_utils import get_current_user
     from models import User
+    from core.response_headers import (
+        apply_api_headers,
+        cors_allow_headers_value,
+        cors_allow_methods_value,
+        cors_allow_origins,
+        cors_expose_headers_value,
+        is_deployed_production,
+    )
     print("5.4 — Todos os routers importados")
     print("5 — Routers importados com sucesso!")
 except ImportError as e:
@@ -169,26 +177,13 @@ except Exception as e:
     traceback.print_exc()
     raise
 
-# CORS e docs — mesmas regras de backend/main.py e production_server.py
-# (app serverless próprio; não importa backend/main.py para evitar scheduler/static)
-_frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5000")
-_is_production = os.getenv("ENVIRONMENT", "development").lower() == "production"
-_is_vercel = os.getenv("VERCEL", "") == "1"
-_docs_disabled = _is_production or _is_vercel
-
-if _is_production:
-    _allowed_origins = list(
-        {o for o in ["https://vai-de-pix.vercel.app", _frontend_url] if o}
-    )
-else:
-    _allowed_origins = [
-        _frontend_url,
-        "http://localhost:5000",
-        "http://localhost:3000",
-        "http://127.0.0.1:5000",
-    ]
-
-_ALLOWED_ORIGINS = set(_allowed_origins)
+# CORS e docs — mesmas regras de backend/main.py (core.response_headers)
+_is_production = is_deployed_production()
+_docs_disabled = _is_production
+_ALLOWED_ORIGINS = set(cors_allow_origins())
+_CORS_ALLOW_HEADERS = cors_allow_headers_value()
+_CORS_ALLOW_METHODS = cors_allow_methods_value()
+_CORS_EXPOSE_HEADERS = cors_expose_headers_value()
 
 app = FastAPI(
     title="VAI DE PIX API",
@@ -226,21 +221,23 @@ class CORSOptionsMiddleware(BaseHTTPMiddleware):
             response = Response()
             if is_allowed:
                 response.headers["Access-Control-Allow-Origin"] = origin
-                response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
-                response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With, X-CSRF-Token"
+                response.headers["Access-Control-Allow-Methods"] = _CORS_ALLOW_METHODS
+                response.headers["Access-Control-Allow-Headers"] = _CORS_ALLOW_HEADERS
                 response.headers["Access-Control-Allow-Credentials"] = "true"
                 response.headers["Access-Control-Max-Age"] = "3600"
+            apply_api_headers(response, request.url.path)
             return response
 
         response = await call_next(request)
 
         if is_allowed:
             response.headers["Access-Control-Allow-Origin"] = origin
-            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
-            response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With, X-CSRF-Token"
+            response.headers["Access-Control-Allow-Methods"] = _CORS_ALLOW_METHODS
+            response.headers["Access-Control-Allow-Headers"] = _CORS_ALLOW_HEADERS
             response.headers["Access-Control-Allow-Credentials"] = "true"
-            response.headers["Access-Control-Expose-Headers"] = "*"
+            response.headers["Access-Control-Expose-Headers"] = _CORS_EXPOSE_HEADERS
 
+        apply_api_headers(response, request.url.path)
         return response
 
 # Middleware to strip /api prefix from path
@@ -312,17 +309,19 @@ async def ws_activity_feed(websocket: WebSocket):
 
 # Root endpoint (com e sem prefixo /api para compatibilidade Vercel)
 async def _api_root_impl(request: Request):
-    return {
+    payload = {
         "message": "VAI DE PIX API",
         "version": "1.0.0",
         "status": "running",
         "docs": "/api/docs",
-        "debug": {
+    }
+    if not is_deployed_production():
+        payload["debug"] = {
             "path": request.url.path,
             "raw_path": request.scope.get("raw_path", b"").decode() if "raw_path" in request.scope else None,
             "method": request.method,
         }
-    }
+    return payload
 
 @app.get("/")
 async def api_root(request: Request):
@@ -333,123 +332,109 @@ async def api_root(request: Request):
 async def api_root_prefixed(request: Request):
     return await _api_root_impl(request)
 
-# Health check (com e sem prefixo /api para compatibilidade Vercel)
-async def _health_check_impl():
-    """Health check endpoint that verifies database connection"""
+def _database_is_ready() -> bool:
     try:
         from database import engine
         from sqlalchemy import text
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
-        return {"status": "healthy", "database": "connected"}
+        return True
     except Exception:
-        return {"status": "unhealthy", "database": "disconnected"}
+        print("ready check failed")
+        return False
+
+
+def _no_store_json(content: dict, status_code: int = 200) -> JSONResponse:
+    return JSONResponse(
+        status_code=status_code,
+        content=content,
+        headers={"Cache-Control": "no-store"},
+    )
+
 
 @app.get("/health")
-async def health_check():
-    return await _health_check_impl()
-
 @app.get("/api/health")
-async def health_check_api():
-    return await _health_check_impl()
+async def health_check():
+    """Liveness: processo no ar. Sem banco e sem cache."""
+    return _no_store_json({"status": "ok"})
 
-# Debug endpoint - Database info (requires authentication)
-@app.get("/debug/db")
-async def debug_database(current_user: User = Depends(get_current_user)):
-    """Debug endpoint to check database connection and tables"""
-    try:
-        from database import engine
-        from sqlalchemy import text
-        import os
-        DATABASE_URL = os.getenv("DATABASE_URL", "not configured")
-        
-        # Get database info
-        db_info = {
-            "database_type": "PostgreSQL" if "postgresql" in DATABASE_URL else "SQLite",
-            "connection": "ok",
-            "tables": []
-        }
-        
-        # Try to connect and get tables
-        with engine.connect() as conn:
-            # Test connection
-            conn.execute(text("SELECT 1"))
-            
-            # Get list of tables
-            if "postgresql" in DATABASE_URL:
-                result = conn.execute(text("""
-                    SELECT table_name 
-                    FROM information_schema.tables 
-                    WHERE table_schema = 'public'
-                    ORDER BY table_name
-                """))
-                tables = [row[0] for row in result]
-            else:
-                # SQLite
-                result = conn.execute(text("""
-                    SELECT name 
-                    FROM sqlite_master 
-                    WHERE type='table' 
-                    ORDER BY name
-                """))
-                tables = [row[0] for row in result]
-            
-            db_info["tables"] = tables
-            
-            # Get row counts for each table
-            table_counts = {}
-            for table in tables:
-                try:
-                    if "postgresql" in DATABASE_URL:
-                        count_result = conn.execute(text(f'SELECT COUNT(*) FROM "{table}"'))
-                    else:
-                        count_result = conn.execute(text(f'SELECT COUNT(*) FROM {table}'))
-                    count = count_result.scalar()
-                    table_counts[table] = count
-                except Exception:
-                    table_counts[table] = "error"
-            
-            db_info["table_counts"] = table_counts
-        
-        return db_info
-        
-    except Exception:
-        return {
-            "status": "error",
-            "error": "Erro ao conectar ao banco.",
-        }
 
-# Debug endpoint - Test query (requires authentication)
-@app.get("/debug/test-query")
-async def debug_test_query(current_user: User = Depends(get_current_user)):
-    """Test endpoint that performs a simple database query"""
-    try:
-        from database import get_db
-        from sqlalchemy import text
-        
-        # Get database session
-        db = next(get_db())
-        
-        # Perform test query
-        result = db.execute(text("SELECT NOW() as current_time, version() as db_version"))
-        row = result.fetchone()
-        
-        db.close()
-        
-        return {
-            "status": "success",
-            "query_executed": True,
-            "result": {
-                "current_time": str(row[0]) if row else None,
-                "db_version": str(row[1]) if row and len(row) > 1 else None
+@app.get("/ready")
+@app.get("/api/ready")
+async def ready_check():
+    """Readiness: banco responde. JSON sem detalhe de erro."""
+    if _database_is_ready():
+        return _no_store_json({"status": "ready"})
+    return _no_store_json({"status": "not_ready"}, status_code=503)
+
+# Diagnóstico só fora de produção: lista tabelas e versão do banco.
+if not is_deployed_production():
+
+    @app.get("/debug/db")
+    async def debug_database(current_user: User = Depends(get_current_user)):
+        """Inventário de tabelas. Não existe na função publicada."""
+        try:
+            from database import engine
+            from sqlalchemy import text
+
+            DATABASE_URL = os.getenv("DATABASE_URL", "not configured")
+            db_info = {
+                "database_type": "PostgreSQL" if "postgresql" in DATABASE_URL else "SQLite",
+                "connection": "ok",
+                "tables": [],
             }
-        }
-    except Exception:
-        return {
-            "status": "error",
-            "query_executed": False,
-            "error": "Erro ao executar consulta.",
-        }
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+                if "postgresql" in DATABASE_URL:
+                    result = conn.execute(text(
+                        "SELECT table_name FROM information_schema.tables "
+                        "WHERE table_schema = 'public' ORDER BY table_name"
+                    ))
+                    tables = [row[0] for row in result]
+                else:
+                    result = conn.execute(text(
+                        "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
+                    ))
+                    tables = [row[0] for row in result]
+                db_info["tables"] = tables
+                table_counts = {}
+                for table in tables:
+                    if not isinstance(table, str) or not table.replace("_", "").isalnum():
+                        table_counts[table] = "skipped"
+                        continue
+                    try:
+                        quoted = table.replace('"', "")
+                        count_result = conn.execute(text(f'SELECT COUNT(*) FROM "{quoted}"'))
+                        table_counts[table] = count_result.scalar()
+                    except Exception:
+                        table_counts[table] = "error"
+                db_info["table_counts"] = table_counts
+            return db_info
+        except Exception:
+            return {"status": "error", "error": "Erro ao conectar ao banco."}
+
+    @app.get("/debug/test-query")
+    async def debug_test_query(current_user: User = Depends(get_current_user)):
+        """Consulta de smoke. Não existe na função publicada."""
+        try:
+            from database import get_db
+            from sqlalchemy import text
+
+            db = next(get_db())
+            result = db.execute(text("SELECT NOW() as current_time"))
+            row = result.fetchone()
+            db.close()
+            return {
+                "status": "success",
+                "query_executed": True,
+                "result": {"current_time": str(row[0]) if row else None},
+            }
+        except Exception:
+            return {
+                "status": "error",
+                "query_executed": False,
+                "error": "Erro ao executar consulta.",
+            }
 
 # Vercel serverless: exportar apenas 'app' (ASGI). O runtime detecta FastAPI/ASGI
 # e NÃO deve haver variável 'handler' com instância Mangum, senão o runtime

@@ -2,6 +2,8 @@
 Testes para CSRF protection implementada na Sprint 3.
 """
 import pytest
+
+pytestmark = pytest.mark.csrf
 from fastapi import FastAPI, Depends, Request
 from fastapi.testclient import TestClient
 from core.csrf import (

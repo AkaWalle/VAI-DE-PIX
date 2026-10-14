@@ -132,6 +132,13 @@ def csrf_protect(request: Request) -> None:
     # Ignorar proteção CSRF em métodos seguros (GET, HEAD, OPTIONS)
     if request.method in ["GET", "HEAD", "OPTIONS"]:
         return
+
+    # Bypass explícito só na suíte (conftest). Bloqueado se ENVIRONMENT=production.
+    if (
+        os.getenv("DISABLE_CSRF_FOR_TESTS") == "1"
+        and os.getenv("ENVIRONMENT", "").lower() != "production"
+    ):
+        return
     
     # 1. Verificar se cookie está presente
     cookie_data = get_csrf_token_from_cookie(request)
